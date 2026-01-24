@@ -91,7 +91,7 @@ function search(q) {
   for (let i = 0; i < nameIndex.length; i++) {
     if (nameIndex[i].name.includes(q)) {
       results.push(nameIndex[i].product);
-      if (results.length === 1000) break;
+      if (results.length === 10000) break;
     }
   }
 

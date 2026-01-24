@@ -83,4 +83,16 @@ function clearResult() {
 function startScan() {
   const reader = new Html5Qrcode("reader");
   reader.start(
-    { facingMode: "environme
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    code => {
+      document.getElementById("search").value = code;
+      search(code);
+      reader.stop();
+    }
+  );
+}
+</script>
+
+</body>
+</html>

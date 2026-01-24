@@ -126,7 +126,7 @@ function startScan() {
   const reader = new Html5Qrcode("reader");
   reader.start(
     { facingMode: "environment" },
-    { fps: 10, qrbox: 250 },
+    { fps: 30, qrbox: 250 },
     code => {
       document.getElementById("search").value = code;
       search(code);

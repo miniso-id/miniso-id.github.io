@@ -33,10 +33,6 @@ button {
   color: white;
   margin-bottom: 12px;
   cursor: pointer;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 #reader {
@@ -60,7 +56,7 @@ button {
   font-size: 12px;
 }
 
-/* RESULT GRID */
+/* GRID */
 #result {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -76,9 +72,10 @@ button {
 
 .card img {
   width: 100%;
-  aspect-ratio: 1/1;
+  aspect-ratio: 1 / 1;
   object-fit: cover;
   background: #eee;
+  cursor: zoom-in;
 }
 
 .info {
@@ -113,4 +110,46 @@ button {
   font-size: 14px;
   font-weight: bold;
   word-break: break-word;
+}
+
+/* COPY BUTTON */
+.copy-btn {
+  margin-top: 6px;
+  padding: 6px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: none;
+  background: #e5e7eb;
+  cursor: pointer;
+}
+
+/* IMAGE MODAL */
+.img-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.img-modal img {
+  max-width: 90%;
+  max-height: 90%;
+  border-radius: 12px;
+}
+
+/* TOAST */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+  z-index: 10000;
 }

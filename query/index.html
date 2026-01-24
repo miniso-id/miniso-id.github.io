@@ -9,47 +9,84 @@
 </head>
 <body>
 
-<h2>🔍 Product Search</h2>
+<h2>🔍 Product Search (beta)</h2>
 
 <input id="search" placeholder="Scan barcode / ketik nama">
 <button onclick="startScan()">📷 Scan Barcode</button>
 
 <div id="reader"></div>
+
+<h3>🕘 Scan History</h3>
+<div id="history"></div>
+
 <div id="result"></div>
 
 <script>
 let products = [];
 let barcodeIndex = {};
 let nameIndex = [];
-let timer;
+let activeBarcode = "";
+let lastBeep = "";
+let scanHistory = [];
 
-// LOAD DATA
+/* ========= AUDIO ========= */
+function beepSuccess() {
+  playBeep(1000, 0.12);
+}
+
+function beepError() {
+  playBeep(300, 0.25);
+}
+
+function playBeep(freq, duration) {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+
+  osc.frequency.value = freq;
+  gain.gain.value = 0.15;
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+
+  osc.start();
+  osc.stop(ctx.currentTime + duration);
+}
+
+/* ========= LOAD DATA ========= */
 fetch('products.json')
   .then(r => r.json())
   .then(data => {
     products = data;
     data.forEach(p => {
-      barcodeIndex[p.b] = p;
+      String(p.b).split("/").forEach(code => {
+        const clean = code.trim();
+        if (clean) barcodeIndex[clean] = p;
+      });
       nameIndex.push({ n: p.n.toLowerCase(), p });
     });
   });
 
-// DEBOUNCE SEARCH
+/* ========= SEARCH ========= */
 document.getElementById("search").addEventListener("input", e => {
-  clearTimeout(timer);
-  timer = setTimeout(() => search(e.target.value), 120);
+  search(e.target.value);
 });
 
 function search(q) {
-  q = q.trim().toLowerCase();
+  q = String(q).trim().toLowerCase();
   if (!q) return clearResult();
 
-  // PRIORITY: BARCODE
+  activeBarcode = q;
+
   if (barcodeIndex[q]) {
+    if (q !== lastBeep) {
+      beepSuccess();
+      lastBeep = q;
+      addHistory(q, barcodeIndex[q].n);
+    }
     return render([barcodeIndex[q]]);
   }
 
-  // NAME SEARCH (LIMIT 20)
   const results = [];
   for (let i = 0; i < nameIndex.length; i++) {
     if (nameIndex[i].n.includes(q)) {
@@ -57,38 +94,70 @@ function search(q) {
       if (results.length === 20) break;
     }
   }
+
+  if (results.length === 0 && q !== lastBeep) {
+    beepError();
+    lastBeep = q;
+    addHistory(q, "❌ Tidak ditemukan");
+  }
+
   render(results);
 }
 
-// RENDER GALLERY
+/* ========= RENDER ========= */
 function render(list) {
   document.getElementById("result").innerHTML =
-    list.map(p => `
-      <div class="card">
-        <img src="${p.i}" loading="lazy" alt="">
-        <div class="info">
-          <div class="name">${p.n}</div>
-          <div class="barcode">${p.b}</div>
-          <div class="price">${p.h}</div>
+    list.map(p => {
+      const barcodes = String(p.b).split("/").map(b => {
+        const clean = b.trim();
+        return clean === activeBarcode
+          ? `<span class="barcode-hit">${clean}</span>`
+          : `<span>${clean}</span>`;
+      }).join(" / ");
+
+      return `
+        <div class="card">
+          <img src="${p.i}" loading="lazy">
+          <div class="info">
+            <div class="name">${p.n}</div>
+            <div class="barcode">${barcodes}</div>
+            <div class="price">${p.h}</div>
+          </div>
         </div>
-      </div>
-    `).join("");
+      `;
+    }).join("");
 }
 
 function clearResult() {
   document.getElementById("result").innerHTML = "";
 }
 
-// BARCODE SCAN
+/* ========= HISTORY ========= */
+function addHistory(code, name) {
+  scanHistory.unshift({ code, name });
+  scanHistory = scanHistory.slice(0, 10);
+
+  document.getElementById("history").innerHTML =
+    scanHistory.map(h => `
+      <div class="history-item">
+        <b>${h.code}</b><br>
+        <small>${h.name}</small>
+      </div>
+    `).join("");
+}
+
+/* ========= SCAN ========= */
 function startScan() {
   const reader = new Html5Qrcode("reader");
   reader.start(
     { facingMode: "environment" },
     { fps: 10, qrbox: 250 },
     code => {
-      document.getElementById("search").value = code;
-      search(code);
+      const clean = String(code).trim();
+      document.getElementById("search").value = clean;
+      search(clean);
       reader.stop();
+      document.getElementById("reader").innerHTML = "";
     }
   );
 }

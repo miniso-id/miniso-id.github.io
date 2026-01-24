@@ -1,0 +1,12 @@
+[
+  {
+    "barcode": "8991234567890",
+    "name": "Botol Minum",
+    "image": "https://via.placeholder.com/300x300.png?text=Botol+Minum"
+  },
+  {
+    "barcode": "8999876543210",
+    "name": "Payung",
+    "image": "https://via.placeholder.com/300x300.png?text=Payung"
+  }
+]

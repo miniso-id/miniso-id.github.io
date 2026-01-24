@@ -120,12 +120,16 @@ function clearResult() {
 /* ================= BARCODE SCAN ================= */
 document.getElementById("scanBtn").onclick = () => {
   const reader = new Html5Qrcode("reader");
+
   reader.start(
     { facingMode: "environment" },
     { fps: 10, qrbox: 250 },
     code => {
       input.value = code;
+
+      /* ✅ AUTO SHOW CLEAR BUTTON */
       clearBtn.style.display = "block";
+
       search(code);
       reader.stop();
     }

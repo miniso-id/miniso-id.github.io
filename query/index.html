@@ -30,7 +30,6 @@ let nameIndex = [];
 let activeBarcode = "";
 let scanHistory = [];
 
-/* ===== BEEP ===== */
 function beep(freq, dur) {
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
   const osc = ctx.createOscillator();
@@ -42,7 +41,6 @@ function beep(freq, dur) {
 const beepOK = () => beep(1000, 0.12);
 const beepErr = () => beep(300, 0.25);
 
-/* ===== LOAD DATA ===== */
 fetch('products.json')
   .then(r => r.json())
   .then(data => {
@@ -55,7 +53,6 @@ fetch('products.json')
     });
   });
 
-/* ===== SEARCH ===== */
 document.getElementById("search").addEventListener("input", e => {
   search(e.target.value.trim());
 });
@@ -86,7 +83,6 @@ function search(q) {
   render(res);
 }
 
-/* ===== RENDER ===== */
 function render(list) {
   document.getElementById("result").innerHTML =
     list.map(p => {
@@ -113,7 +109,6 @@ function clearResult() {
   document.getElementById("result").innerHTML = "";
 }
 
-/* ===== HISTORY ===== */
 function addHistory(code, name) {
   scanHistory.unshift({ code, name });
   scanHistory = scanHistory.slice(0, 8);
@@ -127,7 +122,6 @@ function addHistory(code, name) {
     `).join("");
 }
 
-/* ===== SCAN ===== */
 function startScan() {
   const reader = new Html5Qrcode("reader");
   reader.start(

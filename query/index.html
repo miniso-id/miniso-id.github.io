@@ -56,11 +56,6 @@ function search(q) {
   render(results);
 }
 
-// FORMAT HARGA
-function formatRupiah(num) {
-  return "Rp " + num.toLocaleString("id-ID");
-}
-
 function render(list) {
   document.getElementById("result").innerHTML =
     list.map(p => `
@@ -69,7 +64,7 @@ function render(list) {
         <div>
           <b>${p.n}</b><br>
           <small>${p.b}</small><br>
-          <strong>$(p.h)</strong>
+          <span>${p.h}</span>
         </div>
       </div>
     `).join("");

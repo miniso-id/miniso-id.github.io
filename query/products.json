@@ -1,12 +1,12 @@
 [
   {
-    "barcode": "8996001600269",
-    "name": "Botol Minum",
-    "image": "https://miniso-pic.oss-cn-shenzhen.aliyuncs.com/6941501561499-1.jpg"
+    "b": "8991234567890",
+    "n": "Botol Minum Stainless",
+    "i": "https://via.placeholder.com/300x300.png?text=Botol"
   },
   {
-    "barcode": "8999876543210",
-    "name": "Payung",
-    "image": "https://miniso-pic.oss-cn-shenzhen.aliyuncs.com/6941501561499-1.jpg"
+    "b": "8999876543210",
+    "n": "Payung Lipat",
+    "i": "https://via.placeholder.com/300x300.png?text=Payung"
   }
 ]

@@ -5,18 +5,11 @@ body {
   margin: auto;
 }
 
-input {
+input, button {
   width: 100%;
   padding: 12px;
   font-size: 16px;
   margin-bottom: 10px;
-}
-
-button {
-  width: 100%;
-  padding: 12px;
-  font-size: 16px;
-  margin-bottom: 12px;
 }
 
 .card {

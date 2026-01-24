@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Product Search</title>
+  <title>Product Search (Optimized)</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
@@ -19,31 +19,58 @@
 
 <script>
 let products = [];
+let barcodeIndex = {};
+let nameIndex = [];
+let timer;
 
 fetch('products.json')
-  .then(res => res.json())
-  .then(data => products = data);
+  .then(r => r.json())
+  .then(data => {
+    products = data;
+    data.forEach(p => {
+      barcodeIndex[p.b] = p;
+      nameIndex.push({ n: p.n.toLowerCase(), p });
+    });
+  });
 
-document.getElementById('search').addEventListener('input', e => {
-  showResult(e.target.value);
+document.getElementById("search").addEventListener("input", e => {
+  clearTimeout(timer);
+  timer = setTimeout(() => search(e.target.value), 120);
 });
 
-function showResult(q) {
-  q = q.toLowerCase();
-  const found = products.filter(p =>
-    p.barcode.includes(q) || p.name.toLowerCase().includes(q)
-  );
+function search(q) {
+  q = q.trim().toLowerCase();
+  if (!q) return clearResult();
 
-  document.getElementById('result').innerHTML =
-    found.map(p => `
+  if (barcodeIndex[q]) {
+    return render([barcodeIndex[q]]);
+  }
+
+  const results = [];
+  for (let i = 0; i < nameIndex.length; i++) {
+    if (nameIndex[i].n.includes(q)) {
+      results.push(nameIndex[i].p);
+      if (results.length === 20) break;
+    }
+  }
+  render(results);
+}
+
+function render(list) {
+  document.getElementById("result").innerHTML =
+    list.map(p => `
       <div class="card">
-        <img src="${p.image}" loading="lazy">
+        <img src="${p.i}" loading="lazy">
         <div>
-          <b>${p.name}</b><br>
-          <small>${p.barcode}</small>
+          <b>${p.n}</b><br>
+          <small>${p.b}</small>
         </div>
       </div>
-    `).join('');
+    `).join("");
+}
+
+function clearResult() {
+  document.getElementById("result").innerHTML = "";
 }
 
 function startScan() {
@@ -52,8 +79,8 @@ function startScan() {
     { facingMode: "environment" },
     { fps: 10, qrbox: 250 },
     code => {
-      document.getElementById('search').value = code;
-      showResult(code);
+      document.getElementById("search").value = code;
+      search(code);
       reader.stop();
     }
   );

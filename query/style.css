@@ -94,10 +94,11 @@ h2, h3 {
   border-radius: 4px;
 }
 
+/* ===== PRICE (WRAP ENABLED) ===== */
 .price {
   font-size: 13px;
   font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;      /* 🔥 wrap aktif */
+  word-break: break-word;  /* 🔥 aman untuk teks panjang */
+  line-height: 1.3;
 }

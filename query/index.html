@@ -9,9 +9,9 @@
 </head>
 <body>
 
-<h2>🔍 Product Search (beta)</h2>
+<h2>Product Search</h2>
 
-<input id="search" placeholder="Scan barcode / ketik nama">
+<input id="search" placeholder="Scan barcode / type name">
 <button onclick="startScan()">📷 Scan Barcode</button>
 
 <div id="reader"></div>
@@ -30,14 +30,6 @@ let lastBeep = "";
 let scanHistory = [];
 
 /* ========= AUDIO ========= */
-function beepSuccess() {
-  playBeep(1000, 0.12);
-}
-
-function beepError() {
-  playBeep(300, 0.25);
-}
-
 function playBeep(freq, duration) {
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
   const osc = ctx.createOscillator();
@@ -52,6 +44,9 @@ function playBeep(freq, duration) {
   osc.start();
   osc.stop(ctx.currentTime + duration);
 }
+
+const beepSuccess = () => playBeep(1000, 0.12);
+const beepError   = () => playBeep(300, 0.25);
 
 /* ========= LOAD DATA ========= */
 fetch('products.json')
@@ -115,13 +110,24 @@ function render(list) {
           : `<span>${clean}</span>`;
       }).join(" / ");
 
+      const copyText =
+`${p.n}
+Barcode: ${p.b}
+Harga: ${p.h}`;
+
       return `
         <div class="card">
-          <img src="${p.i}" loading="lazy">
+          <img src="${p.i}" loading="lazy" onclick="zoomImage('${p.i}')">
+
           <div class="info">
             <div class="name">${p.n}</div>
             <div class="barcode">${barcodes}</div>
             <div class="price">${p.h}</div>
+
+            <button class="copy-btn"
+              onclick="copyResult(\`${copyText.replace(/`/g,'')}\`)">
+              📋 Copy
+            </button>
           </div>
         </div>
       `;
@@ -144,6 +150,31 @@ function addHistory(code, name) {
         <small>${h.name}</small>
       </div>
     `).join("");
+}
+
+/* ========= COPY ========= */
+function copyResult(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    showToast("✅ Copied");
+  });
+}
+
+/* ========= IMAGE ZOOM ========= */
+function zoomImage(src) {
+  const modal = document.createElement("div");
+  modal.className = "img-modal";
+  modal.innerHTML = `<img src="${src}">`;
+  modal.onclick = () => modal.remove();
+  document.body.appendChild(modal);
+}
+
+/* ========= TOAST ========= */
+function showToast(msg) {
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.innerText = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 1200);
 }
 
 /* ========= SCAN ========= */

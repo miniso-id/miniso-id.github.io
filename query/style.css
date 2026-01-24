@@ -1,33 +1,88 @@
+/* RESET BASIC */
+* {
+  box-sizing: border-box;
+}
+
 body {
-  font-family: Arial, sans-serif;
-  padding: 16px;
-  max-width: 480px;
-  margin: auto;
-}
-
-input, button {
-  width: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  margin: 0;
   padding: 12px;
-  font-size: 16px;
-  margin-bottom: 10px;
+  background: #f6f6f6;
 }
 
-.card {
-  display: flex;
-  gap: 12px;
-  border: 1px solid #ddd;
+/* HEADER */
+h2 {
+  margin: 0 0 10px;
+}
+
+/* SEARCH */
+#search {
+  width: 100%;
   padding: 10px;
-  margin-bottom: 10px;
+  font-size: 16px;
   border-radius: 8px;
+  border: 1px solid #ccc;
+  margin-bottom: 8px;
 }
 
-.card img {
-  width: 90px;
-  height: 90px;
-  object-fit: cover;
-  border-radius: 6px;
+button {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  margin-bottom: 12px;
 }
 
+button:active {
+  opacity: 0.85;
+}
+
+/* BARCODE READER */
 #reader {
   margin-bottom: 12px;
 }
+
+/* RESULT GRID */
+#result {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+/* CARD */
+.card {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+}
+
+/* IMAGE */
+.card img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  background: #eee;
+}
+
+/* INFO */
+.info {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* PRODUCT NAME */
+.name {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+
+  /* max 2*

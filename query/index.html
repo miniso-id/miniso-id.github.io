@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MMS-X</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MMS-X</title>
 
-<link rel="stylesheet" href="style.css">
-<script src="https://unpkg.com/@zxing/library@0.20.0"></script>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
-
 <body>
 
 <h1>MMS-X</h1>
@@ -16,9 +15,14 @@
 
 <div class="search-box">
   <div class="input-wrap">
-    <input id="searchInput" placeholder="Search here" autocomplete="off">
-    <span id="clearBtn">✕</span>
+    <input
+      id="searchInput"
+      placeholder="Search here"
+      autocomplete="off"
+    />
+    <span id="clearBtn" title="Clear">✕</span>
   </div>
+
   <button id="scanBtn">📷 Scan Barcode</button>
 </div>
 
@@ -29,44 +33,52 @@
 
 <div id="result" class="grid"></div>
 
+<!-- AUDIO -->
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
 <script>
-/* ================= DATA ================= */
+/* ================= PRELOAD INDEX ================= */
 let barcodeIndex = new Map();
 let nameIndex = [];
 let history = [];
 
 fetch('products.json')
-.then(r => r.json())
-.then(data => {
-  data.forEach(p => {
-    p.b.split("/").forEach(c => barcodeIndex.set(c.trim(), p));
-    nameIndex.push({ name: p.n.toLowerCase(), product: p });
+  .then(r => r.json())
+  .then(data => {
+    for (const p of data) {
+      p.b.split("/").forEach(code => {
+        barcodeIndex.set(code.trim(), p);
+      });
+      nameIndex.push({
+        name: p.n.toLowerCase(),
+        product: p
+      });
+    }
   });
-});
 
 /* ================= ELEMENT ================= */
 const input = document.getElementById("searchInput");
 const clearBtn = document.getElementById("clearBtn");
-const readerEl = document.getElementById("reader");
 
-/* ================= SEARCH ================= */
+/* ================= INPUT ================= */
 input.addEventListener("input", e => {
   clearBtn.style.display = e.target.value ? "block" : "none";
   search(e.target.value);
 });
 
+/* ================= CLEAR BUTTON ================= */
 clearBtn.onclick = () => {
   input.value = "";
   clearBtn.style.display = "none";
-  document.getElementById("result").innerHTML = "";
+  clearResult();
+  input.focus();
 };
 
+/* ================= SEARCH ================= */
 function search(q) {
   q = q.trim().toLowerCase();
-  if (!q) return;
+  if (!q) return clearResult();
 
   if (barcodeIndex.has(q)) {
     beep(true);
@@ -75,15 +87,16 @@ function search(q) {
     return;
   }
 
-  const res = [];
-  for (const n of nameIndex) {
-    if (n.name.includes(q)) {
-      res.push(n.product);
-      if (res.length >= 500) break;
+  const results = [];
+  for (let i = 0; i < nameIndex.length; i++) {
+    if (nameIndex[i].name.includes(q)) {
+      results.push(nameIndex[i].product);
+      if (results.length === 1000) break;
     }
   }
-  res.length ? beep(true) : beep(false);
-  render(res, q);
+
+  results.length ? beep(true) : beep(false);
+  render(results, q);
 }
 
 /* ================= RENDER ================= */
@@ -100,11 +113,35 @@ function render(list, q="") {
   `).join("");
 }
 
+function clearResult() {
+  document.getElementById("result").innerHTML = "";
+}
+
+/* ================= BARCODE SCAN ================= */
+document.getElementById("scanBtn").onclick = () => {
+  const reader = new Html5Qrcode("reader");
+
+  reader.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    code => {
+      input.value = code;
+
+      /* ✅ AUTO SHOW CLEAR BUTTON */
+      clearBtn.style.display = "block";
+
+      search(code);
+      reader.stop();
+    }
+  );
+};
+
 /* ================= HISTORY ================= */
 function addHistory(code) {
   if (history.includes(code)) return;
   history.unshift(code);
   if (history.length > 5) history.pop();
+
   document.getElementById("history").innerHTML =
     history.map(h => `<span>${h}</span>`).join("");
 }
@@ -113,49 +150,6 @@ function addHistory(code) {
 function beep(ok) {
   (ok ? beepOk : beepErr).play();
 }
-
-/* ================= ZXING SCANNER (FIXED) ================= */
-let codeReader;
-let scanning = false;
-
-document.getElementById("scanBtn").onclick = async () => {
-  if (scanning) return;
-  scanning = true;
-  readerEl.innerHTML = "";
-
-  codeReader = new ZXing.BrowserMultiFormatReader();
-
-  try {
-    await codeReader.decodeFromConstraints(
-      {
-        video: {
-          facingMode: { ideal: "environment" },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      },
-      readerEl,
-      (result, err) => {
-        if (result) {
-          const code = result.getText();
-
-          input.value = code;
-          clearBtn.style.display = "block";
-
-          beep(true);
-          addHistory(code);
-          search(code);
-
-          codeReader.reset();
-          scanning = false;
-        }
-      }
-    );
-  } catch (e) {
-    alert("Camera not available / permission denied");
-    scanning = false;
-  }
-};
 </script>
 
 </body>

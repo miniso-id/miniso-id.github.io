@@ -6,7 +6,7 @@
 <title>MMS-X</title>
 
 <link rel="stylesheet" href="style.css">
-<script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
+<script src="https://unpkg.com/@zxing/library@0.20.0"></script>
 </head>
 
 <body>
@@ -114,62 +114,46 @@ function beep(ok) {
   (ok ? beepOk : beepErr).play();
 }
 
-/* ================= QUAGGA SCANNER ================= */
+/* ================= ZXING SCANNER ================= */
+let codeReader;
 let scanning = false;
 
-document.getElementById("scanBtn").onclick = () => {
+document.getElementById("scanBtn").onclick = async () => {
   if (scanning) return;
   scanning = true;
-
   readerEl.innerHTML = "";
 
-  Quagga.init({
-    inputStream: {
-      type: "LiveStream",
-      target: readerEl,
-      constraints: {
-        facingMode: "environment",
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
+  codeReader = new ZXing.BrowserMultiFormatReader();
+
+  try {
+    const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
+    const backCam =
+      devices.find(d => /back|rear|environment/i.test(d.label))?.deviceId ||
+      devices[0]?.deviceId;
+
+    await codeReader.decodeFromVideoDevice(
+      backCam,
+      readerEl,
+      (result, err) => {
+        if (result) {
+          const code = result.getText();
+
+          input.value = code;
+          clearBtn.style.display = "block";
+
+          beep(true);
+          addHistory(code);
+          search(code);
+
+          codeReader.reset();
+          scanning = false;
+        }
       }
-    },
-    locator: {
-      patchSize: "medium",
-      halfSample: true
-    },
-    decoder: {
-      readers: [
-        "ean_reader",
-        "ean_13_reader",
-        "upc_reader",
-        "upc_e_reader",
-        "code_128_reader"
-      ]
-    },
-    locate: true
-  }, err => {
-    if (err) {
-      alert("Camera error");
-      scanning = false;
-      return;
-    }
-    Quagga.start();
-  });
-
-  Quagga.offDetected();
-  Quagga.onDetected(data => {
-    const code = data.codeResult.code;
-
-    input.value = code;
-    clearBtn.style.display = "block";
-
-    beep(true);
-    addHistory(code);
-    search(code);
-
-    Quagga.stop();
+    );
+  } catch (e) {
+    alert("Camera error / permission denied");
     scanning = false;
-  });
+  }
 };
 </script>
 

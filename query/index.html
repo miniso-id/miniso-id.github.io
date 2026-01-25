@@ -28,6 +28,7 @@
 
 <div id="result" class="grid"></div>
 
+<!-- AUDIO -->
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
@@ -38,6 +39,7 @@ let nameIndex = [];
 let history = [];
 let html5Qr = null;
 
+/* ================= LOAD PRODUCT ================= */
 fetch('products.json')
   .then(r => r.json())
   .then(data => {
@@ -108,42 +110,56 @@ function clearResult() {
   document.getElementById("result").innerHTML = "";
 }
 
-/* ================= SCANNER (OPTIMIZED) ================= */
-document.getElementById("scanBtn").onclick = async () => {
+/* ================= SCANNER (BACK CAMERA FIX) ================= */
+async function startScanner() {
   readerEl.innerHTML = "";
 
-  if (!html5Qr) {
-    html5Qr = new Html5Qrcode("reader");
+  if (html5Qr) {
+    await html5Qr.stop().catch(()=>{});
   }
+
+  const devices = await Html5Qrcode.getCameras();
+  if (!devices || devices.length === 0) {
+    alert("No camera found");
+    return;
+  }
+
+  // 🔥 FORCE BACK CAMERA
+  let backCam = devices.find(d =>
+    d.label.toLowerCase().includes("back") ||
+    d.label.toLowerCase().includes("rear")
+  );
+
+  if (!backCam) backCam = devices[devices.length - 1];
+
+  html5Qr = new Html5Qrcode("reader");
 
   try {
     await html5Qr.start(
-      { facingMode: { exact: "environment" } },
+      backCam.id,
       {
-        fps: 15, // ⬆️ frame lebih banyak
-        qrbox: { width: 300, height: 140 }, // fokus barcode horizontal
-        disableFlip: false,
+        fps: 15,
+        qrbox: { width: 300, height: 140 },
+        disableFlip: true,
         videoConstraints: {
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
           focusMode: "continuous"
         }
       },
       code => {
         input.value = code;
         clearBtn.style.display = "block";
-
         beep(true);
         addHistory(code);
         search(code);
-
         html5Qr.stop();
       }
     );
-  } catch (err) {
-    alert("Camera error / permission denied\nGunakan HTTPS & izinkan kamera");
+  } catch (e) {
+    alert("Camera permission denied / HTTPS required");
   }
-};
+}
+
+document.getElementById("scanBtn").onclick = startScanner;
 
 /* ================= HISTORY ================= */
 function addHistory(code) {

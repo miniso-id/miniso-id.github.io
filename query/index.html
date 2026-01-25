@@ -15,14 +15,9 @@
 
 <div class="search-box">
   <div class="input-wrap">
-    <input
-      id="searchInput"
-      placeholder="Search here"
-      autocomplete="off"
-    />
+    <input id="searchInput" placeholder="Search here" autocomplete="off"/>
     <span id="clearBtn" title="Clear">✕</span>
   </div>
-
   <button id="scanBtn">📷 Scan Barcode</button>
 </div>
 
@@ -33,15 +28,15 @@
 
 <div id="result" class="grid"></div>
 
-<!-- AUDIO -->
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
 <script>
-/* ================= PRELOAD INDEX ================= */
+/* ================= DATA ================= */
 let barcodeIndex = new Map();
 let nameIndex = [];
 let history = [];
+let html5Qr = null;
 
 fetch('products.json')
   .then(r => r.json())
@@ -50,16 +45,14 @@ fetch('products.json')
       p.b.split("/").forEach(code => {
         barcodeIndex.set(code.trim(), p);
       });
-      nameIndex.push({
-        name: p.n.toLowerCase(),
-        product: p
-      });
+      nameIndex.push({ name: p.n.toLowerCase(), product: p });
     }
   });
 
 /* ================= ELEMENT ================= */
 const input = document.getElementById("searchInput");
 const clearBtn = document.getElementById("clearBtn");
+const readerEl = document.getElementById("reader");
 
 /* ================= INPUT ================= */
 input.addEventListener("input", e => {
@@ -67,7 +60,6 @@ input.addEventListener("input", e => {
   search(e.target.value);
 });
 
-/* ================= CLEAR BUTTON ================= */
 clearBtn.onclick = () => {
   input.value = "";
   clearBtn.style.display = "none";
@@ -88,10 +80,9 @@ function search(q) {
   }
 
   const results = [];
-  for (let i = 0; i < nameIndex.length; i++) {
+  for (let i = 0; i < nameIndex.length && results.length < 1000; i++) {
     if (nameIndex[i].name.includes(q)) {
       results.push(nameIndex[i].product);
-      if (results.length === 1000) break;
     }
   }
 
@@ -117,7 +108,7 @@ function clearResult() {
   document.getElementById("result").innerHTML = "";
 }
 
-/* ================= BARCODE SCAN ================= */
+/* ================= SCANNER (OPTIMIZED) ================= */
 document.getElementById("scanBtn").onclick = async () => {
   readerEl.innerHTML = "";
 
@@ -127,17 +118,15 @@ document.getElementById("scanBtn").onclick = async () => {
 
   try {
     await html5Qr.start(
+      { facingMode: { exact: "environment" } },
       {
-        facingMode: { exact: "environment" }
-      },
-      {
-        fps: 15,                     // ⬆️ lebih banyak frame
-        qrbox: { width: 280, height: 140 }, // 🔍 fokus area barcode
-        disableFlip: true,           // ❌ mirror
+        fps: 15, // ⬆️ frame lebih banyak
+        qrbox: { width: 300, height: 140 }, // fokus barcode horizontal
+        disableFlip: true,
         videoConstraints: {
-          width: { ideal: 1920 },    // 📸 paksa resolusi tinggi
+          width: { ideal: 1920 },
           height: { ideal: 1080 },
-          focusMode: "continuous"    // 📌 continuous focus (Android)
+          focusMode: "continuous"
         }
       },
       code => {
@@ -151,8 +140,8 @@ document.getElementById("scanBtn").onclick = async () => {
         html5Qr.stop();
       }
     );
-  } catch (e) {
-    alert("Camera error / permission denied");
+  } catch (err) {
+    alert("Camera error / permission denied\nGunakan HTTPS & izinkan kamera");
   }
 };
 
@@ -161,7 +150,6 @@ function addHistory(code) {
   if (history.includes(code)) return;
   history.unshift(code);
   if (history.length > 5) history.pop();
-
   document.getElementById("history").innerHTML =
     history.map(h => `<span>${h}</span>`).join("");
 }

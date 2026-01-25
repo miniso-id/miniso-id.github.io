@@ -118,22 +118,42 @@ function clearResult() {
 }
 
 /* ================= BARCODE SCAN ================= */
-document.getElementById("scanBtn").onclick = () => {
-  const reader = new Html5Qrcode("reader");
+document.getElementById("scanBtn").onclick = async () => {
+  readerEl.innerHTML = "";
 
-  reader.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: 250 },
-    code => {
-      input.value = code;
+  if (!html5Qr) {
+    html5Qr = new Html5Qrcode("reader");
+  }
 
-      /* ✅ AUTO SHOW CLEAR BUTTON */
-      clearBtn.style.display = "block";
+  try {
+    await html5Qr.start(
+      {
+        facingMode: { exact: "environment" }
+      },
+      {
+        fps: 15,                     // ⬆️ lebih banyak frame
+        qrbox: { width: 280, height: 140 }, // 🔍 fokus area barcode
+        disableFlip: true,           // ❌ mirror
+        videoConstraints: {
+          width: { ideal: 1920 },    // 📸 paksa resolusi tinggi
+          height: { ideal: 1080 },
+          focusMode: "continuous"    // 📌 continuous focus (Android)
+        }
+      },
+      code => {
+        input.value = code;
+        clearBtn.style.display = "block";
 
-      search(code);
-      reader.stop();
-    }
-  );
+        beep(true);
+        addHistory(code);
+        search(code);
+
+        html5Qr.stop();
+      }
+    );
+  } catch (e) {
+    alert("Camera error / permission denied");
+  }
 };
 
 /* ================= HISTORY ================= */

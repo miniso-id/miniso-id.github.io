@@ -1,89 +1,91 @@
-/* ===== BASE ===== */
-body {
+* {
+  box-sizing: border-box;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #f9fafb;
+}
+
+body {
   margin: 0;
   padding: 16px;
-  color: #111827;
+  background: #f5f7fa;
+  color: #333;
 }
 
-h1, h2, h3 {
-  text-align: center;
-  margin: 8px 0;
+/* ================= HEADER ================= */
+h1 {
+  margin: 0;
+  font-size: 24px;
 }
 
-/* ===== SEARCH AREA ===== */
+h2 {
+  margin: 4px 0 16px;
+  font-size: 16px;
+  color: #666;
+}
+
+/* ================= SEARCH ================= */
 .search-box {
-  max-width: 420px;
-  margin: 0 auto 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* WRAP INPUT + CLEAR */
-.input-wrap {
-  position: relative;
-}
-
-/* INPUT */
-.input-wrap input {
-  width: 100%;
-  height: 46px;
-  box-sizing: border-box;
-  font-size: 15px;
-  padding: 0 42px 0 14px; /* space for clear button */
-  border-radius: 8px;
-  border: 2px solid #2563eb;
-  outline: none;
-}
-
-/* CLEAR BUTTON (✕) */
-#clearBtn {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 18px;
-  cursor: pointer;
-  color: #9ca3af;
-  display: none;
-  user-select: none;
-}
-
-#clearBtn:hover {
-  color: #ef4444;
-}
-
-/* SCAN BUTTON */
-.search-box button {
-  width: 100%;
-  height: 46px;
-  box-sizing: border-box;
-  font-size: 15px;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  background: #f3f4f6;
-  cursor: pointer;
-}
-
-.search-box button:hover {
-  background: #e5e7eb;
-}
-
-/* ===== CAMERA ===== */
-#reader {
-  max-width: 420px;
-  margin: 0 auto 16px;
-}
-
-/* ===== HISTORY ===== */
-#history {
   display: flex;
   gap: 8px;
-  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.input-wrap {
+  position: relative;
+  flex: 1;
+}
+
+.input-wrap input {
+  width: 100%;
+  padding: 12px 36px 12px 12px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+#clearBtn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  display: none;
+  font-size: 18px;
+  color: #999;
+}
+
+button {
+  padding: 0 14px;
+  border-radius: 8px;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  background: #2563eb;
+  color: white;
+}
+
+/* ================= SCANNER ================= */
+#reader {
+  width: 100%;
+  max-width: 480px;
+  margin: 12px auto;
+  border-radius: 12px;
+  overflow: hidden;
+  background: black;
+}
+
+/* VIDEO FIX UNTUK QUAGGA */
+#reader video {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+/* ================= HISTORY ================= */
+#history {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
   flex-wrap: wrap;
-  margin-bottom: 16px;
 }
 
 #history span {
@@ -93,53 +95,55 @@ h1, h2, h3 {
   font-size: 12px;
 }
 
-/* ===== GRID RESULT ===== */
+/* ================= RESULT GRID ================= */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
 }
 
-/* CARD */
 .card {
-  background: #ffffff;
+  background: white;
   border-radius: 12px;
-  padding: 10px;
+  overflow: hidden;
   box-shadow: 0 2px 8px rgba(0,0,0,.08);
 }
 
 .card.match {
-  outline: 3px solid #2563eb;
+  outline: 3px solid #22c55e;
 }
 
-/* IMAGE */
 .card img {
   width: 100%;
-  height: 150px;
+  height: 140px;
   object-fit: contain;
+  background: #fafafa;
 }
 
-/* INFO */
 .info {
-  font-size: 13px;
-  margin-top: 6px;
+  padding: 10px;
 }
 
 .info b {
   display: block;
-  margin-bottom: 2px;
+  font-size: 14px;
 }
 
 .info small {
-  display: block;
-  color: #6b7280;
+  font-size: 11px;
+  color: #666;
   word-break: break-all;
 }
 
-/* PRICE */
 .price {
-  margin-top: 4px;
-  font-weight: bold;
-  white-space: normal;   /* WRAP */
-  word-break: break-word;
+  margin-top: 6px;
+  font-size: 13px;
+  color: #2563eb;
+}
+
+/* ================= MOBILE ================= */
+@media (max-width: 480px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }

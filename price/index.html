@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>MMS-X</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MMS-X</title>
 
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://unpkg.com/html5-qrcode"></script>
+<link rel="stylesheet" href="style.css">
+
+<!-- QUAGGA -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 </head>
 <body>
 
@@ -15,143 +17,154 @@
 
 <div class="search-box">
   <div class="input-wrap">
-    <input id="searchInput" placeholder="Search here" autocomplete="off"/>
-    <span id="clearBtn" title="Clear">✕</span>
+    <input id="searchInput" placeholder="Search here">
+    <span id="clearBtn">✕</span>
   </div>
-
   <button id="scanBtn">📷 Scan Barcode</button>
 </div>
 
-<div id="reader"></div>
-
-<h3>Scan History</h3>
+<div id="reader" style="position:relative"></div>
 <div id="history"></div>
-
 <div id="result" class="grid"></div>
 
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
 <script>
-/* ================= INDEX ================= */
+/* ================= DATA ================= */
 let barcodeIndex = new Map();
 let nameIndex = [];
 let history = [];
+let scanning = false;
 
+/* ================= LOAD PRODUCT ================= */
 fetch('products.json')
-  .then(r => r.json())
-  .then(data => {
-    for (const p of data) {
-      p.b.split("/").forEach(code => barcodeIndex.set(code.trim(), p));
-      nameIndex.push({ name: p.n.toLowerCase(), product: p });
-    }
+.then(r => r.json())
+.then(data => {
+  data.forEach(p => {
+    p.b.split("/").forEach(code => barcodeIndex.set(code.trim(), p));
+    nameIndex.push({ name: p.n.toLowerCase(), product: p });
   });
+});
 
+/* ================= ELEMENT ================= */
 const input = document.getElementById("searchInput");
 const clearBtn = document.getElementById("clearBtn");
+const reader = document.getElementById("reader");
 
-input.addEventListener("input", e => {
+/* ================= SEARCH ================= */
+input.oninput = e => {
   clearBtn.style.display = e.target.value ? "block" : "none";
   search(e.target.value);
-});
+};
 
 clearBtn.onclick = () => {
   input.value = "";
   clearBtn.style.display = "none";
-  clearResult();
-  input.focus();
+  result.innerHTML = "";
 };
 
 function search(q) {
   q = q.trim().toLowerCase();
-  if (!q) return clearResult();
+  if (!q) return;
 
   if (barcodeIndex.has(q)) {
-    beep(true);
+    beepOk.play();
     addHistory(q);
-    render([barcodeIndex.get(q)], q);
+    render([barcodeIndex.get(q)]);
     return;
   }
 
-  const results = [];
-  for (let i = 0; i < nameIndex.length; i++) {
-    if (nameIndex[i].name.includes(q)) {
-      results.push(nameIndex[i].product);
-      if (results.length === 1000) break;
-    }
+  const res = [];
+  for (let i = 0; i < nameIndex.length && res.length < 1000; i++) {
+    if (nameIndex[i].name.includes(q)) res.push(nameIndex[i].product);
   }
 
-  results.length ? beep(true) : beep(false);
-  render(results, q);
+  res.length ? beepOk.play() : beepErr.play();
+  render(res);
 }
 
-function render(list, q="") {
-  document.getElementById("result").innerHTML = list.map(p => `
-    <div class="card ${p.b.includes(q) ? 'match' : ''}">
+/* ================= RENDER ================= */
+function render(list) {
+  result.innerHTML = list.map(p => `
+    <div class="card">
       <img src="${p.i}" loading="lazy">
-      <div class="info">
-        <b>${p.n}</b>
-        <small>${p.b}</small>
-        <div class="price">${p.h}</div>
-      </div>
+      <b>${p.n}</b>
+      <small>${p.b}</small>
+      <div>${p.h}</div>
     </div>
   `).join("");
 }
 
-function clearResult() {
-  document.getElementById("result").innerHTML = "";
+/* ================= QUAGGA SCANNER ================= */
+function startScanner() {
+  if (scanning) return;
+  scanning = true;
+  reader.innerHTML = "";
+
+  Quagga.init({
+    inputStream: {
+      type: "LiveStream",
+      target: reader,
+      constraints: {
+        facingMode: "environment",
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    },
+    locator: {
+      patchSize: "medium",
+      halfSample: false
+    },
+    numOfWorkers: navigator.hardwareConcurrency || 4,
+    decoder: {
+      readers: [
+        "ean_reader",
+        "ean_8_reader",
+        "upc_reader",
+        "code_128_reader"
+      ]
+    },
+    locate: true
+  }, err => {
+    if (err) {
+      alert("Camera error / permission denied");
+      scanning = false;
+      return;
+    }
+    Quagga.start();
+  });
+
+  let lastCode = "";
+  let lastTime = 0;
+
+  Quagga.onDetected(result => {
+    const code = result.codeResult.code;
+    const now = Date.now();
+
+    if (code === lastCode && now - lastTime < 1200) return;
+    lastCode = code;
+    lastTime = now;
+
+    beepOk.play();
+    input.value = code;
+    clearBtn.style.display = "block";
+    addHistory(code);
+    search(code);
+
+    Quagga.stop();
+    scanning = false;
+  });
 }
 
-/* ================= BARCODE SCANNER (AUTOFOCUS) ================= */
-let reader;
-
-document.getElementById("scanBtn").onclick = async () => {
-  reader = new Html5Qrcode("reader");
-
-  await reader.start(
-    {
-      facingMode: "environment",
-      width: { ideal: 1280 },
-      height: { ideal: 720 }
-    },
-    {
-      fps: 12,
-      qrbox: { width: 260, height: 260 }
-    },
-    async (code) => {
-      input.value = code;
-      clearBtn.style.display = "block";
-      search(code);
-      await reader.stop();
-    }
-  );
-
-  /* 🔥 FORCE CONTINUOUS AUTOFOCUS */
-  try {
-    const video = document.querySelector("#reader video");
-    const track = video.srcObject.getVideoTracks()[0];
-
-    await track.applyConstraints({
-      advanced: [{ focusMode: "continuous" }]
-    });
-
-    console.log("Autofocus aktif");
-  } catch (e) {
-    console.log("Autofocus tidak didukung di device ini");
-  }
-};
+document.getElementById("scanBtn").onclick = startScanner;
 
 /* ================= HISTORY ================= */
 function addHistory(code) {
   if (history.includes(code)) return;
   history.unshift(code);
   if (history.length > 5) history.pop();
-  document.getElementById("history").innerHTML =
-    history.map(h => `<span>${h}</span>`).join("");
-}
-
-function beep(ok) {
-  (ok ? beepOk : beepErr).play();
+  historyDiv.innerHTML = history.map(h => `<span>${h}</span>`).join("");
 }
 </script>
 

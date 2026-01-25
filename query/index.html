@@ -114,7 +114,7 @@ function beep(ok) {
   (ok ? beepOk : beepErr).play();
 }
 
-/* ================= ZXING SCANNER ================= */
+/* ================= ZXING SCANNER (FIXED) ================= */
 let codeReader;
 let scanning = false;
 
@@ -126,13 +126,14 @@ document.getElementById("scanBtn").onclick = async () => {
   codeReader = new ZXing.BrowserMultiFormatReader();
 
   try {
-    const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
-    const backCam =
-      devices.find(d => /back|rear|environment/i.test(d.label))?.deviceId ||
-      devices[0]?.deviceId;
-
-    await codeReader.decodeFromVideoDevice(
-      backCam,
+    await codeReader.decodeFromConstraints(
+      {
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      },
       readerEl,
       (result, err) => {
         if (result) {
@@ -151,7 +152,7 @@ document.getElementById("scanBtn").onclick = async () => {
       }
     );
   } catch (e) {
-    alert("Camera error / permission denied");
+    alert("Camera not available / permission denied");
     scanning = false;
   }
 };

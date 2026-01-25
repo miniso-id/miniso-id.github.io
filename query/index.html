@@ -1,28 +1,58 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>MMS-X</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>MMS-X</title>
 
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://unpkg.com/html5-qrcode"></script>
+<link rel="stylesheet" href="style.css">
+
+<!-- QUAGGA FALLBACK -->
+<script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
+
+<style>
+/* ===== CAMERA VIEW ===== */
+#reader {
+  display: none;                 /* ⬅️ HIDDEN DEFAULT */
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 1 / 1;
+  margin: 12px auto;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #000;
+}
+
+#reader video,
+#reader canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* SCAN GUIDE */
+#reader::after {
+  content: "";
+  position: absolute;
+  inset: 18%;
+  border: 2px dashed rgba(0,255,0,.6);
+  border-radius: 10px;
+  pointer-events: none;
+}
+</style>
 </head>
+
 <body>
 
+<h1>MMS-X</h1>
 <h2>Product Query</h2>
-<h3>(beta test)</h3>
 
 <div class="search-box">
   <div class="input-wrap">
-    <input
-      id="searchInput"
-      placeholder="Search here"
-      autocomplete="off"
-    />
-    <span id="clearBtn" title="Clear">✕</span>
+    <input id="searchInput" placeholder="Scan / Search" autocomplete="off">
+    <span id="clearBtn">✕</span>
   </div>
-
   <button id="scanBtn">📷 Scan Barcode</button>
 </div>
 
@@ -33,76 +63,68 @@
 
 <div id="result" class="grid"></div>
 
-<!-- AUDIO -->
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
 <script>
-/* ================= PRELOAD INDEX ================= */
+/* ================= DATA ================= */
 let barcodeIndex = new Map();
 let nameIndex = [];
-let history = [];
+let historyList = [];
+let scanning = false;
+let activeStream = null;
 
 fetch('products.json')
-  .then(r => r.json())
-  .then(data => {
-    for (const p of data) {
-      p.b.split("/").forEach(code => {
-        barcodeIndex.set(code.trim(), p);
-      });
-      nameIndex.push({
-        name: p.n.toLowerCase(),
-        product: p
-      });
-    }
+.then(r => r.json())
+.then(data => {
+  data.forEach(p => {
+    p.b.split("/").forEach(c => barcodeIndex.set(c.trim(), p));
+    nameIndex.push({ name: p.n.toLowerCase(), product: p });
   });
-
-/* ================= ELEMENT ================= */
-const input = document.getElementById("searchInput");
-const clearBtn = document.getElementById("clearBtn");
-
-/* ================= INPUT ================= */
-input.addEventListener("input", e => {
-  clearBtn.style.display = e.target.value ? "block" : "none";
-  search(e.target.value);
 });
 
-/* ================= CLEAR BUTTON ================= */
+/* ================= ELEMENT ================= */
+const input = searchInput;
+const clearBtn = document.getElementById("clearBtn");
+const reader = document.getElementById("reader");
+const historyDiv = document.getElementById("history");
+
+/* ================= SEARCH ================= */
+input.oninput = e => {
+  clearBtn.style.display = e.target.value ? "block" : "none";
+  search(e.target.value);
+};
+
 clearBtn.onclick = () => {
   input.value = "";
   clearBtn.style.display = "none";
-  clearResult();
-  input.focus();
+  result.innerHTML = "";
 };
 
-/* ================= SEARCH ================= */
+/* ================= SEARCH LOGIC ================= */
 function search(q) {
-  q = q.trim().toLowerCase();
-  if (!q) return clearResult();
+  q = q.trim();
+  if (!q) return;
 
   if (barcodeIndex.has(q)) {
     beep(true);
     addHistory(q);
-    render([barcodeIndex.get(q)], q);
+    render([barcodeIndex.get(q)]);
     return;
   }
 
-  const results = [];
-  for (let i = 0; i < nameIndex.length; i++) {
-    if (nameIndex[i].name.includes(q)) {
-      results.push(nameIndex[i].product);
-      if (results.length === 1000) break;
-    }
-  }
+  const res = nameIndex
+    .filter(x => x.name.includes(q.toLowerCase()))
+    .slice(0, 100);
 
-  results.length ? beep(true) : beep(false);
-  render(results, q);
+  res.length ? beep(true) : beep(false);
+  render(res.map(x => x.product));
 }
 
 /* ================= RENDER ================= */
-function render(list, q="") {
-  document.getElementById("result").innerHTML = list.map(p => `
-    <div class="card ${p.b.includes(q) ? 'match' : ''}">
+function render(list) {
+  result.innerHTML = list.map(p => `
+    <div class="card">
       <img src="${p.i}" loading="lazy">
       <div class="info">
         <b>${p.n}</b>
@@ -113,42 +135,117 @@ function render(list, q="") {
   `).join("");
 }
 
-function clearResult() {
-  document.getElementById("result").innerHTML = "";
-}
-
-/* ================= BARCODE SCAN ================= */
-document.getElementById("scanBtn").onclick = () => {
-  const reader = new Html5Qrcode("reader");
-
-  reader.start(
-    { facingMode: "environment" },
-    { fps: 5, qrbox: 200 },
-    code => {
-      input.value = code;
-
-      /* ✅ AUTO SHOW CLEAR BUTTON */
-      clearBtn.style.display = "block";
-
-      search(code);
-      reader.stop();
-    }
-  );
-};
-
 /* ================= HISTORY ================= */
 function addHistory(code) {
-  if (history.includes(code)) return;
-  history.unshift(code);
-  if (history.length > 5) history.pop();
-
-  document.getElementById("history").innerHTML =
-    history.map(h => `<span>${h}</span>`).join("");
+  if (historyList.includes(code)) return;
+  historyList.unshift(code);
+  if (historyList.length > 5) historyList.pop();
+  historyDiv.innerHTML = historyList.map(h => `<span>${h}</span>`).join("");
 }
 
 /* ================= BEEP ================= */
 function beep(ok) {
   (ok ? beepOk : beepErr).play();
+}
+
+/* ================= SCAN BUTTON ================= */
+scanBtn.onclick = () => {
+  if (scanning) return;
+  scanning = true;
+
+  reader.style.display = "block";     /* ⬅️ SHOW VIEW FINDER */
+
+  if ("BarcodeDetector" in window) {
+    startNativeScanner();
+  } else {
+    startQuagga();
+  }
+};
+
+/* ================= NATIVE SCANNER ================= */
+async function startNativeScanner() {
+  try {
+    const detector = new BarcodeDetector({ formats: ["ean_13", "ean_8"] });
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1280 },
+        height: { ideal: 1280 }
+      }
+    });
+
+    activeStream = stream;
+
+    const video = document.createElement("video");
+    video.srcObject = stream;
+    video.setAttribute("playsinline", true);
+    reader.innerHTML = "";
+    reader.appendChild(video);
+    await video.play();
+
+    const loop = setInterval(async () => {
+      const codes = await detector.detect(video);
+      if (codes.length) {
+        clearInterval(loop);
+        handleResult(codes[0].rawValue);
+      }
+    }, 300);
+
+  } catch {
+    startQuagga();
+  }
+}
+
+/* ================= QUAGGA FALLBACK ================= */
+function startQuagga() {
+  reader.innerHTML = "";
+
+  Quagga.init({
+    inputStream: {
+      type: "LiveStream",
+      target: reader,
+      constraints: {
+        facingMode: "environment",
+        width: 640,
+        height: 640
+      }
+    },
+    locator: { patchSize: "large", halfSample: false },
+    decoder: { readers: ["ean_reader", "ean_8_reader"] },
+    locate: true
+  }, err => {
+    if (err) {
+      alert("Camera error");
+      scanning = false;
+      reader.style.display = "none";
+      return;
+    }
+    Quagga.start();
+  });
+
+  Quagga.onDetected(d => {
+    Quagga.stop();
+    handleResult(d.codeResult.code);
+  });
+}
+
+/* ================= RESULT ================= */
+function handleResult(code) {
+  stopCamera();
+  scanning = false;
+  reader.style.display = "none";   /* ⬅️ HIDE AFTER SCAN */
+  input.value = code;
+  clearBtn.style.display = "block";
+  search(code);
+}
+
+/* ================= STOP CAMERA ================= */
+function stopCamera() {
+  if (activeStream) {
+    activeStream.getTracks().forEach(t => t.stop());
+    activeStream = null;
+  }
 }
 </script>
 

@@ -36,9 +36,10 @@ h1, h2, h3 {
   border-radius: 8px;
   border: 2px solid #2563eb;
   outline: none;
+  background: #fff;
 }
 
-/* CLEAR BUTTON (✕) */
+/* CLEAR BUTTON */
 #clearBtn {
   position: absolute;
   right: 12px;
@@ -71,22 +72,24 @@ h1, h2, h3 {
   background: #e5e7eb;
 }
 
-/* ===== CAMERA (FIXED – WAJIB) ===== */
+/* ===== CAMERA (PALING STABIL) ===== */
 #reader {
   width: 100%;
   max-width: 420px;
   margin: 0 auto 16px;
-  aspect-ratio: 1 / 1;
   background: #000;
   border-radius: 12px;
   overflow: hidden;
 }
 
-/* FORCE VIDEO RENDER */
+/* ⚠️ PENTING:
+   JANGAN pakai height: 0
+   JANGAN pakai display:none
+*/
 #reader video {
   width: 100% !important;
-  height: 100% !important;
-  object-fit: cover;
+  height: auto !important;
+  display: block;
 }
 
 /* ===== HISTORY ===== */

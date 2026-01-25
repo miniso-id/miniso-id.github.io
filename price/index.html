@@ -13,6 +13,7 @@
 <style>
 /* ===== CAMERA VIEW ===== */
 #reader {
+  display: none;                 /* ⬅️ HIDDEN DEFAULT */
   position: relative;
   width: 100%;
   max-width: 420px;
@@ -20,7 +21,7 @@
   margin: 12px auto;
   overflow: hidden;
   border-radius: 14px;
-  background: #ffffff;
+  background: #000;
 }
 
 #reader video,
@@ -69,7 +70,7 @@
 /* ================= DATA ================= */
 let barcodeIndex = new Map();
 let nameIndex = [];
-let history = [];
+let historyList = [];
 let scanning = false;
 let activeStream = null;
 
@@ -85,6 +86,8 @@ fetch('products.json')
 /* ================= ELEMENT ================= */
 const input = searchInput;
 const clearBtn = document.getElementById("clearBtn");
+const reader = document.getElementById("reader");
+const historyDiv = document.getElementById("history");
 
 /* ================= SEARCH ================= */
 input.oninput = e => {
@@ -98,6 +101,7 @@ clearBtn.onclick = () => {
   result.innerHTML = "";
 };
 
+/* ================= SEARCH LOGIC ================= */
 function search(q) {
   q = q.trim();
   if (!q) return;
@@ -105,7 +109,7 @@ function search(q) {
   if (barcodeIndex.has(q)) {
     beep(true);
     addHistory(q);
-    render([barcodeIndex.get(q)], q);
+    render([barcodeIndex.get(q)]);
     return;
   }
 
@@ -114,7 +118,7 @@ function search(q) {
     .slice(0, 100);
 
   res.length ? beep(true) : beep(false);
-  render(res.map(x => x.product), q);
+  render(res.map(x => x.product));
 }
 
 /* ================= RENDER ================= */
@@ -133,10 +137,10 @@ function render(list) {
 
 /* ================= HISTORY ================= */
 function addHistory(code) {
-  if (history.includes(code)) return;
-  history.unshift(code);
-  if (history.length > 5) history.pop();
-  history.innerHTML = history.map(h => `<span>${h}</span>`).join("");
+  if (historyList.includes(code)) return;
+  historyList.unshift(code);
+  if (historyList.length > 5) historyList.pop();
+  historyDiv.innerHTML = historyList.map(h => `<span>${h}</span>`).join("");
 }
 
 /* ================= BEEP ================= */
@@ -144,10 +148,12 @@ function beep(ok) {
   (ok ? beepOk : beepErr).play();
 }
 
-/* ================= SCAN ================= */
+/* ================= SCAN BUTTON ================= */
 scanBtn.onclick = () => {
   if (scanning) return;
   scanning = true;
+
+  reader.style.display = "block";     /* ⬅️ SHOW VIEW FINDER */
 
   if ("BarcodeDetector" in window) {
     startNativeScanner();
@@ -156,7 +162,7 @@ scanBtn.onclick = () => {
   }
 };
 
-/* ===== NATIVE SCANNER (BEST) ===== */
+/* ================= NATIVE SCANNER ================= */
 async function startNativeScanner() {
   try {
     const detector = new BarcodeDetector({ formats: ["ean_13", "ean_8"] });
@@ -181,19 +187,17 @@ async function startNativeScanner() {
     const loop = setInterval(async () => {
       const codes = await detector.detect(video);
       if (codes.length) {
-        stopCamera();
         clearInterval(loop);
         handleResult(codes[0].rawValue);
       }
     }, 300);
 
-  } catch (e) {
-    scanning = false;
+  } catch {
     startQuagga();
   }
 }
 
-/* ===== QUAGGA FALLBACK ===== */
+/* ================= QUAGGA FALLBACK ================= */
 function startQuagga() {
   reader.innerHTML = "";
 
@@ -214,6 +218,7 @@ function startQuagga() {
     if (err) {
       alert("Camera error");
       scanning = false;
+      reader.style.display = "none";
       return;
     }
     Quagga.start();
@@ -229,12 +234,13 @@ function startQuagga() {
 function handleResult(code) {
   stopCamera();
   scanning = false;
+  reader.style.display = "none";   /* ⬅️ HIDE AFTER SCAN */
   input.value = code;
   clearBtn.style.display = "block";
   search(code);
 }
 
-/* ================= CAMERA STOP ================= */
+/* ================= STOP CAMERA ================= */
 function stopCamera() {
   if (activeStream) {
     activeStream.getTracks().forEach(t => t.stop());

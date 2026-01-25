@@ -6,7 +6,7 @@
   <title>MMS-X</title>
 
   <link rel="stylesheet" href="style.css" />
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 </head>
 <body>
 
@@ -15,14 +15,9 @@
 
 <div class="search-box">
   <div class="input-wrap">
-    <input
-      id="searchInput"
-      placeholder="Search here"
-      autocomplete="off"
-    />
-    <span id="clearBtn" title="Clear">✕</span>
+    <input id="searchInput" placeholder="Search here" autocomplete="off"/>
+    <span id="clearBtn">✕</span>
   </div>
-
   <button id="scanBtn">📷 Scan Barcode</button>
 </div>
 
@@ -33,12 +28,11 @@
 
 <div id="result" class="grid"></div>
 
-<!-- AUDIO -->
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
 <script>
-/* ================= PRELOAD INDEX ================= */
+/* ================= DATA INDEX ================= */
 let barcodeIndex = new Map();
 let nameIndex = [];
 let history = [];
@@ -50,10 +44,7 @@ fetch('products.json')
       p.b.split("/").forEach(code => {
         barcodeIndex.set(code.trim(), p);
       });
-      nameIndex.push({
-        name: p.n.toLowerCase(),
-        product: p
-      });
+      nameIndex.push({ name: p.n.toLowerCase(), product: p });
     }
   });
 
@@ -67,7 +58,7 @@ input.addEventListener("input", e => {
   search(e.target.value);
 });
 
-/* ================= CLEAR BUTTON ================= */
+/* ================= CLEAR ================= */
 clearBtn.onclick = () => {
   input.value = "";
   clearBtn.style.display = "none";
@@ -83,8 +74,7 @@ function search(q) {
   if (barcodeIndex.has(q)) {
     beep(true);
     addHistory(q);
-    render([barcodeIndex.get(q)], q);
-    return;
+    return render([barcodeIndex.get(q)], q);
   }
 
   const results = [];
@@ -107,7 +97,7 @@ function render(list, q="") {
       <div class="info">
         <b>${p.n}</b>
         <small>${p.b}</small>
-        <div class="price">Regular : ${p.h}</div>
+        <div class="price">Regular : ${p.h || '-'}</div>
       </div>
     </div>
   `).join("");
@@ -117,23 +107,60 @@ function clearResult() {
   document.getElementById("result").innerHTML = "";
 }
 
-/* ================= BARCODE SCAN ================= */
+/* ================= QUAGGA SCANNER ================= */
 document.getElementById("scanBtn").onclick = () => {
-  const reader = new Html5Qrcode("reader");
+  const reader = document.getElementById("reader");
+  reader.innerHTML = "";
 
-  reader.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: 250 },
-    code => {
-      input.value = code;
-
-      /* ✅ AUTO SHOW CLEAR BUTTON */
-      clearBtn.style.display = "block";
-
-      search(code);
-      reader.stop();
+  Quagga.init({
+    inputStream: {
+      name: "Live",
+      type: "LiveStream",
+      target: reader,
+      constraints: {
+        facingMode: "environment",
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    },
+    locator: {
+      patchSize: "medium",
+      halfSample: true
+    },
+    decoder: {
+      readers: [
+        "ean_reader",
+        "ean_13_reader",
+        "upc_reader",
+        "upc_e_reader",
+        "code_128_reader"
+      ]
+    },
+    locate: true
+  }, err => {
+    if (err) {
+      console.error(err);
+      return;
     }
-  );
+    Quagga.start();
+  });
+
+  let lastCode = "";
+  Quagga.onDetected(data => {
+    const code = data.codeResult.code;
+    if (code === lastCode) return;
+    lastCode = code;
+
+    input.value = code;
+    clearBtn.style.display = "block";
+
+    beep(true);
+    addHistory(code);
+    search(code);
+
+    Quagga.stop();
+    Quagga.offDetected();
+  });
 };
 
 /* ================= HISTORY ================= */

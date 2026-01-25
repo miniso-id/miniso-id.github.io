@@ -123,7 +123,7 @@ document.getElementById("scanBtn").onclick = () => {
 
   reader.start(
     { facingMode: "environment" },
-    { fps: 10, qrbox: 250 },
+    { fps: 5, qrbox: 50 },
     code => {
       input.value = code;
 

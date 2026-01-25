@@ -15,9 +15,14 @@
 
 <div class="search-box">
   <div class="input-wrap">
-    <input id="searchInput" placeholder="Search here" autocomplete="off"/>
+    <input
+      id="searchInput"
+      placeholder="Search here"
+      autocomplete="off"
+    />
     <span id="clearBtn" title="Clear">✕</span>
   </div>
+
   <button id="scanBtn">📷 Scan Barcode</button>
 </div>
 
@@ -33,13 +38,11 @@
 <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
 <script>
-/* ================= DATA ================= */
+/* ================= PRELOAD INDEX ================= */
 let barcodeIndex = new Map();
 let nameIndex = [];
 let history = [];
-let html5Qr = null;
 
-/* ================= LOAD PRODUCT ================= */
 fetch('products.json')
   .then(r => r.json())
   .then(data => {
@@ -47,14 +50,16 @@ fetch('products.json')
       p.b.split("/").forEach(code => {
         barcodeIndex.set(code.trim(), p);
       });
-      nameIndex.push({ name: p.n.toLowerCase(), product: p });
+      nameIndex.push({
+        name: p.n.toLowerCase(),
+        product: p
+      });
     }
   });
 
 /* ================= ELEMENT ================= */
 const input = document.getElementById("searchInput");
 const clearBtn = document.getElementById("clearBtn");
-const readerEl = document.getElementById("reader");
 
 /* ================= INPUT ================= */
 input.addEventListener("input", e => {
@@ -62,6 +67,7 @@ input.addEventListener("input", e => {
   search(e.target.value);
 });
 
+/* ================= CLEAR BUTTON ================= */
 clearBtn.onclick = () => {
   input.value = "";
   clearBtn.style.display = "none";
@@ -82,9 +88,10 @@ function search(q) {
   }
 
   const results = [];
-  for (let i = 0; i < nameIndex.length && results.length < 1000; i++) {
+  for (let i = 0; i < nameIndex.length; i++) {
     if (nameIndex[i].name.includes(q)) {
       results.push(nameIndex[i].product);
+      if (results.length === 1000) break;
     }
   }
 
@@ -110,62 +117,31 @@ function clearResult() {
   document.getElementById("result").innerHTML = "";
 }
 
-/* ================= SCANNER (BACK CAMERA FIX) ================= */
-async function startScanner() {
-  readerEl.innerHTML = "";
+/* ================= BARCODE SCAN ================= */
+document.getElementById("scanBtn").onclick = () => {
+  const reader = new Html5Qrcode("reader");
 
-  if (html5Qr) {
-    await html5Qr.stop().catch(()=>{});
-  }
+  reader.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    code => {
+      input.value = code;
 
-  const devices = await Html5Qrcode.getCameras();
-  if (!devices || devices.length === 0) {
-    alert("No camera found");
-    return;
-  }
+      /* ✅ AUTO SHOW CLEAR BUTTON */
+      clearBtn.style.display = "block";
 
-  // 🔥 FORCE BACK CAMERA
-  let backCam = devices.find(d =>
-    d.label.toLowerCase().includes("back") ||
-    d.label.toLowerCase().includes("rear")
+      search(code);
+      reader.stop();
+    }
   );
-
-  if (!backCam) backCam = devices[devices.length - 1];
-
-  html5Qr = new Html5Qrcode("reader");
-
-  try {
-    await html5Qr.start(
-      backCam.id,
-      {
-        fps: 15,
-        qrbox: { width: 300, height: 140 },
-        disableFlip: true,
-        videoConstraints: {
-          focusMode: "continuous"
-        }
-      },
-      code => {
-        input.value = code;
-        clearBtn.style.display = "block";
-        beep(true);
-        addHistory(code);
-        search(code);
-        html5Qr.stop();
-      }
-    );
-  } catch (e) {
-    alert("Camera permission denied / HTTPS required");
-  }
-}
-
-document.getElementById("scanBtn").onclick = startScanner;
+};
 
 /* ================= HISTORY ================= */
 function addHistory(code) {
   if (history.includes(code)) return;
   history.unshift(code);
   if (history.length > 5) history.pop();
+
   document.getElementById("history").innerHTML =
     history.map(h => `<span>${h}</span>`).join("");
 }

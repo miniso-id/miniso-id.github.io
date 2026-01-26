@@ -41,46 +41,40 @@
 
 </div>
 
-<!-- AUDIO -->
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
 <script>
 /* ================= CONFIG ================= */
 const AUTO_LOGOUT = 8 * 60 * 60 * 1000;
+const CACHE_KEY = "mms_products_cache";
 
 /* ================= USERS ================= */
 const USERS = {
-  "1111": { role: "staff" },
-  "2222": { role: "supervisor" }
+  "1111": { role:"staff" },
+  "2222": { role:"supervisor" }
 };
 
 /* ================= LOGIN ================= */
 function login(){
-  const p = pin.value;
-  if(!USERS[p]) return alert("PIN salah");
-
+  if(!USERS[pin.value]) return alert("PIN salah");
   localStorage.setItem("mms_login","1");
-  localStorage.setItem("mms_role",USERS[p].role);
   localStorage.setItem("mms_login_time",Date.now());
   location.reload();
 }
 
 function logout(){
   localStorage.removeItem("mms_login");
-  localStorage.removeItem("mms_role");
   localStorage.removeItem("mms_login_time");
   location.reload();
 }
 
-/* ================= SESSION CHECK ================= */
+/* ================= SESSION ================= */
 (function(){
   if(localStorage.getItem("mms_login")==="1"){
-    if(Date.now() - localStorage.getItem("mms_login_time") > AUTO_LOGOUT){
+    if(Date.now()-localStorage.getItem("mms_login_time")>AUTO_LOGOUT){
       logout();
-    } else {
-      showApp();
-    }
+    } else showApp();
   } else {
     setTimeout(()=>pin.focus(),300);
   }
@@ -95,16 +89,37 @@ function showApp(){
 /* ================= DATA ================= */
 let barcodeIndex = new Map();
 let nameIndex = [];
-let history = [];
+let historyList = [];
 
-fetch("products.json")
-.then(r=>r.json())
-.then(data=>{
+/* ===== OFFLINE CACHE LOADER ===== */
+async function loadProducts(){
+  try{
+    const res = await fetch("products.json",{cache:"no-store"});
+    const data = await res.json();
+    localStorage.setItem(CACHE_KEY,JSON.stringify(data));
+    console.log("📡 Online data loaded");
+    buildIndex(data);
+  }catch(e){
+    const cached = localStorage.getItem(CACHE_KEY);
+    if(!cached){
+      alert("Tidak ada data offline");
+      return;
+    }
+    console.log("📦 Offline mode");
+    buildIndex(JSON.parse(cached));
+  }
+}
+
+function buildIndex(data){
+  barcodeIndex.clear();
+  nameIndex.length=0;
   data.forEach(p=>{
     p.b.split("/").forEach(c=>barcodeIndex.set(c.trim(),p));
     nameIndex.push({name:p.n.toLowerCase(),product:p});
   });
-});
+}
+
+loadProducts();
 
 /* ================= SEARCH ================= */
 searchInput.addEventListener("input",e=>{
@@ -137,7 +152,6 @@ function search(q){
       if(r.length>=1000) break;
     }
   }
-
   r.length?beep(true):beep(false);
   render(r,q);
 }
@@ -156,17 +170,16 @@ function render(list,q){
 
 /* ================= HISTORY ================= */
 function addHistory(c){
-  if(history.includes(c)) return;
-  history.unshift(c);
-  if(history.length>5) history.pop();
-  history.innerHTML=history.map(h=>`<span>${h}</span>`).join("");
+  if(historyList.includes(c)) return;
+  historyList.unshift(c);
+  if(historyList.length>5) historyList.pop();
+  history.innerHTML=historyList.map(h=>`<span>${h}</span>`).join("");
 }
 
 /* ================= CAMERA SCAN ================= */
 scanBtn.onclick=()=>{
   reader.style.display="block";
-
-  const qr = new Html5Qrcode("reader");
+  const qr=new Html5Qrcode("reader");
   qr.start(
     { facingMode:{ exact:"environment" } },
     { fps:10, qrbox:{width:250,height:150} },
@@ -178,12 +191,11 @@ scanBtn.onclick=()=>{
       search(code);
       searchInput.focus();
       searchInput.select();
-    },
-    ()=>{}
+    }
   );
 };
 
-/* ================= PDA SCANNER SUPPORT ================= */
+/* ================= PDA SCANNER ================= */
 document.addEventListener("keydown",e=>{
   if(e.key==="Enter"){
     e.preventDefault();

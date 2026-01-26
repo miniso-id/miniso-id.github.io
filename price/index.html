@@ -191,7 +191,7 @@ scanBtn.onclick = () => {
 /* ================= NATIVE SCANNER ================= */
 async function startNativeScanner() {
   try {
-    const detector = new BarcodeDetector({ formats: ["ean_13", "ean_8"] });
+    const detector = new BarcodeDetector({ formats: ["ean_13"] });
 
     const stream = await navigator.mediaDevices.getUserMedia({
       video: {

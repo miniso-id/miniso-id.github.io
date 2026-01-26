@@ -1,105 +1,29 @@
 /* ===============================
-   GLOBAL
+   RESET & BASE
 ================================ */
 *{
   box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
 }
 
 body{
   margin:0;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
-  background:#f3f4f6;
-  color:#111827;
-  padding:16px;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;
+  background:#f5f7fa;
+  color:#111;
 }
 
-h2{
-  font-size:22px;
-  margin:0 0 4px;
-}
-
-h3{
-  font-size:16px;
-  margin:0 0 12px;
-  color:#374151;
+h2,h3{
+  margin:0 0 10px 0;
 }
 
 /* ===============================
-   LOGIN
+   APP WRAPPER
 ================================ */
-#loginOverlay{
-  position:fixed;
-  inset:0;
-  background:#f3f4f6;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:9999;
-}
-
-.login-card{
-  width:100%;
-  max-width:360px;
-  padding:28px;
-  background:#fff;
-  border-radius:14px;
-  box-shadow:0 10px 30px rgba(0,0,0,.15);
-  text-align:center;
-}
-
-.login-card h3{
-  margin-bottom:22px;
-}
-
-.login-card input{
-  width:100%;
-  height:44px;
-  margin-bottom:14px;
-  padding:0 14px;
-  border-radius:10px;
-  border:1px solid #d1d5db;
-  font-size:15px;
-}
-
-.login-card input:focus{
-  outline:none;
-  border-color:#4f46e5;
-}
-
-.login-card button{
-  width:100%;
-  height:46px;
-  border:none;
-  border-radius:10px;
-  background:#4f46e5;
-  color:#fff;
-  font-size:15px;
-  font-weight:500;
-  cursor:pointer;
-}
-
-#loginErr{
-  margin-top:10px;
-  font-size:14px;
-  color:#ef4444;
-  opacity:0;
-  transition:.25s;
-}
-
-#loginErr.show{
-  opacity:1;
-}
-
-.login-card.error{
-  animation:shake .35s;
-}
-
-@keyframes shake{
-  0%{transform:translateX(0)}
-  25%{transform:translateX(-6px)}
-  50%{transform:translateX(6px)}
-  75%{transform:translateX(-4px)}
-  100%{transform:translateX(0)}
+#app{
+  max-width:960px;
+  margin:0 auto;
+  padding:16px;
 }
 
 /* ===============================
@@ -107,53 +31,46 @@ h3{
 ================================ */
 .search-box{
   display:flex;
-  flex-direction:column;
-  gap:10px;
-  margin:12px 0;
+  gap:8px;
+  margin-bottom:14px;
 }
 
-.input-wrap{
-  position:relative;
-}
-
-.input-wrap input{
-  width:100%;
-  height:42px;
-  padding:0 38px 0 12px;
+.search-box input{
+  flex:1;
+  padding:10px 12px;
   font-size:15px;
-  border-radius:10px;
-  border:1px solid #d1d5db;
+  border:1px solid #ccc;
+  border-radius:8px;
+  outline:none;
 }
 
-#clearBtn{
-  position:absolute;
-  right:10px;
-  top:50%;
-  transform:translateY(-50%);
-  font-size:18px;
-  cursor:pointer;
-  display:none;
+.search-box input:focus{
+  border-color:#007aff;
 }
 
-#scanBtn{
-  width:100%;
-  height:44px;
-  border-radius:10px;
+.search-box button{
+  padding:10px 14px;
+  font-size:14px;
   border:none;
-  background:#e5e7eb;
-  font-size:15px;
+  border-radius:8px;
+  background:#007aff;
+  color:#fff;
   cursor:pointer;
+}
+
+.search-box button:active{
+  transform:scale(0.97);
 }
 
 /* ===============================
-   HISTORY (HORIZONTAL)
+   SCAN HISTORY
 ================================ */
 #history{
   display:flex;
-  gap:8px;
+  gap:10px;
   overflow-x:auto;
-  padding:8px 2px 12px;
-  margin-bottom:10px;
+  padding-bottom:6px;
+  margin-bottom:16px;
   scrollbar-width:none;
 }
 
@@ -161,14 +78,21 @@ h3{
   display:none;
 }
 
-#history span{
+.history-item{
   flex:0 0 auto;
   padding:6px 12px;
-  background:#e5e7eb;
-  border-radius:999px;
+  background:#fff;
+  border-radius:20px;
+  border:1px solid #e0e0e0;
   font-size:13px;
   white-space:nowrap;
   cursor:pointer;
+  transition:all .2s;
+}
+
+.history-item:hover{
+  background:#007aff;
+  color:#fff;
 }
 
 /* ===============================
@@ -184,50 +108,126 @@ h3{
   background:#fff;
   border-radius:12px;
   padding:10px;
-  box-shadow:0 4px 12px rgba(0,0,0,.08);
+  box-shadow:0 2px 6px rgba(0,0,0,.06);
+  text-align:center;
 }
 
 .card img{
   width:100%;
+  height:140px;
+  object-fit:contain;
   border-radius:8px;
-  margin-bottom:6px;
 }
 
-.card .info b{
+.card h4{
+  margin:8px 0 4px;
   font-size:14px;
 }
 
-.card .info small{
-  display:block;
-  color:#6b7280;
+.card p{
+  margin:0;
   font-size:12px;
-}
-
-.card .info div{
-  font-size:13px;
-  margin-top:4px;
+  color:#666;
 }
 
 /* ===============================
-   MOBILE OPTIMIZATION
+   LOGIN PAGE
 ================================ */
-@media (max-width:480px){
-  body{
-    padding:12px;
+#login{
+  position:fixed;
+  inset:0;
+  background:#f5f7fa;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:999;
+}
+
+.login-box{
+  width:100%;
+  max-width:360px;
+  background:#fff;
+  padding:24px;
+  border-radius:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,.1);
+}
+
+.login-box h2{
+  text-align:center;
+  margin-bottom:16px;
+}
+
+.login-box input{
+  width:100%;
+  padding:12px;
+  margin-bottom:10px;
+  font-size:14px;
+  border-radius:8px;
+  border:1px solid #ccc;
+}
+
+.login-box button{
+  width:100%;
+  padding:12px;
+  background:#007aff;
+  color:#fff;
+  border:none;
+  border-radius:8px;
+  font-size:15px;
+  cursor:pointer;
+}
+
+.login-error{
+  text-align:center;
+  color:#d93025;
+  font-size:13px;
+  margin-top:8px;
+  animation:shake .35s;
+}
+
+@keyframes shake{
+  0%{transform:translateX(0)}
+  25%{transform:translateX(-5px)}
+  50%{transform:translateX(5px)}
+  75%{transform:translateX(-5px)}
+  100%{transform:translateX(0)}
+}
+
+/* ===============================
+   ROLE BADGE
+================================ */
+#roleBadge{
+  position:fixed;
+  top:10px;
+  right:10px;
+  background:#007aff;
+  color:#fff;
+  font-size:12px;
+  padding:6px 10px;
+  border-radius:20px;
+  z-index:10;
+}
+
+/* ===============================
+   DESKTOP POLISH
+================================ */
+@media (min-width:768px){
+
+  .search-box{
+    max-width:520px;
+    margin-left:auto;
+    margin-right:auto;
+  }
+
+  #history{
+    max-width:520px;
+    margin-left:auto;
+    margin-right:auto;
   }
 
   .grid{
-    grid-template-columns:1fr;
-  }
-
-  .card{
-    display:flex;
-    gap:10px;
-  }
-
-  .card img{
-    width:80px;
-    height:auto;
-    margin-bottom:0;
+    max-width:900px;
+    margin-left:auto;
+    margin-right:auto;
   }
 }

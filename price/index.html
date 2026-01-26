@@ -47,11 +47,15 @@
   overflow:hidden;
   position:relative;
 }
-#reader video{width:100%;height:100%;object-fit:cover;}
+#reader video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
 #reader::after{
   content:"";
   position:absolute;
-  inset:20%;
+  inset:22%;
   border:2px dashed rgba(0,255,0,.7);
   border-radius:8px;
 }
@@ -100,20 +104,20 @@
 </div>
 
 <script>
-/* ===================================================
+/* =====================================================
    USER CONFIG (PLAINTEXT PIN)
-   =================================================== */
+   ===================================================== */
 const PIN_USERS = {
   "1111": { name:"admin", role:"supervisor" },
   "2222": { name:"staff1", role:"staff" },
   "3333": { name:"staff2", role:"staff" }
 };
 
-const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 jam
+const SESSION_DURATION = 8 * 60 * 60 * 1000;
 
-/* ===================================================
+/* =====================================================
    LOGIN
-   =================================================== */
+   ===================================================== */
 function loginPin(){
   const p = pin.value.trim();
   const u = PIN_USERS[p];
@@ -134,29 +138,29 @@ function logout(){
   location.reload();
 }
 
-/* AUTO LOGIN */
 if(localStorage.getItem("mms_login")==="1"){
   showApp();
 }
 
-/* AUTO LOGOUT */
+/* auto logout */
 setInterval(()=>{
-  const t = localStorage.getItem("mms_login_time");
+  const t=localStorage.getItem("mms_login_time");
   if(!t) return;
-  if(Date.now()-Number(t) > SESSION_DURATION){
+  if(Date.now()-Number(t)>SESSION_DURATION){
     alert("Session habis");
     logout();
   }
 },60000);
 
-/* ===================================================
-   APP INIT
-   =================================================== */
+/* =====================================================
+   INIT
+   ===================================================== */
 const loginDiv=document.getElementById("login");
 const app=document.getElementById("app");
 const input=document.getElementById("searchInput");
 const clearBtn=document.getElementById("clearBtn");
 const reader=document.getElementById("reader");
+const historyDiv=document.getElementById("history");
 
 function showApp(){
   loginDiv.style.display="none";
@@ -167,9 +171,9 @@ function showApp(){
   input.focus();
 }
 
-/* ===================================================
+/* =====================================================
    DATA
-   =================================================== */
+   ===================================================== */
 let barcodeIndex=new Map(), nameIndex=[], history=[];
 
 fetch("products.json").then(r=>r.json()).then(data=>{
@@ -179,9 +183,9 @@ fetch("products.json").then(r=>r.json()).then(data=>{
   });
 });
 
-/* ===================================================
+/* =====================================================
    SEARCH
-   =================================================== */
+   ===================================================== */
 input.oninput=e=>{
   clearBtn.style.display=e.target.value?"block":"none";
   search(e.target.value);
@@ -226,7 +230,7 @@ function search(q){
 function render(list){
   result.innerHTML=list.map(p=>`
   <div class="card">
-    <img src="${p.i}">
+    <img src="${p.i}" loading="lazy">
     <div class="info">
       <b>${p.n}</b>
       <small>${p.b}</small>
@@ -235,50 +239,72 @@ function render(list){
   </div>`).join("");
 }
 
-/* ===================================================
+/* =====================================================
    HISTORY
-   =================================================== */
+   ===================================================== */
 function addHistory(code){
   if(history.includes(code))return;
   history.unshift(code);
   if(history.length>5)history.pop();
   historyDiv.innerHTML=history.map(h=>`<span>${h}</span>`).join("");
 }
-const historyDiv=document.getElementById("history");
 
-/* ===================================================
-   CAMERA (EAN)
-   =================================================== */
+/* =====================================================
+   CAMERA – PSEUDO AUTOFOCUS LOCK
+   ===================================================== */
 let scanning=false;
+let lastCode="";
+let stableCount=0;
+const REQUIRED_MATCH=3;
+const AUTOFOCUS_DELAY=800;
 
 scanBtn.onclick=()=>{
   if(scanning)return;
   scanning=true;
   reader.style.display="block";
+  lastCode="";
+  stableCount=0;
 
   Quagga.init({
     inputStream:{
       type:"LiveStream",
       target:reader,
-      constraints:{facingMode:"environment"}
+      constraints:{facingMode:"environment"},
+      area:{top:"22%",right:"22%",left:"22%",bottom:"22%"}
     },
-    decoder:{readers:["ean_reader","ean_8_reader"]}
+    decoder:{readers:["ean_reader","ean_8_reader"]},
+    locate:true
   },err=>{
     if(err){alert("Camera error");scanning=false;return;}
     Quagga.start();
-  });
-
-  Quagga.onDetected(d=>{
-    Quagga.stop();
-    reader.style.display="none";
-    scanning=false;
-    input.value=d.codeResult.code;
-    clearBtn.style.display="block";
-    search(input.value);
-    input.focus();
-    input.select();
+    setTimeout(()=>{
+      Quagga.onDetected(onDetectedStable);
+    },AUTOFOCUS_DELAY);
   });
 };
+
+function onDetectedStable(res){
+  const code=res.codeResult.code;
+  if(code===lastCode){
+    stableCount++;
+  }else{
+    lastCode=code;
+    stableCount=1;
+  }
+  if(stableCount<REQUIRED_MATCH)return;
+
+  Quagga.offDetected(onDetectedStable);
+  Quagga.stop();
+  reader.style.display="none";
+  scanning=false;
+
+  input.value=code;
+  clearBtn.style.display="block";
+  search(code);
+
+  input.focus();
+  input.select();
+}
 </script>
 
 </body>

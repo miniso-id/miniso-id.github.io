@@ -6,56 +6,94 @@
 <title>MMS-X</title>
 
 <link rel="stylesheet" href="style.css">
-
-<!-- QUAGGA FALLBACK -->
 <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 
 <style>
-/* ===== CAMERA VIEW ===== */
+/* ===== LOGIN ===== */
+#login {
+  position: fixed;
+  inset: 0;
+  background: #f4f4f4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.login-box {
+  background: #fff;
+  padding: 24px;
+  width: 90%;
+  max-width: 320px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.15);
+}
+.login-box h2 {
+  text-align: center;
+  margin-bottom: 14px;
+}
+.login-box input,
+.login-box button {
+  width: 100%;
+  padding: 12px;
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+/* ===== CAMERA ===== */
 #reader {
   display: none;
   position: relative;
   width: 100%;
-  max-width: 420px;
-  aspect-ratio: 1 / 1;
-  margin: 12px auto;
-  overflow: hidden;
-  border-radius: 14px;
+  max-width: 360px;
+  aspect-ratio: 1/1;
+  margin: 10px auto;
   background: #000;
+  border-radius: 12px;
+  overflow: hidden;
 }
-
-#reader video,
-#reader canvas {
+#reader video {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-
-/* SCAN GUIDE */
 #reader::after {
   content: "";
   position: absolute;
-  inset: 18%;
-  border: 2px dashed rgba(0,255,0,.6);
-  border-radius: 10px;
-  pointer-events: none;
+  inset: 20%;
+  border: 2px dashed rgba(0,255,0,.7);
+  border-radius: 8px;
+}
+
+#logoutBtn {
+  float: right;
+  font-size: 14px;
 }
 </style>
 </head>
 
 <body>
 
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-box">
+    <h2>PIN Login</h2>
+    <input id="pin" type="password" inputmode="numeric" maxlength="6" placeholder="Masukkan PIN" autofocus>
+    <button onclick="loginPin()">Masuk</button>
+    <small style="opacity:.6">PIN Staff</small>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+
+<button id="logoutBtn" onclick="logout()">Logout</button>
+
 <h1>MMS-X</h1>
 <h2>Product Query</h2>
 
 <div class="search-box">
   <div class="input-wrap">
-    <input
-      id="searchInput"
-      placeholder="Scan barcode / ketik nama"
-      autocomplete="off"
-      autofocus
-    />
+    <input id="searchInput" placeholder="Scan barcode / ketik nama" autofocus>
     <span id="clearBtn">✕</span>
   </div>
   <button id="scanBtn">📷 Scan Kamera</button>
@@ -71,161 +109,196 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
+</div>
+
 <script>
-/* ================= DATA ================= */
-let barcodeIndex = new Map();
-let nameIndex = [];
-let historyList = [];
-let scanning = false;
-let activeStream = null;
+/* =========================================================
+   USER CONFIG (HASHED PIN)
+   ========================================================= */
+const PIN_USERS = {
+  // PIN: 1111
+  "0ffe1abd1a08215353c233d6e009613e95e8e6b23c2f9eae7f6aafc4fdf4a4f5": {
+    name: "admin",
+    role: "supervisor"
+  },
+  // PIN: 2222
+  "f2c10a4b3e0f0c04e3d6b7a3e02aa527969b5cb364a7e06e5e853ee1bc74d2c1": {
+    name: "staff1",
+    role: "staff"
+  }
+};
 
-/* ================= LOAD DATA ================= */
-fetch('products.json')
-.then(r => r.json())
-.then(data => {
-  data.forEach(p => {
-    p.b.split("/").forEach(c => barcodeIndex.set(c.trim(), p));
-    nameIndex.push({ name: p.n.toLowerCase(), product: p });
-  });
-});
+const SESSION_DURATION = 8 * 60 * 60 * 1000;
 
-/* ================= ELEMENT ================= */
+/* =========================================================
+   LOGIN + HASH
+   ========================================================= */
+async function hashPin(pin){
+  const buf = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(pin)
+  );
+  return [...new Uint8Array(buf)]
+    .map(b => b.toString(16).padStart(2,"0"))
+    .join("");
+}
+
+async function loginPin(){
+  const pinInput = document.getElementById("pin");
+  const pin = pinInput.value.trim();
+  if(!pin) return;
+
+  const hash = await hashPin(pin);
+  const user = PIN_USERS[hash];
+
+  if(user){
+    localStorage.setItem("mms_login","1");
+    localStorage.setItem("mms_user",user.name);
+    localStorage.setItem("mms_role",user.role);
+    localStorage.setItem("mms_login_time",Date.now());
+    showApp();
+  }else{
+    alert("PIN salah");
+    pinInput.value="";
+  }
+}
+
+function logout(){
+  localStorage.clear();
+  location.reload();
+}
+
+/* =========================================================
+   SESSION CHECK
+   ========================================================= */
+function checkSession(){
+  const t = localStorage.getItem("mms_login_time");
+  if(!t) return logout();
+  if(Date.now() - Number(t) > SESSION_DURATION){
+    alert("Session habis, silakan login ulang");
+    logout();
+  }
+}
+setInterval(checkSession, 60000);
+
+/* =========================================================
+   APP INIT
+   ========================================================= */
+const loginDiv = document.getElementById("login");
+const app = document.getElementById("app");
 const input = document.getElementById("searchInput");
 const clearBtn = document.getElementById("clearBtn");
 const reader = document.getElementById("reader");
-const historyDiv = document.getElementById("history");
-const resultDiv = document.getElementById("result");
 
-/* ================= INPUT SEARCH ================= */
-input.addEventListener("input", e => {
+if(localStorage.getItem("mms_login")==="1"){
+  showApp();
+}
+
+function showApp(){
+  loginDiv.style.display="none";
+  app.style.display="block";
+
+  const u = localStorage.getItem("mms_user");
+  const r = localStorage.getItem("mms_role");
+  document.querySelector("h1").innerText = `MMS-X (${u} - ${r})`;
+
+  input.focus();
+}
+
+/* =========================================================
+   DATA INDEX
+   ========================================================= */
+let barcodeIndex = new Map();
+let nameIndex = [];
+let history = [];
+
+fetch('products.json')
+  .then(r => r.json())
+  .then(data => {
+    data.forEach(p => {
+      p.b.split("/").forEach(code => barcodeIndex.set(code.trim(), p));
+      nameIndex.push({ name: p.n.toLowerCase(), product: p });
+    });
+  });
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+input.oninput = e => {
   clearBtn.style.display = e.target.value ? "block" : "none";
   search(e.target.value);
-});
-
-/* ================= PDA SCANNER (ENTER) ================= */
-input.addEventListener("keydown", e => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    handleResult(input.value.trim());
-  }
-});
-
-/* ================= CLEAR ================= */
-clearBtn.onclick = () => {
-  input.value = "";
-  resultDiv.innerHTML = "";
-  clearBtn.style.display = "none";
-  input.focus();
-  input.select();
 };
 
-/* ================= SEARCH LOGIC ================= */
-function search(q) {
-  q = q.trim().toLowerCase();
-  if (!q) {
-    resultDiv.innerHTML = "";
-    return;
+input.onkeydown = e => {
+  if(e.key === "Enter"){
+    e.preventDefault();
+    search(input.value.trim());
   }
+};
 
-  /* PRIORITAS BARCODE */
-  if (barcodeIndex.has(q)) {
-    beep(true);
-    render([barcodeIndex.get(q)]);
+clearBtn.onclick = () => {
+  input.value = "";
+  clearBtn.style.display = "none";
+  result.innerHTML = "";
+  input.focus();
+};
+
+function search(q){
+  q = q.toLowerCase();
+  if(!q){ result.innerHTML=""; return; }
+
+  if(barcodeIndex.has(q)){
+    beepOk.play();
     addHistory(q);
+    render([barcodeIndex.get(q)]);
     return;
   }
 
-  /* SEARCH BY NAME */
-  const results = [];
-  for (let i = 0; i < nameIndex.length; i++) {
-    if (nameIndex[i].name.includes(q)) {
-      results.push(nameIndex[i].product);
-      if (results.length >= 100) break;
+  const r = [];
+  for(let i=0;i<nameIndex.length;i++){
+    if(nameIndex[i].name.includes(q)){
+      r.push(nameIndex[i].product);
+      if(r.length>=100) break;
     }
   }
 
-  results.length ? beep(true) : beep(false);
-  render(results);
+  r.length ? beepOk.play() : beepErr.play();
+  render(r);
 }
 
-/* ================= RENDER ================= */
-function render(list) {
-  resultDiv.innerHTML = list.map(p => `
+function render(list){
+  result.innerHTML = list.map(p => `
     <div class="card">
       <img src="${p.i}" loading="lazy">
       <div class="info">
         <b>${p.n}</b>
         <small>${p.b}</small>
-        <div class="price">${p.h}</div>
+        <div>${p.h}</div>
       </div>
     </div>
   `).join("");
 }
 
-/* ================= HISTORY ================= */
-function addHistory(code) {
-  if (historyList.includes(code)) return;
-  historyList.unshift(code);
-  if (historyList.length > 5) historyList.pop();
-  historyDiv.innerHTML = historyList.map(h => `<span>${h}</span>`).join("");
+/* =========================================================
+   HISTORY
+   ========================================================= */
+function addHistory(code){
+  if(history.includes(code)) return;
+  history.unshift(code);
+  if(history.length>5) history.pop();
+  document.getElementById("history").innerHTML =
+    history.map(h=>`<span>${h}</span>`).join("");
 }
 
-/* ================= BEEP ================= */
-function beep(ok) {
-  (ok ? beepOk : beepErr).play();
-}
+/* =========================================================
+   CAMERA (EAN ONLY)
+   ========================================================= */
+let scanning=false;
 
-/* ================= SCAN BUTTON ================= */
 scanBtn.onclick = () => {
-  if (scanning) return;
-  scanning = true;
-  reader.style.display = "block";
-
-  if ("BarcodeDetector" in window) {
-    startNativeScanner();
-  } else {
-    startQuagga();
-  }
-};
-
-/* ================= NATIVE SCANNER ================= */
-async function startNativeScanner() {
-  try {
-    const detector = new BarcodeDetector({ formats: ["ean_13"] });
-
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: "environment" },
-        width: { ideal: 1280 },
-        height: { ideal: 1280 }
-      }
-    });
-
-    activeStream = stream;
-
-    const video = document.createElement("video");
-    video.srcObject = stream;
-    video.setAttribute("playsinline", true);
-    reader.innerHTML = "";
-    reader.appendChild(video);
-    await video.play();
-
-    const loop = setInterval(async () => {
-      const codes = await detector.detect(video);
-      if (codes.length) {
-        clearInterval(loop);
-        handleResult(codes[0].rawValue);
-      }
-    }, 300);
-
-  } catch {
-    startQuagga();
-  }
-}
-
-/* ================= QUAGGA FALLBACK ================= */
-function startQuagga() {
-  reader.innerHTML = "";
+  if(scanning) return;
+  scanning=true;
+  reader.style.display="block";
 
   Quagga.init({
     inputStream: {
@@ -237,48 +310,30 @@ function startQuagga() {
         height: 640
       }
     },
-    locator: { patchSize: "large", halfSample: false },
-    decoder: { readers: ["ean_reader", "ean_8_reader"] },
-    locate: true
-  }, err => {
-    if (err) {
-      alert("Camera error");
-      scanning = false;
-      reader.style.display = "none";
-      return;
+    decoder: {
+      readers: ["ean_reader","ean_8_reader"]
     }
+  }, err => {
+    if(err){ alert("Camera error"); scanning=false; return; }
     Quagga.start();
   });
 
   Quagga.onDetected(d => {
-    Quagga.stop();
-    handleResult(d.codeResult.code);
+    handleScan(d.codeResult.code);
   });
-}
+};
 
-/* ================= HANDLE RESULT ================= */
-function handleResult(code) {
-  stopCamera();
-  scanning = false;
-  reader.style.display = "none";
-
-  if (!code) return;
+function handleScan(code){
+  Quagga.stop();
+  reader.style.display="none";
+  scanning=false;
 
   input.value = code;
-  clearBtn.style.display = "block";
+  clearBtn.style.display="block";
   search(code);
 
   input.focus();
   input.select();
-}
-
-/* ================= STOP CAMERA ================= */
-function stopCamera() {
-  if (activeStream) {
-    activeStream.getTracks().forEach(t => t.stop());
-    activeStream = null;
-  }
-  try { Quagga.stop(); } catch {}
 }
 </script>
 

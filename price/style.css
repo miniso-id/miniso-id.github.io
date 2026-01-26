@@ -442,3 +442,58 @@ h2,h3{
     transform:translateY(-50%);
   }
 }
+
+/* ===============================
+   SEARCH LAYOUT – VERTICAL (ALL)
+================================ */
+
+/* Search container */
+.search-box{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:14px;
+  width:100%;
+  max-width:720px;
+  margin:0 auto 20px;
+}
+
+/* Input wrapper */
+.input-wrap{
+  width:100%;
+  position:relative;
+}
+
+/* Input barcode */
+.input-wrap input{
+  width:100%;
+  height:50px;
+  font-size:16px;
+  padding:0 44px 0 14px;
+  border-radius:14px;
+  border:1px solid #ddd;
+}
+
+/* Clear button */
+#clearBtn{
+  position:absolute;
+  right:14px;
+  top:50%;
+  transform:translateY(-50%);
+  cursor:pointer;
+  font-size:18px;
+  opacity:.6;
+}
+
+/* Camera Scan button */
+#scanBtn{
+  width:100%;
+  max-width:320px;
+  height:48px;
+  font-size:16px;
+  border-radius:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+}

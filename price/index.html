@@ -10,64 +10,53 @@
 
 <style>
 /* ===== LOGIN ===== */
-#login {
-  position: fixed;
-  inset: 0;
-  background: #f4f4f4;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
+#login{
+  position:fixed;
+  inset:0;
+  background:#f4f4f4;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
 }
-.login-box {
-  background: #fff;
-  padding: 24px;
-  width: 90%;
-  max-width: 320px;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.15);
-}
-.login-box h2 {
-  text-align: center;
-  margin-bottom: 14px;
+.login-box{
+  background:#fff;
+  padding:24px;
+  width:90%;
+  max-width:320px;
+  border-radius:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,.15);
 }
 .login-box input,
-.login-box button {
-  width: 100%;
-  padding: 12px;
-  font-size: 18px;
-  margin-bottom: 10px;
+.login-box button{
+  width:100%;
+  padding:12px;
+  font-size:18px;
+  margin-bottom:10px;
 }
 
 /* ===== CAMERA ===== */
-#reader {
-  display: none;
-  position: relative;
-  width: 100%;
-  max-width: 360px;
-  aspect-ratio: 1/1;
-  margin: 10px auto;
-  background: #000;
-  border-radius: 12px;
-  overflow: hidden;
+#reader{
+  display:none;
+  width:100%;
+  max-width:360px;
+  aspect-ratio:1/1;
+  margin:10px auto;
+  background:#000;
+  border-radius:12px;
+  overflow:hidden;
+  position:relative;
 }
-#reader video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-#reader::after {
-  content: "";
-  position: absolute;
-  inset: 20%;
-  border: 2px dashed rgba(0,255,0,.7);
-  border-radius: 8px;
+#reader video{width:100%;height:100%;object-fit:cover;}
+#reader::after{
+  content:"";
+  position:absolute;
+  inset:20%;
+  border:2px dashed rgba(0,255,0,.7);
+  border-radius:8px;
 }
 
-#logoutBtn {
-  float: right;
-  font-size: 14px;
-}
+#logoutBtn{float:right;font-size:14px;}
 </style>
 </head>
 
@@ -79,7 +68,6 @@
     <h2>PIN Login</h2>
     <input id="pin" type="password" inputmode="numeric" maxlength="6" placeholder="Masukkan PIN" autofocus>
     <button onclick="loginPin()">Masuk</button>
-    <small style="opacity:.6"></small>
   </div>
 </div>
 
@@ -112,55 +100,33 @@
 </div>
 
 <script>
-/* =========================================================
-   USER CONFIG (HASHED PIN)
-   ========================================================= */
+/* ===================================================
+   USER CONFIG (PLAINTEXT PIN)
+   =================================================== */
 const PIN_USERS = {
-  // PIN: 1111
-  "0ffe1abd1a08215353c233d6e009613e95e8e6b23c2f9eae7f6aafc4fdf4a4f5": {
-    name: "admin",
-    role: "supervisor"
-  },
-  // PIN: 2222
-  "f2c10a4b3e0f0c04e3d6b7a3e02aa527969b5cb364a7e06e5e853ee1bc74d2c1": {
-    name: "staff1",
-    role: "staff"
-  }
+  "1111": { name:"admin", role:"supervisor" },
+  "2222": { name:"staff1", role:"staff" },
+  "3333": { name:"staff2", role:"staff" }
 };
 
-const SESSION_DURATION = 8 * 60 * 60 * 1000;
+const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 jam
 
-/* =========================================================
-   LOGIN + HASH
-   ========================================================= */
-async function hashPin(pin){
-  const buf = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(pin)
-  );
-  return [...new Uint8Array(buf)]
-    .map(b => b.toString(16).padStart(2,"0"))
-    .join("");
-}
-
-async function loginPin(){
-  const pinInput = document.getElementById("pin");
-  const pin = pinInput.value.trim();
-  if(!pin) return;
-
-  const hash = await hashPin(pin);
-  const user = PIN_USERS[hash];
-
-  if(user){
-    localStorage.setItem("mms_login","1");
-    localStorage.setItem("mms_user",user.name);
-    localStorage.setItem("mms_role",user.role);
-    localStorage.setItem("mms_login_time",Date.now());
-    showApp();
-  }else{
+/* ===================================================
+   LOGIN
+   =================================================== */
+function loginPin(){
+  const p = pin.value.trim();
+  const u = PIN_USERS[p];
+  if(!u){
     alert("PIN salah");
-    pinInput.value="";
+    pin.value="";
+    return;
   }
+  localStorage.setItem("mms_login","1");
+  localStorage.setItem("mms_user",u.name);
+  localStorage.setItem("mms_role",u.role);
+  localStorage.setItem("mms_login_time",Date.now());
+  showApp();
 }
 
 function logout(){
@@ -168,84 +134,76 @@ function logout(){
   location.reload();
 }
 
-/* =========================================================
-   SESSION CHECK
-   ========================================================= */
-function checkSession(){
-  const t = localStorage.getItem("mms_login_time");
-  if(!t) return logout();
-  if(Date.now() - Number(t) > SESSION_DURATION){
-    alert("Session habis, silakan login ulang");
-    logout();
-  }
-}
-setInterval(checkSession, 60000);
-
-/* =========================================================
-   APP INIT
-   ========================================================= */
-const loginDiv = document.getElementById("login");
-const app = document.getElementById("app");
-const input = document.getElementById("searchInput");
-const clearBtn = document.getElementById("clearBtn");
-const reader = document.getElementById("reader");
-
+/* AUTO LOGIN */
 if(localStorage.getItem("mms_login")==="1"){
   showApp();
 }
 
+/* AUTO LOGOUT */
+setInterval(()=>{
+  const t = localStorage.getItem("mms_login_time");
+  if(!t) return;
+  if(Date.now()-Number(t) > SESSION_DURATION){
+    alert("Session habis");
+    logout();
+  }
+},60000);
+
+/* ===================================================
+   APP INIT
+   =================================================== */
+const loginDiv=document.getElementById("login");
+const app=document.getElementById("app");
+const input=document.getElementById("searchInput");
+const clearBtn=document.getElementById("clearBtn");
+const reader=document.getElementById("reader");
+
 function showApp(){
   loginDiv.style.display="none";
   app.style.display="block";
-
-  const u = localStorage.getItem("mms_user");
-  const r = localStorage.getItem("mms_role");
-  document.querySelector("h1").innerText = `MMS-X (${u} - ${r})`;
-
+  const u=localStorage.getItem("mms_user");
+  const r=localStorage.getItem("mms_role");
+  document.querySelector("h1").innerText=`MMS-X (${u} - ${r})`;
   input.focus();
 }
 
-/* =========================================================
-   DATA INDEX
-   ========================================================= */
-let barcodeIndex = new Map();
-let nameIndex = [];
-let history = [];
+/* ===================================================
+   DATA
+   =================================================== */
+let barcodeIndex=new Map(), nameIndex=[], history=[];
 
-fetch('products.json')
-  .then(r => r.json())
-  .then(data => {
-    data.forEach(p => {
-      p.b.split("/").forEach(code => barcodeIndex.set(code.trim(), p));
-      nameIndex.push({ name: p.n.toLowerCase(), product: p });
-    });
+fetch("products.json").then(r=>r.json()).then(data=>{
+  data.forEach(p=>{
+    p.b.split("/").forEach(c=>barcodeIndex.set(c.trim(),p));
+    nameIndex.push({name:p.n.toLowerCase(),product:p});
   });
+});
 
-/* =========================================================
+/* ===================================================
    SEARCH
-   ========================================================= */
-input.oninput = e => {
-  clearBtn.style.display = e.target.value ? "block" : "none";
+   =================================================== */
+input.oninput=e=>{
+  clearBtn.style.display=e.target.value?"block":"none";
   search(e.target.value);
 };
 
-input.onkeydown = e => {
-  if(e.key === "Enter"){
+input.onkeydown=e=>{
+  if(e.key==="Enter"){
     e.preventDefault();
     search(input.value.trim());
   }
 };
 
-clearBtn.onclick = () => {
-  input.value = "";
-  clearBtn.style.display = "none";
-  result.innerHTML = "";
+clearBtn.onclick=()=>{
+  input.value="";
+  clearBtn.style.display="none";
+  result.innerHTML="";
   input.focus();
 };
 
 function search(q){
-  q = q.toLowerCase();
-  if(!q){ result.innerHTML=""; return; }
+  q=q.toLowerCase();
+  if(!q){result.innerHTML="";return;}
 
   if(barcodeIndex.has(q)){
     beepOk.play();
@@ -254,87 +212,73 @@ function search(q){
     return;
   }
 
-  const r = [];
+  const r=[];
   for(let i=0;i<nameIndex.length;i++){
     if(nameIndex[i].name.includes(q)){
       r.push(nameIndex[i].product);
-      if(r.length>=100) break;
+      if(r.length>=100)break;
     }
   }
-
-  r.length ? beepOk.play() : beepErr.play();
+  r.length?beepOk.play():beepErr.play();
   render(r);
 }
 
 function render(list){
-  result.innerHTML = list.map(p => `
-    <div class="card">
-      <img src="${p.i}" loading="lazy">
-      <div class="info">
-        <b>${p.n}</b>
-        <small>${p.b}</small>
-        <div>${p.h}</div>
-      </div>
+  result.innerHTML=list.map(p=>`
+  <div class="card">
+    <img src="${p.i}">
+    <div class="info">
+      <b>${p.n}</b>
+      <small>${p.b}</small>
+      <div>${p.h}</div>
     </div>
-  `).join("");
+  </div>`).join("");
 }
 
-/* =========================================================
+/* ===================================================
    HISTORY
-   ========================================================= */
+   =================================================== */
 function addHistory(code){
-  if(history.includes(code)) return;
+  if(history.includes(code))return;
   history.unshift(code);
-  if(history.length>5) history.pop();
-  document.getElementById("history").innerHTML =
-    history.map(h=>`<span>${h}</span>`).join("");
+  if(history.length>5)history.pop();
+  historyDiv.innerHTML=history.map(h=>`<span>${h}</span>`).join("");
 }
+const historyDiv=document.getElementById("history");
 
-/* =========================================================
-   CAMERA (EAN ONLY)
-   ========================================================= */
+/* ===================================================
+   CAMERA (EAN)
+   =================================================== */
 let scanning=false;
 
-scanBtn.onclick = () => {
-  if(scanning) return;
+scanBtn.onclick=()=>{
+  if(scanning)return;
   scanning=true;
   reader.style.display="block";
 
   Quagga.init({
-    inputStream: {
-      type: "LiveStream",
-      target: reader,
-      constraints: {
-        facingMode: "environment",
-        width: 640,
-        height: 640
-      }
+    inputStream:{
+      type:"LiveStream",
+      target:reader,
+      constraints:{facingMode:"environment"}
     },
-    decoder: {
-      readers: ["ean_reader","ean_8_reader"]
-    }
-  }, err => {
-    if(err){ alert("Camera error"); scanning=false; return; }
+    decoder:{readers:["ean_reader","ean_8_reader"]}
+  },err=>{
+    if(err){alert("Camera error");scanning=false;return;}
     Quagga.start();
   });
 
-  Quagga.onDetected(d => {
-    handleScan(d.codeResult.code);
+  Quagga.onDetected(d=>{
+    Quagga.stop();
+    reader.style.display="none";
+    scanning=false;
+    input.value=d.codeResult.code;
+    clearBtn.style.display="block";
+    search(input.value);
+    input.focus();
+    input.select();
   });
 };
-
-function handleScan(code){
-  Quagga.stop();
-  reader.style.display="none";
-  scanning=false;
-
-  input.value = code;
-  clearBtn.style.display="block";
-  search(code);
-
-  input.focus();
-  input.select();
-}
 </script>
 
 </body>

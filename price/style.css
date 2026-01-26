@@ -1,59 +1,233 @@
-body{
-  font-family:system-ui;
-  margin:0;
-  background:#f5f7fa;
+/* ===============================
+   GLOBAL
+================================ */
+*{
+  box-sizing:border-box;
 }
 
-/* ===== LOGIN ===== */
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  background:#f3f4f6;
+  color:#111827;
+  padding:16px;
+}
+
+h2{
+  font-size:22px;
+  margin:0 0 4px;
+}
+
+h3{
+  font-size:16px;
+  margin:0 0 12px;
+  color:#374151;
+}
+
+/* ===============================
+   LOGIN
+================================ */
 #loginOverlay{
   position:fixed;
   inset:0;
-  background:#0008;
+  background:#f3f4f6;
   display:flex;
   align-items:center;
   justify-content:center;
-  z-index:999;
+  z-index:9999;
 }
 
 .login-card{
+  width:100%;
+  max-width:360px;
+  padding:28px;
   background:#fff;
-  padding:26px;
   border-radius:14px;
-  width:280px;
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-  box-shadow:0 20px 40px #0003;
+  box-shadow:0 10px 30px rgba(0,0,0,.15);
+  text-align:center;
 }
 
-.login-card input,
-.login-card button{
-  padding:12px;
-  border-radius:8px;
-  border:1px solid #ccc;
+.login-card h3{
+  margin-bottom:22px;
+}
+
+.login-card input{
+  width:100%;
+  height:44px;
+  margin-bottom:14px;
+  padding:0 14px;
+  border-radius:10px;
+  border:1px solid #d1d5db;
+  font-size:15px;
+}
+
+.login-card input:focus{
+  outline:none;
+  border-color:#4f46e5;
 }
 
 .login-card button{
-  background:#2563eb;
-  color:#fff;
+  width:100%;
+  height:46px;
   border:none;
+  border-radius:10px;
+  background:#4f46e5;
+  color:#fff;
+  font-size:15px;
+  font-weight:500;
   cursor:pointer;
 }
 
 #loginErr{
-  color:#dc2626;
+  margin-top:10px;
   font-size:14px;
-  min-height:16px;
+  color:#ef4444;
+  opacity:0;
+  transition:.25s;
 }
 
-/* SHAKE */
-.shake{
-  animation:shake .3s;
+#loginErr.show{
+  opacity:1;
 }
+
+.login-card.error{
+  animation:shake .35s;
+}
+
 @keyframes shake{
   0%{transform:translateX(0)}
   25%{transform:translateX(-6px)}
   50%{transform:translateX(6px)}
   75%{transform:translateX(-4px)}
   100%{transform:translateX(0)}
+}
+
+/* ===============================
+   SEARCH BOX
+================================ */
+.search-box{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin:12px 0;
+}
+
+.input-wrap{
+  position:relative;
+}
+
+.input-wrap input{
+  width:100%;
+  height:42px;
+  padding:0 38px 0 12px;
+  font-size:15px;
+  border-radius:10px;
+  border:1px solid #d1d5db;
+}
+
+#clearBtn{
+  position:absolute;
+  right:10px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:18px;
+  cursor:pointer;
+  display:none;
+}
+
+#scanBtn{
+  width:100%;
+  height:44px;
+  border-radius:10px;
+  border:none;
+  background:#e5e7eb;
+  font-size:15px;
+  cursor:pointer;
+}
+
+/* ===============================
+   HISTORY (HORIZONTAL)
+================================ */
+#history{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  padding:8px 2px 12px;
+  margin-bottom:10px;
+  scrollbar-width:none;
+}
+
+#history::-webkit-scrollbar{
+  display:none;
+}
+
+#history span{
+  flex:0 0 auto;
+  padding:6px 12px;
+  background:#e5e7eb;
+  border-radius:999px;
+  font-size:13px;
+  white-space:nowrap;
+  cursor:pointer;
+}
+
+/* ===============================
+   RESULT GRID
+================================ */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+  gap:12px;
+}
+
+.card{
+  background:#fff;
+  border-radius:12px;
+  padding:10px;
+  box-shadow:0 4px 12px rgba(0,0,0,.08);
+}
+
+.card img{
+  width:100%;
+  border-radius:8px;
+  margin-bottom:6px;
+}
+
+.card .info b{
+  font-size:14px;
+}
+
+.card .info small{
+  display:block;
+  color:#6b7280;
+  font-size:12px;
+}
+
+.card .info div{
+  font-size:13px;
+  margin-top:4px;
+}
+
+/* ===============================
+   MOBILE OPTIMIZATION
+================================ */
+@media (max-width:480px){
+  body{
+    padding:12px;
+  }
+
+  .grid{
+    grid-template-columns:1fr;
+  }
+
+  .card{
+    display:flex;
+    gap:10px;
+  }
+
+  .card img{
+    width:80px;
+    height:auto;
+    margin-bottom:0;
+  }
 }

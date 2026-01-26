@@ -9,32 +9,6 @@
 <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 
 <style>
-/* ===== LOGIN ===== */
-#login{
-  position:fixed;
-  inset:0;
-  background:#f4f4f4;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:9999;
-}
-.login-box{
-  background:#fff;
-  padding:24px;
-  width:90%;
-  max-width:320px;
-  border-radius:12px;
-  box-shadow:0 10px 30px rgba(0,0,0,.15);
-}
-.login-box input,
-.login-box button{
-  width:100%;
-  padding:12px;
-  font-size:18px;
-  margin-bottom:10px;
-}
-
 /* ===== CAMERA ===== */
 #reader{
   display:none;
@@ -59,26 +33,13 @@
   border:2px dashed rgba(0,255,0,.7);
   border-radius:8px;
 }
-
-#logoutBtn{float:right;font-size:14px;}
 </style>
 </head>
 
 <body>
 
-<!-- LOGIN -->
-<div id="login">
-  <div class="login-box">
-    <h2>PIN Login</h2>
-    <input id="pin" type="password" inputmode="numeric" maxlength="6" placeholder="Masukkan PIN" autofocus>
-    <button onclick="loginPin()">Masuk</button>
-  </div>
-</div>
-
 <!-- APP -->
-<div id="app" style="display:none">
-
-<button id="logoutBtn" onclick="logout()">Logout</button>
+<div id="app">
 
 <h1>MMS-X</h1>
 <h2>Product Query</h2>
@@ -105,71 +66,14 @@
 
 <script>
 /* =====================================================
-   USER CONFIG (PLAINTEXT PIN)
-   ===================================================== */
-const PIN_USERS = {
-  "1111": { name:"admin", role:"supervisor" },
-  "2222": { name:"staff1", role:"staff" },
-  "3333": { name:"staff2", role:"staff" }
-};
-
-const SESSION_DURATION = 8 * 60 * 60 * 1000;
-
-/* =====================================================
-   LOGIN
-   ===================================================== */
-function loginPin(){
-  const p = pin.value.trim();
-  const u = PIN_USERS[p];
-  if(!u){
-    alert("PIN salah");
-    pin.value="";
-    return;
-  }
-  localStorage.setItem("mms_login","1");
-  localStorage.setItem("mms_user",u.name);
-  localStorage.setItem("mms_role",u.role);
-  localStorage.setItem("mms_login_time",Date.now());
-  showApp();
-}
-
-function logout(){
-  localStorage.clear();
-  location.reload();
-}
-
-if(localStorage.getItem("mms_login")==="1"){
-  showApp();
-}
-
-/* auto logout */
-setInterval(()=>{
-  const t=localStorage.getItem("mms_login_time");
-  if(!t) return;
-  if(Date.now()-Number(t)>SESSION_DURATION){
-    alert("Session habis");
-    logout();
-  }
-},60000);
-
-/* =====================================================
    INIT
    ===================================================== */
-const loginDiv=document.getElementById("login");
-const app=document.getElementById("app");
 const input=document.getElementById("searchInput");
 const clearBtn=document.getElementById("clearBtn");
 const reader=document.getElementById("reader");
 const historyDiv=document.getElementById("history");
-
-function showApp(){
-  loginDiv.style.display="none";
-  app.style.display="block";
-  const u=localStorage.getItem("mms_user");
-  const r=localStorage.getItem("mms_role");
-  document.querySelector("h1").innerText=`MMS-X (${u} - ${r})`;
-  input.focus();
-}
+const result=document.getElementById("result");
+input.focus();
 
 /* =====================================================
    DATA
@@ -250,13 +154,12 @@ function addHistory(code){
 }
 
 /* =====================================================
-   CAMERA – PSEUDO AUTOFOCUS LOCK
+   CAMERA – STABLE SCAN
    ===================================================== */
 let scanning=false;
 let lastCode="";
 let stableCount=0;
 const REQUIRED_MATCH=3;
-const AUTOFOCUS_DELAY=800;
 
 scanBtn.onclick=()=>{
   if(scanning)return;
@@ -269,17 +172,20 @@ scanBtn.onclick=()=>{
     inputStream:{
       type:"LiveStream",
       target:reader,
-      constraints:{facingMode:"environment"},
+      constraints:{
+        facingMode:"environment",
+        width:{ideal:1280},
+        height:{ideal:720}
+      },
       area:{top:"22%",right:"22%",left:"22%",bottom:"22%"}
     },
+    locator:{halfSample:true},
     decoder:{readers:["ean_reader","ean_8_reader"]},
     locate:true
   },err=>{
     if(err){alert("Camera error");scanning=false;return;}
     Quagga.start();
-    setTimeout(()=>{
-      Quagga.onDetected(onDetectedStable);
-    },AUTOFOCUS_DELAY);
+    Quagga.onDetected(onDetectedStable);
   });
 };
 
@@ -301,7 +207,6 @@ function onDetectedStable(res){
   input.value=code;
   clearBtn.style.display="block";
   search(code);
-
   input.focus();
   input.select();
 }

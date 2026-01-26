@@ -522,3 +522,25 @@ h2,h3{
     max-width:none;
   }
 }
+
+/* ===============================
+   LAPTOP / DESKTOP → 7 COLUMNS
+================================ */
+@media (min-width: 1200px){
+
+  #result.grid{
+    display:grid;
+    grid-template-columns:repeat(7, 1fr);
+    gap:16px;
+  }
+
+  /* Card tetap rapi */
+  .card{
+    width:100%;
+    max-width:none;
+  }
+}
+
+
+@media (min-width: 1440px){ #result.grid{ grid-template-columns:repeat(7,1fr); } }
+@media (min-width: 1800px){ #result.grid{ grid-template-columns:repeat(8,1fr); } }

@@ -372,9 +372,7 @@ h2,h3{
   }
 
   /* Judul */
-  @media (max-width: 768px){
 
-  /* NAMA PRODUK – JANGAN ELLIPSIS */
   .card .info b{
     white-space: normal;        /* boleh turun baris */
     overflow: visible;          /* jangan dipotong */
@@ -384,8 +382,6 @@ h2,h3{
     word-break: break-word;     /* aman untuk kata panjang */
     font-size: 16px;
   }
-
-}
 
 
   /* Barcode */

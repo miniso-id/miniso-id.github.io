@@ -273,3 +273,61 @@ h2,h3{
   max-height:none;
 }
 
+/* ===============================
+   CARD TEXT SAFE WRAP (FINAL)
+================================ */
+
+/* Container info */
+.card .info{
+  overflow:hidden;
+}
+
+/* Judul */
+.card .info b{
+  display:block;
+  font-size:14px;
+  line-height:1.35;
+  margin-bottom:6px;
+
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+
+  overflow:hidden;
+  word-break:break-word;
+  overflow-wrap:anywhere;
+}
+
+/* Barcode / kode */
+.card .info small{
+  display:block;
+  font-size:11px;
+  color:#777;
+  margin-bottom:6px;
+
+  /* INI KUNCI UTAMA */
+  word-break:break-all;
+  overflow-wrap:anywhere;
+  white-space:normal;
+}
+
+/* Harga & deskripsi */
+.card .info div{
+  font-size:12px;
+  line-height:1.4;
+  color:#555;
+
+  display:-webkit-box;
+  -webkit-line-clamp:4;   /* boleh 3 / 4 */
+  -webkit-box-orient:vertical;
+
+  overflow:hidden;
+
+  word-break:break-word;
+  overflow-wrap:anywhere;
+}
+
+/* Expand on tap (optional) */
+.card .info div.expand{
+  -webkit-line-clamp:unset;
+}

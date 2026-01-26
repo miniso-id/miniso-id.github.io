@@ -231,3 +231,45 @@ h2,h3{
     margin-right:auto;
   }
 }
+
+/* ===============================
+   HYBRID TEXT (CLAMP + EXPAND)
+================================ */
+
+/* Judul produk */
+.card h4{
+  font-size:14px;
+  line-height:1.35;
+  margin:8px 0 6px;
+
+  display:-webkit-box;
+  -webkit-line-clamp:2;     /* DEFAULT 2 BARIS */
+  -webkit-box-orient:vertical;
+
+  overflow:hidden;
+  word-break:break-word;
+  cursor:pointer;
+  transition:all .2s ease;
+}
+
+/* Deskripsi / harga */
+.card p{
+  font-size:12px;
+  line-height:1.4;
+  color:#555;
+
+  display:-webkit-box;
+  -webkit-line-clamp:3;     /* DEFAULT 3 BARIS */
+  -webkit-box-orient:vertical;
+
+  overflow:hidden;
+  word-break:break-word;
+  cursor:pointer;
+}
+
+/* EXPANDED STATE */
+.card .expand{
+  -webkit-line-clamp:unset !important;
+  max-height:none;
+}
+

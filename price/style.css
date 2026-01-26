@@ -331,3 +331,63 @@ h2,h3{
 .card .info div.expand{
   -webkit-line-clamp:unset;
 }
+
+/* ===============================
+   MOBILE FULL WIDTH PRODUCT
+================================ */
+@media (max-width: 768px){
+
+  /* App padding */
+  #app{
+    padding:16px;
+  }
+
+  /* Grid jadi 1 kolom */
+  #result.grid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:16px;
+  }
+
+  /* Card full layar */
+  .card{
+    width:100%;
+    max-width:100%;
+    margin:0 auto;
+    border-radius:16px;
+  }
+
+  /* Gambar lebih besar */
+  .card img{
+    width:100%;
+    height:auto;
+    max-height:280px;
+    object-fit:contain;
+  }
+
+  /* Info lebih nyaman dibaca */
+  .card .info{
+    padding:14px;
+    text-align:center;
+  }
+
+  /* Judul */
+  .card .info b{
+    font-size:16px;
+    line-height:1.4;
+  }
+
+  /* Barcode */
+  .card .info small{
+    font-size:12px;
+    display:block;
+    margin:6px 0;
+    word-break:break-all;
+  }
+
+  /* Harga */
+  .card .info div{
+    font-size:14px;
+    line-height:1.5;
+  }
+}

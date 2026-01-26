@@ -497,3 +497,28 @@ h2,h3{
   justify-content:center;
   gap:8px;
 }
+
+/* ===============================
+   DESKTOP FULL WIDTH GALLERY
+================================ */
+@media (min-width: 1024px){
+
+  /* App tidak dibatasi lebar */
+  #app{
+    max-width:none;
+    padding-left:32px;
+    padding-right:32px;
+  }
+
+  /* Grid produk full layar */
+  #result.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(220px,1fr));
+    gap:18px;
+  }
+
+  /* Card tetap proporsional */
+  .card{
+    max-width:none;
+  }
+}

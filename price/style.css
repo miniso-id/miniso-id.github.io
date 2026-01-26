@@ -398,3 +398,47 @@ h2,h3{
     line-height:1.5;
   }
 }
+
+/* ===============================
+   MOBILE: INPUT ATAS – SCAN BAWAH
+================================ */
+@media (max-width: 768px){
+
+  /* Search box jadi vertikal */
+  .search-box{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    width:100%;
+  }
+
+  /* Input full width */
+  .input-wrap{
+    width:100%;
+  }
+
+  .input-wrap input{
+    width:100%;
+    height:48px;
+    font-size:16px;
+    border-radius:12px;
+  }
+
+  /* Tombol scan full width */
+  #scanBtn{
+    width:100%;
+    height:48px;
+    font-size:16px;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+  }
+
+  /* Clear (X) tetap di posisi benar */
+  #clearBtn{
+    top:50%;
+    transform:translateY(-50%);
+  }
+}

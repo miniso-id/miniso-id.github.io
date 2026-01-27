@@ -231,32 +231,29 @@ const result=document.getElementById("result");
 /* =====================================================
    DATA
    ===================================================== */
-const PRODUCT_CACHE_KEY = "mms_products_cache";
-
 fetch("https://script.google.com/macros/s/AKfycbwGX0iqcLgCMWVfoN0nRygA6-YLfkBe9f3ZWKCdjZLO/exec")
   .then(r => r.json())
   .then(data => {
-    localStorage.setItem(PRODUCT_CACHE_KEY, JSON.stringify(data));
-    loadProducts(data);
+    barcodeIndex.clear();
+    nameIndex = [];
+
+    data.forEach(p => {
+      if(!p.b || !p.n) return;
+
+      p.b.split("/").forEach(c => {
+        barcodeIndex.set(c.trim(), p);
+      });
+
+      nameIndex.push({
+        name: p.n.toLowerCase(),
+        product: p
+      });
+    });
   })
-  .catch(() => {
-    const cache = localStorage.getItem(PRODUCT_CACHE_KEY);
-    if(cache){
-      loadProducts(JSON.parse(cache));
-    } else {
-      alert("Offline & data belum tersedia");
-    }
+  .catch(err => {
+    console.error("Gagal load data", err);
+    alert("Data produk tidak bisa dimuat");
   });
-
-function loadProducts(data){
-  barcodeIndex.clear();
-  nameIndex=[];
-
-  data.forEach(p=>{
-    p.b?.split("/").forEach(c=>barcodeIndex.set(c.trim(),p));
-    nameIndex.push({name:p.n.toLowerCase(),product:p});
-  });
-}
 
 
 /* =====================================================

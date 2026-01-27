@@ -234,7 +234,7 @@ const result=document.getElementById("result");
    ===================================================== */
 let barcodeIndex=new Map(), nameIndex=[], history=[];
 
-fetch("https://script.google.com/macros/s/AKfycbxm-R_4Ej_WOg8RrdFX4src7CczvWf6VIxCK4LcvsktQviA1XYy9VfnzqiTYUnxb-f7/exec").then(r=>r.json()).then(data=>{
+fetch("products.json").then(r=>r.json()).then(data=>{
   data.forEach(p=>{
     p.b.split("/").forEach(c=>barcodeIndex.set(c.trim(),p));
     nameIndex.push({name:p.n.toLowerCase(),product:p});

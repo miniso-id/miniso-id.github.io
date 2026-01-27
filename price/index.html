@@ -9,15 +9,58 @@
 <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 
 <style>
-#loginOverlay{position:fixed;inset:0;background:#f3f4f6;display:flex;align-items:center;justify-content:center;z-index:9999}
-.login-card{max-width:360px;width:100%;padding:28px;background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.15);text-align:center}
-.login-card input{width:100%;height:44px;margin-bottom:14px;padding:0 14px;border-radius:10px;border:1px solid #ddd}
-.login-card button{width:100%;height:46px;border:none;border-radius:10px;background:#4f46e5;color:#fff}
+#loginOverlay{
+  position:fixed; inset:0;
+  background:#f3f4f6;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+.login-card{
+  width:100%; max-width:360px;
+  padding:28px;
+  background:#fff;
+  border-radius:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,.15);
+  text-align:center;
+}
+.login-card input, .login-card button{
+  width:100%; height:44px;
+  margin-bottom:14px;
+  border-radius:10px;
+}
+.login-card input{
+  border:1px solid #ddd;
+  padding:0 14px;
+}
+.login-card button{
+  border:none;
+  background:#4f46e5;
+  color:#fff;
+  cursor:pointer;
+}
 #loginErr{color:#ef4444;font-size:14px;opacity:0}
 #loginErr.show{opacity:1}
 
-#reader{display:none;width:100%;max-width:360px;aspect-ratio:1/1;margin:10px auto;background:#000;border-radius:12px;overflow:hidden;position:relative}
-#reader::after{content:"";position:absolute;inset:22%;border:2px dashed rgba(0,255,0,.7);border-radius:8px}
+#reader{
+  display:none;
+  width:100%;
+  max-width:360px;
+  aspect-ratio:1/1;
+  margin:10px auto;
+  background:#000;
+  border-radius:12px;
+  overflow:hidden;
+  position:relative;
+}
+#reader video{width:100%;height:100%;object-fit:cover}
+#reader::after{
+  content:"";
+  position:absolute;
+  inset:22%;
+  border:2px dashed rgba(0,255,0,.7);
+}
 </style>
 </head>
 
@@ -38,15 +81,20 @@
 <div id="app" style="display:none">
 <center>
 <h2>Product Query</h2>
-<h3 id="status">Loading index…</h3>
+<h3>MMS-X (beta)</h3>
 </center>
 
 <div class="search-box">
-  <input id="searchInput" placeholder="Scan barcode / type here" disabled>
-  <button id="scanBtn">📷 Scan</button>
+  <div class="input-wrap">
+    <input id="searchInput" placeholder="Loading product data..." disabled>
+    <span id="clearBtn">✕</span>
+  </div>
+  <button id="scanBtn" disabled>📷 Camera Scan</button>
 </div>
 
 <div id="reader"></div>
+
+<h3>Scan History</h3>
 <div id="history"></div>
 <div id="result" class="grid"></div>
 
@@ -56,116 +104,101 @@
 
 <script>
 /* ================= LOGIN ================= */
-let USERS=[]
-fetch("users.json").then(r=>r.json()).then(d=>USERS=d)
+let USERS=[];
+fetch("users.json").then(r=>r.json()).then(d=>USERS=d);
 
 function doLogin(){
-  const u=loginUser.value.trim()
-  const p=loginPass.value.trim()
-  const ok=USERS.find(x=>x.user===u&&x.pass===p)
-  if(!ok){loginErr.classList.add("show");return}
-  localStorage.setItem("mms_auth","1")
-  loginOverlay.style.display="none"
-  app.style.display="block"
-  initIndexedDB()
-}
-if(localStorage.getItem("mms_auth")){
-  loginOverlay.style.display="none"
-  app.style.display="block"
-  initIndexedDB()
-}
-
-/* ================= INDEXED DB ================= */
-let db, barcodeIndex=new Map(), nameIndex=[]
-const DB_NAME="mmsx_db", STORE="index", URL="https://script.google.com/macros/s/AKfycbxm-R_4Ej_WOg8RrdFX4src7CczvWf6VIxCK4LcvsktQviA1XYy9VfnzqiTYUnxb-f7/exec"
-
-function initIndexedDB(){
-  const req=indexedDB.open(DB_NAME,1)
-  req.onupgradeneeded=e=>{
-    db=e.target.result
-    db.createObjectStore(STORE)
-  }
-  req.onsuccess=e=>{
-    db=e.target.result
-    loadIndexFromDB()
+  const u=loginUser.value.trim();
+  const p=loginPass.value.trim();
+  const found=USERS.find(x=>x.user===u && x.pass===p);
+  if(found){
+    localStorage.setItem("mms_auth","1");
+    loginOverlay.style.display="none";
+    app.style.display="block";
+  }else{
+    loginErr.classList.add("show");
   }
 }
+</script>
 
-function loadIndexFromDB(){
-  const tx=db.transaction(STORE)
-  const store=tx.objectStore(STORE)
-  const req=store.get("data")
-  req.onsuccess=()=>{
-    if(req.result){
-      restoreIndex(req.result)
-      ready("Ready (cached)")
-      silentUpdate()
-    }else{
-      fetchAndBuild()
+<script>
+/* ================= INIT ================= */
+const input=document.getElementById("searchInput");
+const clearBtn=document.getElementById("clearBtn");
+const scanBtn=document.getElementById("scanBtn");
+const reader=document.getElementById("reader");
+const result=document.getElementById("result");
+const historyDiv=document.getElementById("history");
+const beepOk=document.getElementById("beepOk");
+const beepErr=document.getElementById("beepErr");
+
+/* ================= STATE ================= */
+let barcodeIndex=new Map();
+let prefixIndex=new Map();
+let history=[];
+let dataReady=false;
+
+/* ================= FETCH & INDEX ================= */
+fetch("https://script.google.com/macros/s/AKfycbxm-R_4Ej_WOg8RrdFX4src7CczvWf6VIxCK4LcvsktQviA1XYy9VfnzqiTYUnxb-f7/exec")
+.then(r=>r.json())
+.then(data=>{
+  data.forEach(p=>{
+    if(p.b){
+      p.b.split("/").forEach(c=>{
+        barcodeIndex.set(c.trim(),p);
+      });
     }
-  }
-}
+    if(p.n){
+      p.n.toLowerCase().split(/\s+/).forEach(w=>{
+        for(let i=1;i<=w.length;i++){
+          const pref=w.slice(0,i);
+          if(!prefixIndex.has(pref))prefixIndex.set(pref,[]);
+          prefixIndex.get(pref).push(p);
+        }
+      });
+    }
+  });
 
-function restoreIndex(data){
-  barcodeIndex=new Map(data.barcodeIndex)
-  nameIndex=data.nameIndex
-}
-
-function saveIndex(){
-  const tx=db.transaction(STORE,"readwrite")
-  tx.objectStore(STORE).put({
-    barcodeIndex:[...barcodeIndex],
-    nameIndex,
-    time:Date.now()
-  },"data")
-}
-
-/* ================= FETCH & BUILD ================= */
-function fetchAndBuild(silent=false){
-  if(!silent)status.textContent="Building search engine…"
-  fetch(URL).then(r=>r.json()).then(data=>{
-    barcodeIndex.clear()
-    nameIndex=[]
-    data.forEach(p=>{
-      p.b.split("/").forEach(c=>barcodeIndex.set(c.trim(),p))
-      nameIndex.push({name:p.n.toLowerCase(),product:p})
-    })
-    saveIndex()
-    if(!silent)ready("Ready")
-  })
-}
-
-function silentUpdate(){
-  fetchAndBuild(true)
-}
-
-function ready(msg){
-  status.textContent=msg
-  searchInput.disabled=false
-  searchInput.focus()
-}
+  dataReady=true;
+  input.disabled=false;
+  scanBtn.disabled=false;
+  input.placeholder="Scan barcode / type here";
+});
 
 /* ================= SEARCH ================= */
-searchInput.oninput=e=>search(e.target.value)
+input.oninput=e=>{
+  clearBtn.style.display=e.target.value?"block":"none";
+  search(e.target.value);
+};
+
+clearBtn.onclick=()=>{
+  input.value="";
+  result.innerHTML="";
+};
 
 function search(q){
-  q=q.toLowerCase()
-  if(!q)return result.innerHTML=""
+  if(!dataReady)return;
+  q=q.toLowerCase().trim();
+  if(!q){result.innerHTML="";return;}
+
   if(barcodeIndex.has(q)){
-    beepOk.play()
-    return render([barcodeIndex.get(q)])
+    beepOk.play();
+    addHistory(q);
+    render([barcodeIndex.get(q)]);
+    return;
   }
-  const r=[]
-  for(const x of nameIndex){
-    if(x.name.includes(q)){
-      r.push(x.product)
-      if(r.length>=100)break
-    }
+
+  if(prefixIndex.has(q)){
+    beepOk.play();
+    render([...new Set(prefixIndex.get(q))].slice(0,100));
+    return;
   }
-  r.length?beepOk.play():beepErr.play()
-  render(r)
+
+  beepErr.play();
+  result.innerHTML="";
 }
 
+/* ================= RENDER ================= */
 function render(list){
   result.innerHTML=list.map(p=>`
     <div class="card">
@@ -173,8 +206,50 @@ function render(list){
       <b>${p.n}</b>
       <small>${p.b}</small>
       <div>${p.h}</div>
-    </div>`).join("")
+    </div>
+  `).join("");
 }
+
+/* ================= HISTORY ================= */
+function addHistory(code){
+  if(history.includes(code))return;
+  history.unshift(code);
+  if(history.length>5)history.pop();
+  historyDiv.innerHTML=history.map(h=>`<span>${h}</span>`).join("");
+}
+
+/* ================= CAMERA ================= */
+let scanning=false,lastCode="",stableCount=0;
+scanBtn.onclick=()=>{
+  if(scanning||!dataReady)return;
+  scanning=true;
+  reader.style.display="block";
+
+  Quagga.init({
+    inputStream:{
+      type:"LiveStream",
+      target:reader,
+      constraints:{facingMode:"environment"}
+    },
+    decoder:{readers:["ean_reader","ean_8_reader"]}
+  },err=>{
+    if(err){scanning=false;return;}
+    Quagga.start();
+    Quagga.onDetected(res=>{
+      const code=res.codeResult.code;
+      if(code===lastCode)stableCount++;
+      else{lastCode=code;stableCount=1;}
+      if(stableCount>=3){
+        Quagga.stop();
+        scanning=false;
+        reader.style.display="none";
+        input.value=code;
+        search(code);
+      }
+    });
+  });
+};
 </script>
+
 </body>
 </html>

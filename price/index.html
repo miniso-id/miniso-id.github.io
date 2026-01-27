@@ -9,107 +9,21 @@
 <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 
 <style>
-/* ===== LOGIN OVERLAY ===== */
-#loginOverlay{
-  position:fixed;
-  inset:0;
-  background:#f3f4f6;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:9999;
-}
-
-.login-card{
-  width:100%;
-  max-width:360px;
-  padding:28px;
-  background:#fff;
-  border-radius:14px;
-  box-shadow:0 10px 30px rgba(0,0,0,.15);
-  text-align:center;
-  box-sizing:border-box;
-}
-
-.login-card *{box-sizing:border-box}
-
-.login-card h3{
-  margin-bottom:22px;
-}
-
-.login-card input{
-  width:100%;
-  height:44px;
-  margin-bottom:14px;
-  padding:0 14px;
-  border-radius:10px;
-  border:1px solid #ddd;
-  font-size:15px;
-}
-
-.login-card button{
-  width:100%;
-  height:46px;
-  border:none;
-  border-radius:10px;
-  background:#4f46e5;
-  color:#fff;
-  font-size:15px;
-  cursor:pointer;
-}
-
-#loginErr{
-  margin-top:10px;
-  color:#ef4444;
-  font-size:14px;
-  opacity:0;
-  transition:.25s;
-}
-
+#loginOverlay{position:fixed;inset:0;background:#f3f4f6;display:flex;align-items:center;justify-content:center;z-index:9999}
+.login-card{max-width:360px;width:100%;padding:28px;background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.15);text-align:center}
+.login-card input{width:100%;height:44px;margin-bottom:14px;padding:0 14px;border-radius:10px;border:1px solid #ddd}
+.login-card button{width:100%;height:46px;border:none;border-radius:10px;background:#4f46e5;color:#fff}
+#loginErr{color:#ef4444;font-size:14px;opacity:0}
 #loginErr.show{opacity:1}
 
-.login-card.error{
-  animation:shake .35s;
-}
-
-@keyframes shake{
-  0%{transform:translateX(0)}
-  25%{transform:translateX(-6px)}
-  50%{transform:translateX(6px)}
-  75%{transform:translateX(-4px)}
-  100%{transform:translateX(0)}
-}
-
-/* ===== CAMERA (ASLI – TIDAK DIUBAH) ===== */
-#reader{
-  display:none;
-  width:100%;
-  max-width:360px;
-  aspect-ratio:1/1;
-  margin:10px auto;
-  background:#000;
-  border-radius:12px;
-  overflow:hidden;
-  position:relative;
-}
-#reader video{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
-#reader::after{
-  content:"";
-  position:absolute;
-  inset:22%;
-  border:2px dashed rgba(0,255,0,.7);
-  border-radius:8px;
-}
+#reader{display:none;width:100%;max-width:360px;aspect-ratio:1/1;margin:10px auto;background:#000;border-radius:12px;overflow:hidden;position:relative}
+#reader::after{content:"";position:absolute;inset:22%;border:2px dashed rgba(0,255,0,.7);border-radius:8px}
 </style>
 </head>
 
 <body>
 
-<!-- ===== LOGIN ===== -->
+<!-- LOGIN -->
 <div id="loginOverlay">
   <div class="login-card">
     <h3>Login MMS-X</h3>
@@ -120,250 +34,147 @@
   </div>
 </div>
 
-<!-- ===== APP (ASLI – TIDAK DIUBAH) ===== -->
+<!-- APP -->
 <div id="app" style="display:none">
 <center>
 <h2>Product Query</h2>
-<h3>MMS-X (beta test)</h3>
+<h3 id="status">Loading index…</h3>
 </center>
+
 <div class="search-box">
-  <div class="input-wrap">
-    <input id="searchInput" placeholder="Scan barcode / type here" autofocus>
-    <span id="clearBtn">✕</span>
-  </div>
-  <button id="scanBtn">📷 Camera Scan</button>
+  <input id="searchInput" placeholder="Scan barcode / type here" disabled>
+  <button id="scanBtn">📷 Scan</button>
 </div>
 
 <div id="reader"></div>
-
-<h3>Scan History</h3>
 <div id="history"></div>
-
 <div id="result" class="grid"></div>
 
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
-
 </div>
 
 <script>
-/* ================= LOGIN SYSTEM ================= */
+/* ================= LOGIN ================= */
 let USERS=[]
 fetch("users.json").then(r=>r.json()).then(d=>USERS=d)
-
-const loginOverlay=document.getElementById("loginOverlay")
-const app=document.getElementById("app")
-const loginErr=document.getElementById("loginErr")
 
 function doLogin(){
   const u=loginUser.value.trim()
   const p=loginPass.value.trim()
-  const found=USERS.find(x=>x.user===u && x.pass===p)
+  const ok=USERS.find(x=>x.user===u&&x.pass===p)
+  if(!ok){loginErr.classList.add("show");return}
+  localStorage.setItem("mms_auth","1")
+  loginOverlay.style.display="none"
+  app.style.display="block"
+  initIndexedDB()
+}
+if(localStorage.getItem("mms_auth")){
+  loginOverlay.style.display="none"
+  app.style.display="block"
+  initIndexedDB()
+}
 
-  if(found){
-    localStorage.setItem("mms_auth",JSON.stringify({
-      user:found.user,
-      role:found.role,
-      time:Date.now()
-    }))
-    loginOverlay.style.display="none"
-    app.style.display="block"
-    applyRole(found.role)
-    startIdleTimer()
-    searchInput.focus()
-  }else{
-    loginErr.classList.add("show")
-    const card=document.querySelector(".login-card")
-    card.classList.remove("error")
-    void card.offsetWidth
-    card.classList.add("error")
+/* ================= INDEXED DB ================= */
+let db, barcodeIndex=new Map(), nameIndex=[]
+const DB_NAME="mmsx_db", STORE="index", URL="https://script.google.com/macros/s/AKfycbxm-R_4Ej_WOg8RrdFX4src7CczvWf6VIxCK4LcvsktQviA1XYy9VfnzqiTYUnxb-f7/exec"
+
+function initIndexedDB(){
+  const req=indexedDB.open(DB_NAME,1)
+  req.onupgradeneeded=e=>{
+    db=e.target.result
+    db.createObjectStore(STORE)
+  }
+  req.onsuccess=e=>{
+    db=e.target.result
+    loadIndexFromDB()
   }
 }
 
-loginUser.oninput=loginPass.oninput=()=>{
-  loginErr.classList.remove("show")
-}
-
-/* AUTO LOGIN */
-(function(){
-  const auth=localStorage.getItem("mms_auth")
-  if(auth){
-    loginOverlay.style.display="none"
-    app.style.display="block"
-    startIdleTimer()
-  }
-})()
-
-/* ROLE */
-function applyRole(role){
-  document.body.dataset.role=role
-}
-
-/* AUTO LOGOUT */
-let idleTimer
-const IDLE_LIMIT=15*60*1000
-function startIdleTimer(){
-  resetIdle()
-  ;["mousemove","keydown","click","touchstart"].forEach(e=>{
-    document.addEventListener(e,resetIdle)
-  })
-}
-function resetIdle(){
-  clearTimeout(idleTimer)
-  idleTimer=setTimeout(()=>{
-    localStorage.removeItem("mms_auth")
-    location.reload()
-  },IDLE_LIMIT)
-}
-</script>
-
-<!-- ================= SCRIPT ASLI (TIDAK DIUBAH) ================= -->
-<script>
-/* =====================================================
-   INIT
-   ===================================================== */
-const input=document.getElementById("searchInput");
-const clearBtn=document.getElementById("clearBtn");
-const reader=document.getElementById("reader");
-const historyDiv=document.getElementById("history");
-const result=document.getElementById("result");
-
-/* =====================================================
-   DATA
-   ===================================================== */
-let barcodeIndex=new Map(), nameIndex=[], history=[];
-
-fetch("https://script.google.com/macros/s/AKfycbxm-R_4Ej_WOg8RrdFX4src7CczvWf6VIxCK4LcvsktQviA1XYy9VfnzqiTYUnxb-f7/exec").then(r=>r.json()).then(data=>{
-  data.forEach(p=>{
-    p.b.split("/").forEach(c=>barcodeIndex.set(c.trim(),p));
-    nameIndex.push({name:p.n.toLowerCase(),product:p});
-  });
-});
-
-/* =====================================================
-   SEARCH
-   ===================================================== */
-input.oninput=e=>{
-  clearBtn.style.display=e.target.value?"block":"none";
-  search(e.target.value);
-};
-
-input.onkeydown=e=>{
-  if(e.key==="Enter"){
-    e.preventDefault();
-    search(input.value.trim());
-  }
-};
-
-clearBtn.onclick=()=>{
-  input.value="";
-  clearBtn.style.display="none";
-  result.innerHTML="";
-  input.focus();
-};
-
-function search(q){
-  q=q.toLowerCase();
-  if(!q){result.innerHTML="";return;}
-
-  if(barcodeIndex.has(q)){
-    beepOk.play();
-    addHistory(q);
-    render([barcodeIndex.get(q)]);
-    return;
-  }
-
-  const r=[];
-  for(let i=0;i<nameIndex.length;i++){
-    if(nameIndex[i].name.includes(q)){
-      r.push(nameIndex[i].product);
-      if(r.length>=100)break;
+function loadIndexFromDB(){
+  const tx=db.transaction(STORE)
+  const store=tx.objectStore(STORE)
+  const req=store.get("data")
+  req.onsuccess=()=>{
+    if(req.result){
+      restoreIndex(req.result)
+      ready("Ready (cached)")
+      silentUpdate()
+    }else{
+      fetchAndBuild()
     }
   }
-  r.length?beepOk.play():beepErr.play();
-  render(r);
+}
+
+function restoreIndex(data){
+  barcodeIndex=new Map(data.barcodeIndex)
+  nameIndex=data.nameIndex
+}
+
+function saveIndex(){
+  const tx=db.transaction(STORE,"readwrite")
+  tx.objectStore(STORE).put({
+    barcodeIndex:[...barcodeIndex],
+    nameIndex,
+    time:Date.now()
+  },"data")
+}
+
+/* ================= FETCH & BUILD ================= */
+function fetchAndBuild(silent=false){
+  if(!silent)status.textContent="Building search engine…"
+  fetch(URL).then(r=>r.json()).then(data=>{
+    barcodeIndex.clear()
+    nameIndex=[]
+    data.forEach(p=>{
+      p.b.split("/").forEach(c=>barcodeIndex.set(c.trim(),p))
+      nameIndex.push({name:p.n.toLowerCase(),product:p})
+    })
+    saveIndex()
+    if(!silent)ready("Ready")
+  })
+}
+
+function silentUpdate(){
+  fetchAndBuild(true)
+}
+
+function ready(msg){
+  status.textContent=msg
+  searchInput.disabled=false
+  searchInput.focus()
+}
+
+/* ================= SEARCH ================= */
+searchInput.oninput=e=>search(e.target.value)
+
+function search(q){
+  q=q.toLowerCase()
+  if(!q)return result.innerHTML=""
+  if(barcodeIndex.has(q)){
+    beepOk.play()
+    return render([barcodeIndex.get(q)])
+  }
+  const r=[]
+  for(const x of nameIndex){
+    if(x.name.includes(q)){
+      r.push(x.product)
+      if(r.length>=100)break
+    }
+  }
+  r.length?beepOk.play():beepErr.play()
+  render(r)
 }
 
 function render(list){
   result.innerHTML=list.map(p=>`
-  <div class="card">
-    <img src="${p.i}" loading="lazy">
-    <div class="info">
+    <div class="card">
+      <img src="${p.i}">
       <b>${p.n}</b>
       <small>${p.b}</small>
       <div>${p.h}</div>
-    </div>
-  </div>`).join("");
-}
-
-/* =====================================================
-   HISTORY
-   ===================================================== */
-function addHistory(code){
-  if(history.includes(code))return;
-  history.unshift(code);
-  if(history.length>5)history.pop();
-  historyDiv.innerHTML=history.map(h=>`<span>${h}</span>`).join("");
-}
-
-/* =====================================================
-   CAMERA – STABLE SCAN
-   ===================================================== */
-let scanning=false;
-let lastCode="";
-let stableCount=0;
-const REQUIRED_MATCH=3;
-
-scanBtn.onclick=()=>{
-  if(scanning)return;
-  scanning=true;
-  reader.style.display="block";
-  lastCode="";
-  stableCount=0;
-
-  Quagga.init({
-    inputStream:{
-      type:"LiveStream",
-      target:reader,
-      constraints:{
-        facingMode:"environment",
-        width:{ideal:1280},
-        height:{ideal:720}
-      },
-      area:{top:"22%",right:"22%",left:"22%",bottom:"22%"}
-    },
-    locator:{halfSample:true},
-    decoder:{readers:["ean_reader","ean_8_reader"]},
-    locate:true
-  },err=>{
-    if(err){alert("Camera error");scanning=false;return;}
-    Quagga.start();
-    Quagga.onDetected(onDetectedStable);
-  });
-};
-
-function onDetectedStable(res){
-  const code=res.codeResult.code;
-  if(code===lastCode){
-    stableCount++;
-  }else{
-    lastCode=code;
-    stableCount=1;
-  }
-  if(stableCount<REQUIRED_MATCH)return;
-
-  Quagga.offDetected(onDetectedStable);
-  Quagga.stop();
-  reader.style.display="none";
-  scanning=false;
-
-  input.value=code;
-  clearBtn.style.display="block";
-  search(code);
-  input.focus();
-  input.select();
+    </div>`).join("")
 }
 </script>
-
 </body>
 </html>

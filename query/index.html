@@ -81,7 +81,7 @@ input.focus();
    ===================================================== */
 let barcodeIndex=new Map(), nameIndex=[], history=[];
 
-fetch("products.json").then(r=>r.json()).then(data=>{
+fetch("https://script.google.com/macros/s/AKfycbxJICc2AtS93JqMwkXCTEdyX2iAbXX3KXoXroY-H5vBDHh4VC2O_i2xE5bD8OV17yEfFw/exec").then(r=>r.json()).then(data=>{
   data.forEach(p=>{
     p.b.split("/").forEach(c=>barcodeIndex.set(c.trim(),p));
     nameIndex.push({name:p.n.toLowerCase(),product:p});

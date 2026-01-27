@@ -76,7 +76,7 @@ let history=[];
 let dataReady=false;
 
 /* ================= FETCH & INDEX (BARCODE ONLY) ================= */
-fetch("product/products.json")
+fetch("/product/products.json")
 .then(r=>r.json())
 .then(data=>{
   data.forEach(p=>{

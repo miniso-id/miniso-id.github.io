@@ -233,7 +233,7 @@ const result=document.getElementById("result");
    ===================================================== */
 let barcodeIndex=new Map(), nameIndex=[], history=[];
 
-fetch("https://script.google.com/macros/s/AKfycbwGX0iqcLgCMWVfoN0nRygA6-YLfkBe9f3ZWKCdjZLO/exec").then(r=>r.json()).then(data=>{
+fetch("https://script.google.com/macros/s/AKfycbwGX0iqcLgCMWVfoN0nRygA6-YLfkBe9f3ZWKCdjZLO/dev").then(r=>r.json()).then(data=>{
   data.forEach(p=>{
     p.b.split("/").forEach(c=>barcodeIndex.set(c.trim(),p));
     nameIndex.push({name:p.n.toLowerCase(),product:p});

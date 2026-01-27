@@ -166,6 +166,8 @@ h2,h3{
 
   word-break:break-word;
   overflow-wrap:anywhere;
+
+   padding-bottom:2px;   /* KUNCI EDGE-CASE */
 }
 
 /* BARCODE */

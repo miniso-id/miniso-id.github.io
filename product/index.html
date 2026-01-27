@@ -1,41 +1,255 @@
-<html lang="en" class="no-js">
-   <head>
-<!-- Google tag (gtag.js) --> 
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>MMS-X</title>
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-NX5NEQ1SE4"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-NX5NEQ1SE4'); </script>
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 
-      <title>Product</title>
-      <link rel="shortcut icon" href="/miniso-icon.png" />
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width,initial-scale=1.0">
-      <style>
-      html body {width: 100%;height: 100%;padding: 0px;margin: 0px;overflow: hidden;font-family: arial;font-size: 10px;color: #6e6e6e;background-color: #000;} #preview-frame {width: 100%;background-color: #fff;}</style>
-      <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-      <script>
-         //function to fix height of iframe!
-         var calcHeight = function() {
-           //var headerDimensions = 0; //$('#header-bar').height();
-           $('#preview-frame').height($(window).height());
-         }
-         
-         $(document).ready(function() {
-           calcHeight();
-           /*$('#header-bar a.close').mouseover(function() {
-             $('#header-bar a.close').addClass('activated');
-           }).mouseout(function() {
-             $('#header-bar a.close').removeClass('activated');
-           });*/
-         }); 
-         
-         $(window).resize(function() {
-           calcHeight();
-         }).load(function() {
-           calcHeight();
-         });
-      </script>
-   </head>
-   <body>
-      <iframe id="preview-frame" src="https://minisogroup.feishu.cn/share/base/view/shrcnM57Yfi0XRV4u9s8djEvdgd" name="preview-frame" frameborder="0" noresize="noresize" style="height: 902px;">
-      </iframe>
-   </body>
+<style>
+#loginOverlay{
+  position:fixed; inset:0;
+  background:#f3f4f6;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+.login-card{
+  width:100%; max-width:360px;
+  padding:28px;
+  background:#fff;
+  border-radius:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,.15);
+  text-align:center;
+}
+.login-card input, .login-card button{
+  width:100%; height:44px;
+  margin-bottom:14px;
+  border-radius:10px;
+}
+.login-card input{
+  border:1px solid #ddd;
+  padding:0 14px;
+}
+.login-card button{
+  border:none;
+  background:#4f46e5;
+  color:#fff;
+  cursor:pointer;
+}
+#loginErr{color:#ef4444;font-size:14px;opacity:0}
+#loginErr.show{opacity:1}
+
+#reader{
+  display:none;
+  width:100%;
+  max-width:360px;
+  aspect-ratio:1/1;
+  margin:10px auto;
+  background:#000;
+  border-radius:12px;
+  overflow:hidden;
+  position:relative;
+}
+#reader video{width:100%;height:100%;object-fit:cover}
+#reader::after{
+  content:"";
+  position:absolute;
+  inset:22%;
+  border:2px dashed rgba(0,255,0,.7);
+}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <h3>Login MMS-X</h3>
+    <input id="loginUser" placeholder="Username">
+    <input id="loginPass" type="password" placeholder="Password">
+    <button onclick="doLogin()">Masuk</button>
+    <div id="loginErr">Username atau password salah</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+<center>
+<h2>Product Query</h2>
+<h3>MMS-X (beta)</h3>
+</center>
+
+<div class="search-box">
+  <div class="input-wrap">
+    <input id="searchInput" placeholder="Loading product data..." disabled>
+    <span id="clearBtn">✕</span>
+  </div>
+  <button id="scanBtn" disabled>📷 Camera Scan</button>
+</div>
+
+<div id="reader"></div>
+
+<h3>Scan History</h3>
+<div id="history"></div>
+<div id="result" class="grid"></div>
+
+<audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
+<audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
+</div>
+
+<script>
+/* ================= LOGIN ================= */
+let USERS=[];
+fetch("users.json").then(r=>r.json()).then(d=>USERS=d);
+
+function doLogin(){
+  const u=loginUser.value.trim();
+  const p=loginPass.value.trim();
+  const found=USERS.find(x=>x.user===u && x.pass===p);
+  if(found){
+    localStorage.setItem("mms_auth","1");
+    loginOverlay.style.display="none";
+    app.style.display="block";
+  }else{
+    loginErr.classList.add("show");
+  }
+}
+</script>
+
+<script>
+/* ================= INIT ================= */
+const input=document.getElementById("searchInput");
+const clearBtn=document.getElementById("clearBtn");
+const scanBtn=document.getElementById("scanBtn");
+const reader=document.getElementById("reader");
+const result=document.getElementById("result");
+const historyDiv=document.getElementById("history");
+const beepOk=document.getElementById("beepOk");
+const beepErr=document.getElementById("beepErr");
+
+/* ================= STATE ================= */
+let barcodeIndex=new Map();
+let prefixIndex=new Map();
+let history=[];
+let dataReady=false;
+
+/* ================= FETCH & INDEX ================= */ 
+fetch("products.json")
+.then(r=>r.json())
+.then(data=>{
+  data.forEach(p=>{
+    if(p.b){
+      p.b.split("/").forEach(c=>{
+        barcodeIndex.set(c.trim(),p);
+      });
+    }
+    if(p.n){
+      p.n.toLowerCase().split(/\s+/).forEach(w=>{
+        for(let i=1;i<=w.length;i++){
+          const pref=w.slice(0,i);
+          if(!prefixIndex.has(pref))prefixIndex.set(pref,[]);
+          prefixIndex.get(pref).push(p);
+        }
+      });
+    }
+  });
+
+  dataReady=true;
+  input.disabled=false;
+  scanBtn.disabled=false;
+  input.placeholder="Scan barcode / type here";
+});
+
+/* ================= SEARCH ================= */
+input.oninput=e=>{
+  clearBtn.style.display=e.target.value?"block":"none";
+  search(e.target.value);
+};
+
+clearBtn.onclick=()=>{
+  input.value="";
+  result.innerHTML="";
+};
+
+function search(q){
+  if(!dataReady)return;
+  q=q.toLowerCase().trim();
+  if(!q){result.innerHTML="";return;}
+
+  if(barcodeIndex.has(q)){
+    beepOk.play();
+    addHistory(q);
+    render([barcodeIndex.get(q)]);
+    return;
+  }
+
+  if(prefixIndex.has(q)){
+    beepOk.play();
+    render([...new Set(prefixIndex.get(q))].slice(0,100));
+    return;
+  }
+
+  beepErr.play();
+  result.innerHTML="";
+}
+
+/* ================= RENDER ================= */
+function render(list){
+  result.innerHTML=list.map(p=>`
+    <div class="card">
+      <img src="${p.i}">
+      <b>${p.n}</b>
+      <small>${p.b}</small>
+      <div>${p.h}</div>
+    </div>
+  `).join("");
+}
+
+/* ================= HISTORY ================= */
+function addHistory(code){
+  if(history.includes(code))return;
+  history.unshift(code);
+  if(history.length>5)history.pop();
+  historyDiv.innerHTML=history.map(h=>`<span>${h}</span>`).join("");
+}
+
+/* ================= CAMERA ================= */
+let scanning=false,lastCode="",stableCount=0;
+scanBtn.onclick=()=>{
+  if(scanning||!dataReady)return;
+  scanning=true;
+  reader.style.display="block";
+
+  Quagga.init({
+    inputStream:{
+      type:"LiveStream",
+      target:reader,
+      constraints:{facingMode:"environment"}
+    },
+    decoder:{readers:["ean_reader","ean_8_reader"]}
+  },err=>{
+    if(err){scanning=false;return;}
+    Quagga.start();
+    Quagga.onDetected(res=>{
+      const code=res.codeResult.code;
+      if(code===lastCode)stableCount++;
+      else{lastCode=code;stableCount=1;}
+      if(stableCount>=3){
+        Quagga.stop();
+        scanning=false;
+        reader.style.display="none";
+        input.value=code;
+        search(code);
+      }
+    });
+  });
+};
+</script>
+
+</body>
 </html>

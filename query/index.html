@@ -9,40 +9,6 @@
 <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 
 <style>
-#loginOverlay{
-  position:fixed; inset:0;
-  background:#f3f4f6;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:9999;
-}
-.login-card{
-  width:100%; max-width:360px;
-  padding:28px;
-  background:#fff;
-  border-radius:14px;
-  box-shadow:0 10px 30px rgba(0,0,0,.15);
-  text-align:center;
-}
-.login-card input, .login-card button{
-  width:100%; height:44px;
-  margin-bottom:14px;
-  border-radius:10px;
-}
-.login-card input{
-  border:1px solid #ddd;
-  padding:0 14px;
-}
-.login-card button{
-  border:none;
-  background:#4f46e5;
-  color:#fff;
-  cursor:pointer;
-}
-#loginErr{color:#ef4444;font-size:14px;opacity:0}
-#loginErr.show{opacity:1}
-
 #reader{
   display:none;
   width:100%;
@@ -54,176 +20,237 @@
   overflow:hidden;
   position:relative;
 }
-#reader video{width:100%;height:100%;object-fit:cover}
+#reader video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
 #reader::after{
   content:"";
   position:absolute;
   inset:22%;
   border:2px dashed rgba(0,255,0,.7);
+  border-radius:8px;
+}
+.status{
+  text-align:center;
+  font-size:12px;
+  opacity:.6;
+  margin-top:4px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- LOGIN -->
-<div id="loginOverlay">
-  <div class="login-card">
-    <h3>Login MMS-X</h3>
-    <input id="loginUser" placeholder="Username">
-    <input id="loginPass" type="password" placeholder="Password">
-    <button onclick="doLogin()">Masuk</button>
-    <div id="loginErr">Username atau password salah</div>
-  </div>
-</div>
-
-<!-- APP -->
-<div id="app" style="display:none">
 <center>
 <h2>Product Query</h2>
 <h3>MMS-X (beta)</h3>
+<div id="status" class="status">Loading data…</div>
 </center>
 
 <div class="search-box">
   <div class="input-wrap">
-    <input id="searchInput" placeholder="Loading product data..." disabled>
+    <input id="searchInput" placeholder="Scan barcode / type here" autofocus disabled>
     <span id="clearBtn">✕</span>
   </div>
-  <button id="scanBtn" disabled>📷 Camera Scan</button>
+  <button id="scanBtn">📷 Camera Scan</button>
 </div>
 
 <div id="reader"></div>
 
 <h3>Scan History</h3>
 <div id="history"></div>
+
 <div id="result" class="grid"></div>
 
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
-</div>
 
 <script>
-/* ================= LOGIN ================= */
-let USERS=[];
-fetch("users.json").then(r=>r.json()).then(d=>USERS=d);
+/* =====================================================
+   CONFIG
+===================================================== */
+const DATA_URL = "https://script.google.com/macros/s/AKfycbxm-R_4Ej_WOg8RrdFX4src7CczvWf6VIxCK4LcvsktQviA1XYy9VfnzqiTYUnxb-f7/exec"
+const CACHE_KEY = "mms_products_cache_v1"
+const CACHE_TIME = "mms_products_time_v1"
+const CACHE_MAX_AGE = 6 * 60 * 60 * 1000 // 6 jam
 
-function doLogin(){
-  const u=loginUser.value.trim();
-  const p=loginPass.value.trim();
-  const found=USERS.find(x=>x.user===u && x.pass===p);
-  if(found){
-    localStorage.setItem("mms_auth","1");
-    loginOverlay.style.display="none";
-    app.style.display="block";
+/* =====================================================
+   ELEMENT
+===================================================== */
+const input = document.getElementById("searchInput")
+const clearBtn = document.getElementById("clearBtn")
+const reader = document.getElementById("reader")
+const historyDiv = document.getElementById("history")
+const result = document.getElementById("result")
+const statusEl = document.getElementById("status")
+
+/* =====================================================
+   STATE
+===================================================== */
+let barcodeIndex = new Map()
+let nameIndex = []
+let history = []
+let DATA_READY = false
+
+/* =====================================================
+   INIT
+===================================================== */
+initData()
+
+async function initData(){
+  const cached = localStorage.getItem(CACHE_KEY)
+
+  if(cached){
+    buildIndex(JSON.parse(cached))
+    DATA_READY = true
+    input.disabled = false
+    statusEl.textContent = "Ready (cached)"
+    backgroundUpdate()
   }else{
-    loginErr.classList.add("show");
+    statusEl.textContent = "Downloading data…"
+    const data = await fetchData()
+    buildIndex(data)
+    saveCache(data)
+    DATA_READY = true
+    input.disabled = false
+    statusEl.textContent = "Ready"
   }
 }
-</script>
 
-<script>
-/* ================= INIT ================= */
-const input=document.getElementById("searchInput");
-const clearBtn=document.getElementById("clearBtn");
-const scanBtn=document.getElementById("scanBtn");
-const reader=document.getElementById("reader");
-const result=document.getElementById("result");
-const historyDiv=document.getElementById("history");
-const beepOk=document.getElementById("beepOk");
-const beepErr=document.getElementById("beepErr");
+/* =====================================================
+   FETCH + CACHE
+===================================================== */
+async function fetchData(){
+  const r = await fetch(DATA_URL)
+  return await r.json()
+}
 
-/* ================= STATE ================= */
-let barcodeIndex=new Map();
-let prefixIndex=new Map();
-let history=[];
-let dataReady=false;
+function saveCache(data){
+  localStorage.setItem(CACHE_KEY, JSON.stringify(data))
+  localStorage.setItem(CACHE_TIME, Date.now())
+}
 
-/* ================= FETCH & INDEX ================= */
-fetch("https://script.google.com/macros/s/AKfycbxm-R_4Ej_WOg8RrdFX4src7CczvWf6VIxCK4LcvsktQviA1XYy9VfnzqiTYUnxb-f7/exec")
-.then(r=>r.json())
-.then(data=>{
+async function backgroundUpdate(){
+  try{
+    const last = Number(localStorage.getItem(CACHE_TIME) || 0)
+    if(Date.now() - last < CACHE_MAX_AGE) return
+
+    const fresh = await fetchData()
+    const old = localStorage.getItem(CACHE_KEY)
+
+    if(!old || old.length !== JSON.stringify(fresh).length){
+      buildIndex(fresh)
+      saveCache(fresh)
+      statusEl.textContent = "Data updated"
+      setTimeout(()=>statusEl.textContent="Ready",2000)
+    }
+  }catch(e){
+    console.warn("Silent update failed")
+  }
+}
+
+/* =====================================================
+   INDEX BUILDER
+===================================================== */
+function buildIndex(data){
+  barcodeIndex.clear()
+  nameIndex = []
+
   data.forEach(p=>{
-    if(p.b){
-      p.b.split("/").forEach(c=>{
-        barcodeIndex.set(c.trim(),p);
-      });
-    }
-    if(p.n){
-      p.n.toLowerCase().split(/\s+/).forEach(w=>{
-        for(let i=1;i<=w.length;i++){
-          const pref=w.slice(0,i);
-          if(!prefixIndex.has(pref))prefixIndex.set(pref,[]);
-          prefixIndex.get(pref).push(p);
-        }
-      });
-    }
-  });
+    p.b.split("/").forEach(c=>{
+      barcodeIndex.set(c.trim(), p)
+    })
+    nameIndex.push({
+      name: p.n.toLowerCase(),
+      product: p
+    })
+  })
+}
 
-  dataReady=true;
-  input.disabled=false;
-  scanBtn.disabled=false;
-  input.placeholder="Scan barcode / type here";
-});
+/* =====================================================
+   SEARCH
+===================================================== */
+input.oninput = e=>{
+  clearBtn.style.display = e.target.value ? "block" : "none"
+  search(e.target.value)
+}
 
-/* ================= SEARCH ================= */
-input.oninput=e=>{
-  clearBtn.style.display=e.target.value?"block":"none";
-  search(e.target.value);
-};
+input.onkeydown = e=>{
+  if(e.key === "Enter"){
+    e.preventDefault()
+    search(input.value.trim())
+  }
+}
 
-clearBtn.onclick=()=>{
-  input.value="";
-  result.innerHTML="";
-};
+clearBtn.onclick = ()=>{
+  input.value = ""
+  clearBtn.style.display = "none"
+  result.innerHTML = ""
+  input.focus()
+}
 
 function search(q){
-  if(!dataReady)return;
-  q=q.toLowerCase().trim();
-  if(!q){result.innerHTML="";return;}
+  if(!DATA_READY) return
+
+  q = q.toLowerCase()
+  if(!q){ result.innerHTML=""; return }
 
   if(barcodeIndex.has(q)){
-    beepOk.play();
-    addHistory(q);
-    render([barcodeIndex.get(q)]);
-    return;
+    beepOk.play()
+    addHistory(q)
+    render([barcodeIndex.get(q)])
+    return
   }
 
-  if(prefixIndex.has(q)){
-    beepOk.play();
-    render([...new Set(prefixIndex.get(q))].slice(0,100));
-    return;
+  const r = []
+  for(const item of nameIndex){
+    if(item.name.includes(q)){
+      r.push(item.product)
+      if(r.length >= 100) break
+    }
   }
 
-  beepErr.play();
-  result.innerHTML="";
+  r.length ? beepOk.play() : beepErr.play()
+  render(r)
 }
 
-/* ================= RENDER ================= */
 function render(list){
-  result.innerHTML=list.map(p=>`
+  result.innerHTML = list.map(p=>`
     <div class="card">
-      <img src="${p.i}">
-      <b>${p.n}</b>
-      <small>${p.b}</small>
-      <div>${p.h}</div>
+      <img src="${p.i}" loading="lazy">
+      <div class="info">
+        <b>${p.n}</b>
+        <small>${p.b}</small>
+        <div>${p.h}</div>
+      </div>
     </div>
-  `).join("");
+  `).join("")
 }
 
-/* ================= HISTORY ================= */
+/* =====================================================
+   HISTORY
+===================================================== */
 function addHistory(code){
-  if(history.includes(code))return;
-  history.unshift(code);
-  if(history.length>5)history.pop();
-  historyDiv.innerHTML=history.map(h=>`<span>${h}</span>`).join("");
+  if(history.includes(code)) return
+  history.unshift(code)
+  if(history.length > 5) history.pop()
+  historyDiv.innerHTML = history.map(h=>`<span>${h}</span>`).join("")
 }
 
-/* ================= CAMERA ================= */
-let scanning=false,lastCode="",stableCount=0;
+/* =====================================================
+   CAMERA SCAN (STABLE)
+===================================================== */
+let scanning=false,lastCode="",stableCount=0
+const REQUIRED_MATCH=3
+
 scanBtn.onclick=()=>{
-  if(scanning||!dataReady)return;
-  scanning=true;
-  reader.style.display="block";
+  if(scanning) return
+  scanning=true
+  reader.style.display="block"
+  lastCode=""
+  stableCount=0
 
   Quagga.init({
     inputStream:{
@@ -231,24 +258,33 @@ scanBtn.onclick=()=>{
       target:reader,
       constraints:{facingMode:"environment"}
     },
-    decoder:{readers:["ean_reader","ean_8_reader"]}
+    decoder:{readers:["ean_reader","ean_8_reader"]},
+    locate:true
   },err=>{
-    if(err){scanning=false;return;}
-    Quagga.start();
-    Quagga.onDetected(res=>{
-      const code=res.codeResult.code;
-      if(code===lastCode)stableCount++;
-      else{lastCode=code;stableCount=1;}
-      if(stableCount>=3){
-        Quagga.stop();
-        scanning=false;
-        reader.style.display="none";
-        input.value=code;
-        search(code);
-      }
-    });
-  });
-};
+    if(err){alert("Camera error");scanning=false;return}
+    Quagga.start()
+    Quagga.onDetected(onDetectedStable)
+  })
+}
+
+function onDetectedStable(res){
+  const code=res.codeResult.code
+  if(code===lastCode) stableCount++
+  else{ lastCode=code; stableCount=1 }
+
+  if(stableCount<REQUIRED_MATCH) return
+
+  Quagga.offDetected(onDetectedStable)
+  Quagga.stop()
+  reader.style.display="none"
+  scanning=false
+
+  input.value=code
+  clearBtn.style.display="block"
+  search(code)
+  input.focus()
+  input.select()
+}
 </script>
 
 </body>

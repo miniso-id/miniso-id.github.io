@@ -231,30 +231,14 @@ const result=document.getElementById("result");
 /* =====================================================
    DATA
    ===================================================== */
-fetch("https://script.google.com/macros/s/AKfycbwGX0iqcLgCMWVfoN0nRygA6-YLfkBe9f3ZWKCdjZLO/exec")
-  .then(r => r.json())
-  .then(data => {
-    barcodeIndex.clear();
-    nameIndex = [];
+let barcodeIndex=new Map(), nameIndex=[], history=[];
 
-    data.forEach(p => {
-      if(!p.b || !p.n) return;
-
-      p.b.split("/").forEach(c => {
-        barcodeIndex.set(c.trim(), p);
-      });
-
-      nameIndex.push({
-        name: p.n.toLowerCase(),
-        product: p
-      });
-    });
-  })
-  .catch(err => {
-    console.error("Gagal load data", err);
-    alert("Data produk tidak bisa dimuat");
+fetch("products.json").then(r=>r.json()).then(data=>{
+  data.forEach(p=>{
+    p.b.split("/").forEach(c=>barcodeIndex.set(c.trim(),p));
+    nameIndex.push({name:p.n.toLowerCase(),product:p});
   });
-
+});
 
 /* =====================================================
    SEARCH

@@ -139,7 +139,7 @@ let history=[];
 let dataReady=false;
 
 /* ================= FETCH & INDEX ================= */
-fetch("https://script.google.com/macros/s/AKfycbxm-R_4Ej_WOg8RrdFX4src7CczvWf6VIxCK4LcvsktQviA1XYy9VfnzqiTYUnxb-f7/exec")
+fetch("products.json")
 .then(r=>r.json())
 .then(data=>{
   data.forEach(p=>{

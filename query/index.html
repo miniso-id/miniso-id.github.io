@@ -9,40 +9,6 @@
 <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 
 <style>
-#loginOverlay{
-  position:fixed; inset:0;
-  background:#f3f4f6;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:9999;
-}
-.login-card{
-  width:100%; max-width:360px;
-  padding:28px;
-  background:#fff;
-  border-radius:14px;
-  box-shadow:0 10px 30px rgba(0,0,0,.15);
-  text-align:center;
-}
-.login-card input, .login-card button{
-  width:100%; height:44px;
-  margin-bottom:14px;
-  border-radius:10px;
-}
-.login-card input{
-  border:1px solid #ddd;
-  padding:0 14px;
-}
-.login-card button{
-  border:none;
-  background:#4f46e5;
-  color:#fff;
-  cursor:pointer;
-}
-#loginErr{color:#ef4444;font-size:14px;opacity:0}
-#loginErr.show{opacity:1}
-
 #reader{
   display:none;
   width:100%;
@@ -54,7 +20,11 @@
   overflow:hidden;
   position:relative;
 }
-#reader video{width:100%;height:100%;object-fit:cover}
+#reader video{
+  width:100%;
+  height:100%;
+  object-fit:cover
+}
 #reader::after{
   content:"";
   position:absolute;
@@ -66,22 +36,10 @@
 
 <body>
 
-<!-- LOGIN -->
-<div id="loginOverlay">
-  <div class="login-card">
-    <h3>Login MMS-X</h3>
-    <input id="loginUser" placeholder="Username">
-    <input id="loginPass" type="password" placeholder="Password">
-    <button onclick="doLogin()">Masuk</button>
-    <div id="loginErr">Username atau password salah</div>
-  </div>
-</div>
-
 <!-- APP -->
-<div id="app" style="display:none">
 <center>
-<h2>Product Query</h2>
-<h3>MMS-X (beta)</h3>
+  <h2>Product Query</h2>
+  <h3>MMS-X (beta)</h3>
 </center>
 
 <div class="search-box">
@@ -100,26 +58,6 @@
 
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
-</div>
-
-<script>
-/* ================= LOGIN ================= */
-let USERS=[];
-fetch("users.json").then(r=>r.json()).then(d=>USERS=d);
-
-function doLogin(){
-  const u=loginUser.value.trim();
-  const p=loginPass.value.trim();
-  const found=USERS.find(x=>x.user===u && x.pass===p);
-  if(found){
-    localStorage.setItem("mms_auth","1");
-    loginOverlay.style.display="none";
-    app.style.display="block";
-  }else{
-    loginErr.classList.add("show");
-  }
-}
-</script>
 
 <script>
 /* ================= INIT ================= */
@@ -134,27 +72,17 @@ const beepErr=document.getElementById("beepErr");
 
 /* ================= STATE ================= */
 let barcodeIndex=new Map();
-let prefixIndex=new Map();
 let history=[];
 let dataReady=false;
 
-/* ================= FETCH & INDEX ================= */ 
+/* ================= FETCH & INDEX (BARCODE ONLY) ================= */
 fetch("products.json")
 .then(r=>r.json())
 .then(data=>{
   data.forEach(p=>{
     if(p.b){
-      p.b.split("/").forEach(c=>{
-        barcodeIndex.set(c.trim(),p);
-      });
-    }
-    if(p.n){
-      p.n.toLowerCase().split(/\s+/).forEach(w=>{
-        for(let i=1;i<=w.length;i++){
-          const pref=w.slice(0,i);
-          if(!prefixIndex.has(pref))prefixIndex.set(pref,[]);
-          prefixIndex.get(pref).push(p);
-        }
+      p.b.split("/").forEach(code=>{
+        barcodeIndex.set(code.trim(),p);
       });
     }
   });
@@ -178,24 +106,20 @@ clearBtn.onclick=()=>{
 
 function search(q){
   if(!dataReady)return;
-  q=q.toLowerCase().trim();
-  if(!q){result.innerHTML="";return;}
+  q=q.trim();
+  if(!q){
+    result.innerHTML="";
+    return;
+  }
 
   if(barcodeIndex.has(q)){
     beepOk.play();
     addHistory(q);
     render([barcodeIndex.get(q)]);
-    return;
+  }else{
+    beepErr.play();
+    result.innerHTML="";
   }
-
-  if(prefixIndex.has(q)){
-    beepOk.play();
-    render([...new Set(prefixIndex.get(q))].slice(0,100));
-    return;
-  }
-
-  beepErr.play();
-  result.innerHTML="";
 }
 
 /* ================= RENDER ================= */
@@ -203,9 +127,11 @@ function render(list){
   result.innerHTML=list.map(p=>`
     <div class="card">
       <img src="${p.i}">
-      <b>${p.n}</b>
-      <small>${p.b}</small>
-      <div>${p.h}</div>
+      <div class="info">
+        <b>${p.n}</b>
+        <small>${p.b}</small>
+        <div>${p.h}</div>
+      </div>
     </div>
   `).join("");
 }
@@ -233,12 +159,18 @@ scanBtn.onclick=()=>{
     },
     decoder:{readers:["ean_reader","ean_8_reader"]}
   },err=>{
-    if(err){scanning=false;return;}
+    if(err){
+      scanning=false;
+      return;
+    }
     Quagga.start();
     Quagga.onDetected(res=>{
       const code=res.codeResult.code;
-      if(code===lastCode)stableCount++;
-      else{lastCode=code;stableCount=1;}
+      if(code===lastCode) stableCount++;
+      else{
+        lastCode=code;
+        stableCount=1;
+      }
       if(stableCount>=3){
         Quagga.stop();
         scanning=false;

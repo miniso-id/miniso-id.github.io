@@ -9,7 +9,78 @@
 <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 
 <style>
-/* ===== CAMERA ===== */
+/* ===== LOGIN OVERLAY ===== */
+#loginOverlay{
+  position:fixed;
+  inset:0;
+  background:#f3f4f6;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+
+.login-card{
+  width:100%;
+  max-width:360px;
+  padding:28px;
+  background:#fff;
+  border-radius:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,.15);
+  text-align:center;
+  box-sizing:border-box;
+}
+
+.login-card *{box-sizing:border-box}
+
+.login-card h3{
+  margin-bottom:22px;
+}
+
+.login-card input{
+  width:100%;
+  height:44px;
+  margin-bottom:14px;
+  padding:0 14px;
+  border-radius:10px;
+  border:1px solid #ddd;
+  font-size:15px;
+}
+
+.login-card button{
+  width:100%;
+  height:46px;
+  border:none;
+  border-radius:10px;
+  background:#4f46e5;
+  color:#fff;
+  font-size:15px;
+  cursor:pointer;
+}
+
+#loginErr{
+  margin-top:10px;
+  color:#ef4444;
+  font-size:14px;
+  opacity:0;
+  transition:.25s;
+}
+
+#loginErr.show{opacity:1}
+
+.login-card.error{
+  animation:shake .35s;
+}
+
+@keyframes shake{
+  0%{transform:translateX(0)}
+  25%{transform:translateX(-6px)}
+  50%{transform:translateX(6px)}
+  75%{transform:translateX(-4px)}
+  100%{transform:translateX(0)}
+}
+
+/* ===== CAMERA (ASLI – TIDAK DIUBAH) ===== */
 #reader{
   display:none;
   width:100%;
@@ -38,13 +109,23 @@
 
 <body>
 
-<!-- APP -->
-<div id="app">
+<!-- ===== LOGIN ===== -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <h3>Login MMS-X</h3>
+    <input id="loginUser" placeholder="Username">
+    <input id="loginPass" type="password" placeholder="Password">
+    <button onclick="doLogin()">Masuk</button>
+    <div id="loginErr">Username atau password salah</div>
+  </div>
+</div>
 
-
+<!-- ===== APP (ASLI – TIDAK DIUBAH) ===== -->
+<div id="app" style="display:none">
+<center>
 <h2>Product Query</h2>
-  <h3>MMS-X (beta test)</h3>
-
+<h3>MMS-X (beta test)</h3>
+</center>
 <div class="search-box">
   <div class="input-wrap">
     <input id="searchInput" placeholder="Scan barcode / type here" autofocus>
@@ -66,6 +147,78 @@
 </div>
 
 <script>
+/* ================= LOGIN SYSTEM ================= */
+let USERS=[]
+fetch("users.json").then(r=>r.json()).then(d=>USERS=d)
+
+const loginOverlay=document.getElementById("loginOverlay")
+const app=document.getElementById("app")
+const loginErr=document.getElementById("loginErr")
+
+function doLogin(){
+  const u=loginUser.value.trim()
+  const p=loginPass.value.trim()
+  const found=USERS.find(x=>x.user===u && x.pass===p)
+
+  if(found){
+    localStorage.setItem("mms_auth",JSON.stringify({
+      user:found.user,
+      role:found.role,
+      time:Date.now()
+    }))
+    loginOverlay.style.display="none"
+    app.style.display="block"
+    applyRole(found.role)
+    startIdleTimer()
+    searchInput.focus()
+  }else{
+    loginErr.classList.add("show")
+    const card=document.querySelector(".login-card")
+    card.classList.remove("error")
+    void card.offsetWidth
+    card.classList.add("error")
+  }
+}
+
+loginUser.oninput=loginPass.oninput=()=>{
+  loginErr.classList.remove("show")
+}
+
+/* AUTO LOGIN */
+(function(){
+  const auth=localStorage.getItem("mms_auth")
+  if(auth){
+    loginOverlay.style.display="none"
+    app.style.display="block"
+    startIdleTimer()
+  }
+})()
+
+/* ROLE */
+function applyRole(role){
+  document.body.dataset.role=role
+}
+
+/* AUTO LOGOUT */
+let idleTimer
+const IDLE_LIMIT=15*60*1000
+function startIdleTimer(){
+  resetIdle()
+  ;["mousemove","keydown","click","touchstart"].forEach(e=>{
+    document.addEventListener(e,resetIdle)
+  })
+}
+function resetIdle(){
+  clearTimeout(idleTimer)
+  idleTimer=setTimeout(()=>{
+    localStorage.removeItem("mms_auth")
+    location.reload()
+  },IDLE_LIMIT)
+}
+</script>
+
+<!-- ================= SCRIPT ASLI (TIDAK DIUBAH) ================= -->
+<script>
 /* =====================================================
    INIT
    ===================================================== */
@@ -74,14 +227,13 @@ const clearBtn=document.getElementById("clearBtn");
 const reader=document.getElementById("reader");
 const historyDiv=document.getElementById("history");
 const result=document.getElementById("result");
-input.focus();
 
 /* =====================================================
    DATA
    ===================================================== */
 let barcodeIndex=new Map(), nameIndex=[], history=[];
 
-fetch("https://script.google.com/macros/s/AKfycbxJICc2AtS93JqMwkXCTEdyX2iAbXX3KXoXroY-H5vBDHh4VC2O_i2xE5bD8OV17yEfFw/exec").then(r=>r.json()).then(data=>{
+fetch("https://script.google.com/macros/s/AKfycbxm-R_4Ej_WOg8RrdFX4src7CczvWf6VIxCK4LcvsktQviA1XYy9VfnzqiTYUnxb-f7/exec").then(r=>r.json()).then(data=>{
   data.forEach(p=>{
     p.b.split("/").forEach(c=>barcodeIndex.set(c.trim(),p));
     nameIndex.push({name:p.n.toLowerCase(),product:p});

@@ -124,7 +124,7 @@ function search(q){
 
 /* ================= RENDER ================= */
 function render(list){
-  result.innerHTML=list.map(p=>
+  result.innerHTML=list.map(p=>`
     <div class="card">
       <img src="${p.i}">
       <div class="info">
@@ -133,7 +133,7 @@ function render(list){
         <div>${p.h}</div>
       </div>
     </div>
-  ).join("");
+  `).join("");
 }
 
 /* ================= HISTORY ================= */
@@ -141,11 +141,11 @@ function addHistory(code){
   if(history.includes(code))return;
   history.unshift(code);
   if(history.length>5)history.pop();
-  historyDiv.innerHTML=history.map(h=><span>${h}</span>).join("");
+  historyDiv.innerHTML=history.map(h=>`<span>${h}</span>`).join("");
 }
 
 /* ================= CAMERA ================= */
-let scanning=false,lastCode="",stableCount=3;
+let scanning=false,lastCode="",stableCount=0;
 scanBtn.onclick=()=>{
   if(scanning||!dataReady)return;
   scanning=true;

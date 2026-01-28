@@ -145,7 +145,7 @@ function addHistory(code){
 }
 
 /* ================= CAMERA ================= */
-let scanning=false,lastCode="",stableCount=0;
+let scanning=false,lastCode="",stableCount=3;
 scanBtn.onclick=()=>{
   if(scanning||!dataReady)return;
   scanning=true;

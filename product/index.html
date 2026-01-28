@@ -25,7 +25,7 @@
   box-shadow:0 10px 30px rgba(0,0,0,.15);
   text-align:center;
 }
-.login-card input, .login-card button{
+.login-card input,.login-card button{
   width:100%; height:44px;
   margin-bottom:14px;
   border-radius:10px;
@@ -138,7 +138,7 @@ let prefixIndex=new Map();
 let history=[];
 let dataReady=false;
 
-/* ================= FETCH & INDEX ================= */ 
+/* ================= FETCH & INDEX ================= */
 fetch("products.json")
 .then(r=>r.json())
 .then(data=>{
@@ -152,7 +152,7 @@ fetch("products.json")
       p.n.toLowerCase().split(/\s+/).forEach(w=>{
         for(let i=1;i<=w.length;i++){
           const pref=w.slice(0,i);
-          if(!prefixIndex.has(pref))prefixIndex.set(pref,[]);
+          if(!prefixIndex.has(pref)) prefixIndex.set(pref,[]);
           prefixIndex.get(pref).push(p);
         }
       });
@@ -165,7 +165,7 @@ fetch("products.json")
   input.placeholder="Scan barcode / type here";
 });
 
-/* ================= SEARCH ================= */
+/* ================= SEARCH (FINAL) ================= */
 input.oninput=e=>{
   clearBtn.style.display=e.target.value?"block":"none";
   search(e.target.value);
@@ -177,10 +177,15 @@ clearBtn.onclick=()=>{
 };
 
 function search(q){
-  if(!dataReady)return;
-  q=q.toLowerCase().trim();
-  if(!q){result.innerHTML="";return;}
+  if(!dataReady) return;
 
+  q=q.toLowerCase().trim();
+  if(!q){
+    result.innerHTML="";
+    return;
+  }
+
+  /* === BARCODE EXACT === */
   if(barcodeIndex.has(q)){
     beepOk.play();
     addHistory(q);
@@ -188,14 +193,30 @@ function search(q){
     return;
   }
 
-  if(prefixIndex.has(q)){
-    beepOk.play();
-    render([...new Set(prefixIndex.get(q))].slice(0,1000));
-    return;
+  /* === MULTI WORD (MAX 3) === */
+  const words=q.split(/\s+/).slice(0,3);
+  let resultSet=null;
+
+  for(const w of words){
+    if(!prefixIndex.has(w)){
+      resultSet=[];
+      break;
+    }
+    const list=prefixIndex.get(w);
+    if(resultSet===null){
+      resultSet=new Set(list);
+    }else{
+      resultSet=new Set(list.filter(p=>resultSet.has(p)));
+    }
   }
 
-  beepErr.play();
-  result.innerHTML="";
+  if(resultSet && resultSet.size){
+    beepOk.play();
+    render([...resultSet].slice(0,1000));
+  }else{
+    beepErr.play();
+    result.innerHTML="";
+  }
 }
 
 /* ================= RENDER ================= */
@@ -212,16 +233,16 @@ function render(list){
 
 /* ================= HISTORY ================= */
 function addHistory(code){
-  if(history.includes(code))return;
+  if(history.includes(code)) return;
   history.unshift(code);
-  if(history.length>5)history.pop();
+  if(history.length>5) history.pop();
   historyDiv.innerHTML=history.map(h=>`<span>${h}</span>`).join("");
 }
 
 /* ================= CAMERA ================= */
 let scanning=false,lastCode="",stableCount=0;
 scanBtn.onclick=()=>{
-  if(scanning||!dataReady)return;
+  if(scanning||!dataReady) return;
   scanning=true;
   reader.style.display="block";
 
@@ -237,7 +258,7 @@ scanBtn.onclick=()=>{
     Quagga.start();
     Quagga.onDetected(res=>{
       const code=res.codeResult.code;
-      if(code===lastCode)stableCount++;
+      if(code===lastCode) stableCount++;
       else{lastCode=code;stableCount=1;}
       if(stableCount>=3){
         Quagga.stop();

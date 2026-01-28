@@ -170,7 +170,7 @@ scanBtn.onclick=()=>{
       const decoded = res.codeResult.decodedCodes || [];
 
       // Validasi kualitas scan (error < 0.2)
-      let valid = decoded.length > 0 && decoded.every(dc => dc.error !== undefined && dc.error < 0.2);
+      let valid = decoded.length > 0 && decoded.every(dc => dc.error !== undefined && dc.error < 0.5);
       if(!valid) return; // abaikan jika frame buram
 
       // Stabilisasi scan

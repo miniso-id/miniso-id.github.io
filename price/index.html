@@ -31,15 +31,12 @@
   inset:22%;
   border:2px dashed rgba(0,255,0,.7);
 }
-.card{margin:8px;padding:8px;border:1px solid #ddd;border-radius:10px;}
-.card img{width:100%;border-radius:8px;}
-.info b{display:block;margin-top:6px;}
-.info small{color:#555;}
 </style>
 </head>
 
 <body>
 
+<!-- APP -->
 <center>
   <h2>Price Check</h2>
   <h3>MMS-X (beta)</h3>
@@ -108,7 +105,7 @@ clearBtn.onclick=()=>{
 };
 
 function search(q){
-  if(!dataReady) return;
+  if(!dataReady)return;
   q=q.trim();
   if(!q){
     result.innerHTML="";
@@ -119,7 +116,7 @@ function search(q){
     beepOk.play();
     addHistory(q);
     render([barcodeIndex.get(q)]);
-  } else {
+  }else{
     beepErr.play();
     result.innerHTML="";
   }
@@ -127,7 +124,7 @@ function search(q){
 
 /* ================= RENDER ================= */
 function render(list){
-  result.innerHTML=list.map(p=>`
+  result.innerHTML=list.map(p=>
     <div class="card">
       <img src="${p.i}">
       <div class="info">
@@ -136,21 +133,21 @@ function render(list){
         <div>${p.h}</div>
       </div>
     </div>
-  `).join("");
+  ).join("");
 }
 
 /* ================= HISTORY ================= */
 function addHistory(code){
-  if(history.includes(code)) return;
+  if(history.includes(code))return;
   history.unshift(code);
-  if(history.length>5) history.pop();
-  historyDiv.innerHTML=history.map(h=>`<span>${h}</span>`).join("");
+  if(history.length>5)history.pop();
+  historyDiv.innerHTML=history.map(h=><span>${h}</span>).join("");
 }
 
-/* ================= CAMERA (AKURAT) ================= */
-let scanning=false, lastCode="", stableCount=0;
+/* ================= CAMERA ================= */
+let scanning=false,lastCode="",stableCount=3;
 scanBtn.onclick=()=>{
-  if(scanning || !dataReady) return;
+  if(scanning||!dataReady)return;
   scanning=true;
   reader.style.display="block";
 
@@ -161,27 +158,24 @@ scanBtn.onclick=()=>{
       constraints:{facingMode:"environment"}
     },
     decoder:{readers:["ean_reader"]}
-  }, err=>{
-    if(err){ scanning=false; return; }
+  },err=>{
+    if(err){
+      scanning=false;
+      return;
+    }
     Quagga.start();
-
     Quagga.onDetected(res=>{
-      const code = res.codeResult.code;
-      const decoded = res.codeResult.decodedCodes || [];
-
-      // Validasi kualitas scan (error < 0.2)
-      let valid = decoded.length > 0 && decoded.every(dc => dc.error !== undefined && dc.error < 0.5);
-      if(!valid) return; // abaikan jika frame buram
-
-      // Stabilisasi scan
-      if(code === lastCode) stableCount++;
-      else { lastCode = code; stableCount = 1; }
-
-      if(stableCount >= 2){ // cukup 2 frame valid berturut-turut
+      const code=res.codeResult.code;
+      if(code===lastCode) stableCount++;
+      else{
+        lastCode=code;
+        stableCount=1;
+      }
+      if(stableCount>=3){
         Quagga.stop();
-        scanning = false;
-        reader.style.display = "none";
-        input.value = code;
+        scanning=false;
+        reader.style.display="none";
+        input.value=code;
         search(code);
       }
     });

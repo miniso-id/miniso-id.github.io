@@ -9,6 +9,7 @@
 <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 
 <style>
+/* ================= LOGIN ================= */
 #loginOverlay{
   position:fixed; inset:0;
   background:#f3f4f6;
@@ -43,6 +44,7 @@
 #loginErr{color:#ef4444;font-size:14px;opacity:0}
 #loginErr.show{opacity:1}
 
+/* ================= CAMERA ================= */
 #reader{
   display:none;
   width:100%;
@@ -62,6 +64,7 @@
   border:2px dashed rgba(0,255,0,.7);
 }
 
+/* ================= GO TO TOP ================= */
 #goTopBtn{
   position:fixed;
   bottom:24px;
@@ -78,24 +81,19 @@
   opacity:0;
   visibility:hidden;
   transition:.3s ease;
-  z-index:999;
+  z-index:998;
 }
-
 #goTopBtn.show{
   opacity:1;
   visibility:visible;
 }
-
 #goTopBtn:hover{
   background:#4338ca;
 }
-
 </style>
 </head>
 
 <body>
-
-<button id="goTopBtn" title="Go to top">⬆</button>
 
 <!-- LOGIN -->
 <div id="loginOverlay">
@@ -132,6 +130,9 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 </div>
+
+<!-- GO TO TOP BUTTON -->
+<button id="goTopBtn" title="Go to top">⬆</button>
 
 <script>
 /* ================= LOGIN ================= */
@@ -196,7 +197,7 @@ fetch("products.json")
   input.placeholder="Scan barcode / type here";
 });
 
-/* ================= SEARCH (FINAL) ================= */
+/* ================= SEARCH ================= */
 input.oninput=e=>{
   clearBtn.style.display=e.target.value?"block":"none";
   search(e.target.value);
@@ -216,7 +217,6 @@ function search(q){
     return;
   }
 
-  /* === BARCODE EXACT === */
   if(barcodeIndex.has(q)){
     beepOk.play();
     addHistory(q);
@@ -224,7 +224,6 @@ function search(q){
     return;
   }
 
-  /* === MULTI WORD (MAX 3) === */
   const words=q.split(/\s+/).slice(0,3);
   let resultSet=null;
 
@@ -301,27 +300,22 @@ scanBtn.onclick=()=>{
     });
   });
 };
-</script>
 
-<script>
-const goTopBtn = document.getElementById("goTopBtn");
+/* ================= GO TO TOP SCRIPT ================= */
+const goTopBtn=document.getElementById("goTopBtn");
 
-window.addEventListener("scroll", () => {
-  if (window.scrollY > 300) {
+window.addEventListener("scroll",()=>{
+  if(window.scrollY>300){
     goTopBtn.classList.add("show");
-  } else {
+  }else{
     goTopBtn.classList.remove("show");
   }
 });
 
-goTopBtn.onclick = () => {
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
+goTopBtn.onclick=()=>{
+  window.scrollTo({top:0,behavior:"smooth"});
 };
 </script>
-
 
 </body>
 </html>

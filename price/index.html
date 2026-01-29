@@ -173,6 +173,18 @@ scanBtn.onclick=()=>{
       return;
     }
     Quagga.start();
+    setTimeout(() => {
+    const track = Quagga.CameraAccess.getActiveTrack();
+    if (!track) return;
+
+    const caps = track.getCapabilities();
+    if (caps && caps.zoom) {
+      track.applyConstraints({
+        advanced: [{ zoom: 2.5 }]
+      });
+    }
+  }, 500);
+});
     Quagga.onDetected(res=>{
       const code=res.codeResult.code;
       if(code===lastCode) stableCount++;

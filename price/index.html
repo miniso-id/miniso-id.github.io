@@ -158,7 +158,15 @@ scanBtn.onclick=()=>{
       constraints:{facingMode:"environment", focusMode: "continuous", width: { min: 1280 },
     height: { min: 720 }}
     },
-    decoder:{readers:["code_128_reader", "ean_reader"]}
+    decoder:{
+      readers: [
+  "ean_reader",        // EAN-13 / EAN-8
+  "code_128_reader",  // Code 128
+  "code_39_reader",   // Code 39
+  "upc_reader",       // UPC-A
+  "upc_e_reader"      // UPC-E
+]
+    }
   },err=>{
     if(err){
       scanning=false;

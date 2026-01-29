@@ -6,31 +6,9 @@
 <title>MMS-X</title>
 
 <link rel="stylesheet" href="style.css">
-<script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 
 <style>
-#reader{
-  display:none;
-  width:100%;
-  max-width:360px;
-  aspect-ratio:1/1;
-  margin:10px auto;
-  background:#000;
-  border-radius:12px;
-  overflow:hidden;
-  position:relative;
-}
-#reader video{
-  width:100%;
-  height:100%;
-  object-fit:cover
-}
-#reader::after{
-  content:"";
-  position:absolute;
-  inset:22%;
-  border:2px dashed rgba(0,255,0,.7);
-}
+/* input clear button behavior assumed from style.css */
 </style>
 </head>
 
@@ -47,10 +25,7 @@
     <input id="searchInput" placeholder="Loading product data..." disabled>
     <span id="clearBtn">✕</span>
   </div>
-  <button id="scanBtn" disabled>📷 Camera Scan</button>
 </div>
-
-<div id="reader"></div>
 
 <center><h3>Scan History</h3></center>
 <div id="history"></div>
@@ -61,70 +36,98 @@
 
 <script>
 /* ================= INIT ================= */
-const input=document.getElementById("searchInput");
-const clearBtn=document.getElementById("clearBtn");
-const scanBtn=document.getElementById("scanBtn");
-const reader=document.getElementById("reader");
-const result=document.getElementById("result");
-const historyDiv=document.getElementById("history");
-const beepOk=document.getElementById("beepOk");
-const beepErr=document.getElementById("beepErr");
+const input = document.getElementById("searchInput");
+const clearBtn = document.getElementById("clearBtn");
+const result = document.getElementById("result");
+const historyDiv = document.getElementById("history");
+const beepOk = document.getElementById("beepOk");
+const beepErr = document.getElementById("beepErr");
 
 /* ================= STATE ================= */
-let barcodeIndex=new Map();
-let history=[];
-let dataReady=false;
+let barcodeIndex = new Map();
+let history = [];
+let dataReady = false;
 
 /* ================= FETCH & INDEX (BARCODE ONLY) ================= */
 fetch("/product/products.json")
-.then(r=>r.json())
-.then(data=>{
-  data.forEach(p=>{
-    if(p.b){
-      p.b.split("/").forEach(code=>{
-        barcodeIndex.set(code.trim(),p);
+.then(r => r.json())
+.then(data => {
+  data.forEach(p => {
+    if (p.b) {
+      p.b.split("/").forEach(code => {
+        barcodeIndex.set(code.trim(), p);
       });
     }
   });
 
-  dataReady=true;
-  input.disabled=false;
-  scanBtn.disabled=false;
-  input.placeholder="Scan barcode / type here";
+  dataReady = true;
+  input.disabled = false;
+  input.placeholder = "Scan barcode / type here";
+  input.focus();
 });
 
 /* ================= SEARCH ================= */
-input.oninput=e=>{
-  clearBtn.style.display=e.target.value?"block":"none";
-  search(e.target.value);
+input.oninput = e => {
+  clearBtn.style.display = e.target.value ? "block" : "none";
 };
 
-clearBtn.onclick=()=>{
-  input.value="";
-  result.innerHTML="";
+clearBtn.onclick = () => {
+  input.value = "";
+  result.innerHTML = "";
+  input.focus();
 };
 
 function search(q){
-  if(!dataReady)return;
-  q=q.trim();
-  if(!q){
-    result.innerHTML="";
+  if (!dataReady) return;
+  q = q.trim();
+  if (!q){
+    result.innerHTML = "";
     return;
   }
 
-  if(barcodeIndex.has(q)){
+  if (barcodeIndex.has(q)){
     beepOk.play();
     addHistory(q);
     render([barcodeIndex.get(q)]);
-  }else{
+  } else {
     beepErr.play();
-    result.innerHTML="";
+    result.innerHTML = "";
   }
 }
 
+/* ================= SINGLE SCAN HANDLER ================= */
+function handleScan(code){
+  if (!code) return;
+
+  input.value = code;
+  search(code);
+
+  // auto clear + siap scan ulang
+  setTimeout(() => {
+    input.value = "";
+    input.focus();
+  }, 200);
+}
+
+/* ================= PDT / HARDWARE SCANNER ================= */
+// scanner biasanya kirim ENTER
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    handleScan(input.value.trim());
+  }
+});
+
+// jaga cursor selalu standby
+setInterval(() => {
+  if (document.activeElement !== input) {
+    input.focus();
+  }
+}, 1500);
+
 /* ================= RENDER ================= */
 function render(list){
-  result.innerHTML=list.map(p=>`
+  result.innerHTML = list.map(p => `
     <div class="card">
       <img src="${p.i}">
       <div class="info">
@@ -138,49 +141,11 @@ function render(list){
 
 /* ================= HISTORY ================= */
 function addHistory(code){
-  if(history.includes(code))return;
+  if (history.includes(code)) return;
   history.unshift(code);
-  if(history.length>5)history.pop();
-  historyDiv.innerHTML=history.map(h=>`<span>${h}</span>`).join("");
+  if (history.length > 5) history.pop();
+  historyDiv.innerHTML = history.map(h => `<span>${h}</span>`).join("");
 }
-
-/* ================= CAMERA ================= */
-let scanning=false,lastCode="",stableCount=0;
-scanBtn.onclick=()=>{
-  if(scanning||!dataReady)return;
-  scanning=true;
-  reader.style.display="block";
-
-  Quagga.init({
-    inputStream:{
-      type:"LiveStream",
-      target:reader,
-      constraints:{facingMode:"environment"}
-    },
-    decoder:{readers:["ean_13_reader"]}
-  },err=>{
-    if(err){
-      scanning=false;
-      return;
-    }
-    Quagga.start();
-    Quagga.onDetected(res=>{
-      const code=res.codeResult.code;
-      if(code===lastCode) stableCount++;
-      else{
-        lastCode=code;
-        stableCount=1;
-      }
-      if(stableCount>=3){
-        Quagga.stop();
-        scanning=false;
-        reader.style.display="none";
-        input.value=code;
-        search(code);
-      }
-    });
-  });
-};
 </script>
 
 </body>

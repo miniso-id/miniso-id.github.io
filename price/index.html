@@ -155,7 +155,9 @@ scanBtn.onclick=()=>{
     inputStream:{
       type:"LiveStream",
       target:reader,
-      constraints:{facingMode:"environment", focusMode: "continuous"}
+      constraints:{facingMode:"environment", focusMode: "continuous", width: { min: 1280 },
+    height: { min: 720 }}
+      area: { top: "20%", right: "10%", left: "10%", bottom: "20%" }
     },
     decoder:{readers:["ean_reader"]}
   },err=>{

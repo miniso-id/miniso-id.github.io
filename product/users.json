@@ -19,4 +19,24 @@
     "pass": "121212",
     "role": "staff"
   }
+  {
+    "user": "jkt1",
+    "pass": "Jakarta1spv",
+    "role": "staff"
+  }
+  {
+    "user": "bandung1",
+    "pass": "Bandung1spv",
+    "role": "staff"
+  }
+  {
+    "user": "bandung2",
+    "pass": "Bandung2spv",
+    "role": "staff"
+  }
+  {
+    "user": "sumatera1",
+    "pass": "Sumatera1spv",
+    "role": "staff"
+  }
 ]

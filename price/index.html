@@ -158,7 +158,7 @@ scanBtn.onclick=()=>{
       constraints:{facingMode:"environment", focusMode: "continuous", width: { min: 1280 },
     height: { min: 720 }}
     },
-    decoder:{readers:["code_128_reader"]}
+    decoder:{readers:["ean_reader", "code_128_reader"]}
   },err=>{
     if(err){
       scanning=false;

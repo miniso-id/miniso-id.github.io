@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>MMS-X</title>
+
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
+
+<style>
+#reader{
+  display:none;
+  width:100%;
+  max-width:360px;
+  aspect-ratio:1/1;
+  margin:10px auto;
+  background:#000;
+  border-radius:12px;
+  overflow:hidden;
+  position:relative;
+}
+#reader video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+#reader::after{
+  content:"";
+  position:absolute;
+  inset:22%;
+  border:2px dashed rgba(0,255,0,.8);
+  pointer-events:none;
+}
+#cameraSelect{
+  width:100%;
+  max-width:360px;
+  margin:5px auto;
+  padding:8px;
+  font-size:14px;
+}
+</style>
+</head>
+
+<body>
+
+<center>
+  <h2>Price Check</h2>
+  <h3>MMS-X (beta)</h3>
+</center>
+
+<div class="search-box">
+  <div class="input-wrap">
+    <input id="searchInput" placeholder="Loading product data..." disabled>
+    <span id="clearBtn">✕</span>
+  </div>
+  <button id="scanBtn" disabled>📷 Camera Scan</button>
+</div>
+
+<select id="cameraSelect" style="display:none"></select>
+
+<div id="reader"></div>
+
+<center><h3>Scan History</h3></center>
+<div id="history"></div>
+<div id="result" class="grid"></div>
+
+<audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
+<audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
+
+<script>
+/* ================= INIT ================= */
+const input = document.getElementById("searchInput");
+const clearBtn = document.getElementById("clearBtn");
+const scanBtn = document.getElementById("scanBtn");
+const reader = document.getElementById("reader");
+const result = document.getElementById("result");
+const historyDiv = document.getElementById("history");
+const cameraSelect = document.getElementById("cameraSelect");
+const beepOk = document.getElementById("beepOk");
+const beepErr = document.getElementById("beepErr");
+
+/* ================= STATE ================= */
+let barcodeIndex = new Map();
+let history = [];
+let dataReady = false;
+
+let scanning = false;
+let lastCode = "";
+let stableCount = 0;
+const STABLE_REQUIRED = 3;
+
+let rearCameras = [];
+let currentCameraId = null;
+let focusTimer = null;
+
+/* ================= FETCH DATA ================= */
+fetch("/product/products.json")
+.then(r=>r.json())
+.then(data=>{
+  data.forEach(p=>{
+    if(p.b){
+      p.b.split("/").forEach(code=>{
+        barcodeIndex.set(code.trim(), p);
+      });
+    }
+  });
+  dataReady = true;
+  input.disabled = false;
+  scanBtn.disabled = false;
+  input.placeholder = "Scan barcode / type here";
+});
+
+/* ================= SEARCH ================= */
+input.oninput = e=>{
+  clearBtn.style.display = e.target.value ? "block" : "none";
+  search(e.target.value);
+};
+
+clearBtn.onclick = ()=>{
+  input.value = "";
+  result.innerHTML = "";
+};
+
+function search(q){
+  if(!dataReady) return;
+  q = q.trim();
+  if(!q){
+    result.innerHTML = "";
+    return;
+  }
+
+  if(barcodeIndex.has(q)){
+    beepOk.play();
+    addHistory(q);
+    render([barcodeIndex.get(q)]);
+  }else{
+    beepErr.play();
+    result.innerHTML = "";
+  }
+}
+
+/* ================= RENDER ================= */
+function render(list){
+  result.innerHTML = list.map(p=>`
+    <div class="card">
+      <img src="${p.i}">
+      <div class="info">
+        <b>${p.n}</b>
+        <small>${p.b}</small>
+        <div>${p.h}</div>
+      </div>
+    </div>
+  `).join("");
+}
+
+/* ================= HISTORY ================= */
+function addHistory(code){
+  if(history.includes(code)) return;
+  history.unshift(code);
+  if(history.length > 5) history.pop();
+  historyDiv.innerHTML = history.map(h=>`<span>${h}</span>`).join("");
+}
+
+/* ================= CAMERA PERMISSION ================= */
+async function unlockCamera(){
+  try{
+    const s = await navigator.mediaDevices.getUserMedia({video:true});
+    s.getTracks().forEach(t=>t.stop());
+  }catch(e){}
+}
+
+/* ================= LOAD REAR CAMERAS ================= */
+async function loadCameras(){
+  await unlockCamera();
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  rearCameras = devices
+    .filter(d=>d.kind==="videoinput")
+    .filter(d=>/back|rear|environment/i.test(d.label));
+
+  cameraSelect.innerHTML = "";
+  rearCameras.forEach((c,i)=>{
+    const opt = document.createElement("option");
+    opt.value = c.deviceId;
+    opt.textContent = c.label || `Rear Camera ${i+1}`;
+    cameraSelect.appendChild(opt);
+  });
+
+  if(rearCameras.length){
+    cameraSelect.style.display = "block";
+    currentCameraId = rearCameras[0].deviceId;
+  }
+}
+
+/* ================= STOP SCANNER ================= */
+function stopScanner(){
+  try{
+    Quagga.offDetected(onDetected);
+    Quagga.stop();
+  }catch(e){}
+  clearTimeout(focusTimer);
+  reader.style.display = "none";
+  scanning = false;
+}
+
+/* ================= START SCANNER ================= */
+function startScanner(cameraId){
+  Quagga.init({
+    inputStream:{
+      type:"LiveStream",
+      target: reader,
+      constraints:{
+        deviceId:{ exact: cameraId },
+        width:{ min:1280 },
+        height:{ min:720 }
+      },
+      area:{ top:"22%", right:"22%", left:"22%", bottom:"22%" }
+    },
+    decoder:{
+      readers:[
+        "ean_reader","ean_8_reader","upc_reader","upc_e_reader",
+        "code_128_reader","code_39_reader"
+      ]
+    },
+    locate:true
+  }, err=>{
+    if(err) return;
+
+    Quagga.start();
+
+    setTimeout(()=>{
+      const track = Quagga.CameraAccess.getActiveTrack();
+      const caps = track?.getCapabilities();
+      if(caps?.zoom) track.applyConstraints({advanced:[{zoom:3}]});
+    },500);
+
+    Quagga.onDetected(onDetected);
+
+    focusTimer = setTimeout(()=>{
+      stopScanner();
+      const next = rearCameras.find(c=>c.deviceId!==cameraId);
+      if(next) startScanner(next.deviceId);
+    },5000);
+  });
+}
+
+/* ================= STABLE DETECT ================= */
+function onDetected(res){
+  const code = res.codeResult.code;
+  if(code === lastCode) stableCount++;
+  else{ lastCode = code; stableCount = 1; }
+
+  if(stableCount < STABLE_REQUIRED) return;
+
+  stopScanner();
+  input.value = code;
+  input.focus();
+  search(code);
+}
+
+/* ================= BUTTON ================= */
+scanBtn.onclick = async()=>{
+  if(scanning || !dataReady) return;
+  scanning = true;
+  lastCode = "";
+  stableCount = 0;
+  reader.style.display = "block";
+
+  if(!rearCameras.length) await loadCameras();
+  startScanner(currentCameraId);
+};
+
+/* ================= CAMERA PICKER ================= */
+cameraSelect.onchange = ()=>{
+  currentCameraId = cameraSelect.value;
+  if(scanning){
+    stopScanner();
+    reader.style.display = "block";
+    startScanner(currentCameraId);
+  }
+};
+
+/* ================= PDA KEEP FOCUS ================= */
+input.addEventListener("blur",()=>{
+  setTimeout(()=>input.focus(),50);
+});
+</script>
+
+</body>
+</html>

@@ -43,7 +43,7 @@
 
 <div class="search-box">
   <div class="input-wrap">
-    <input id="searchInput" placeholder="Loading product data..." disabled>
+    <input id="searchInput" placeholder="Loading product data..." disabled autocomplete="off">
     <span id="clearBtn">✕</span>
   </div>
   <button id="scanBtn" disabled>📷 Camera Scan</button>
@@ -59,62 +59,70 @@
 <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
 <script>
-/* ================= INIT ================= */
-const input=document.getElementById("searchInput");
-const clearBtn=document.getElementById("clearBtn");
-const scanBtn=document.getElementById("scanBtn");
-const reader=document.getElementById("reader");
-const result=document.getElementById("result");
-const historyDiv=document.getElementById("history");
-const beepOk=document.getElementById("beepOk");
-const beepErr=document.getElementById("beepErr");
+/* ================= ELEMENT ================= */
+const input = document.getElementById("searchInput");
+const clearBtn = document.getElementById("clearBtn");
+const scanBtn = document.getElementById("scanBtn");
+const reader = document.getElementById("reader");
+const result = document.getElementById("result");
+const historyDiv = document.getElementById("history");
+const beepOk = document.getElementById("beepOk");
+const beepErr = document.getElementById("beepErr");
 
 /* ================= STATE ================= */
-let barcodeIndex=new Map();
-let history=[];
-let dataReady=false;
+let barcodeIndex = new Map();
+let history = [];
+let dataReady = false;
+let scanning = false;
+let lastCode = "";
+let stableCount = 0;
 
-/* ================= FETCH & INDEX ================= */
+/* ================= LOAD DATA ================= */
 fetch("/product/products.json")
 .then(r=>r.json())
 .then(data=>{
   data.forEach(p=>{
     if(p.b){
       p.b.split("/").forEach(code=>{
-        barcodeIndex.set(code.trim(),p);
+        barcodeIndex.set(code.trim(), p);
       });
     }
   });
-  dataReady=true;
-  input.disabled=false;
-  scanBtn.disabled=false;
-  input.placeholder="Scan barcode / type here";
+  dataReady = true;
+  input.disabled = false;
+  scanBtn.disabled = false;
+  input.placeholder = "Scan barcode / type here";
 });
 
 /* ================= SEARCH ================= */
-input.oninput=e=>{
-  clearBtn.style.display=e.target.value?"block":"none";
+input.oninput = e=>{
+  clearBtn.style.display = e.target.value ? "block" : "none";
   search(e.target.value);
 };
 
-input.onkeydown=e=>{
+input.onkeydown = e=>{
   if(e.key==="Enter"){
     e.preventDefault();
-    search(input.value.trim());
+    search(input.value);
+    input.focus();
     input.select();
   }
 };
 
-clearBtn.onclick=()=>{
+clearBtn.onclick = ()=>{
   input.value="";
+  clearBtn.style.display="none";
   result.innerHTML="";
   input.focus();
 };
 
 function search(q){
-  if(!dataReady)return;
-  q=q.trim();
-  if(!q){ result.innerHTML=""; return; }
+  if(!dataReady) return;
+  q = q.trim();
+  if(!q){
+    result.innerHTML="";
+    return;
+  }
 
   if(barcodeIndex.has(q)){
     beepOk.play();
@@ -128,7 +136,7 @@ function search(q){
 
 /* ================= RENDER ================= */
 function render(list){
-  result.innerHTML=list.map(p=>`
+  result.innerHTML = list.map(p=>`
     <div class="card">
       <img src="${p.i}" loading="lazy">
       <div class="info">
@@ -142,131 +150,119 @@ function render(list){
 
 /* ================= HISTORY ================= */
 function addHistory(code){
-  if(history.includes(code))return;
+  if(history.includes(code)) return;
   history.unshift(code);
-  if(history.length>5)history.pop();
-  historyDiv.innerHTML=history.map(h=>`<span>${h}</span>`).join("");
+  if(history.length>5) history.pop();
+  historyDiv.innerHTML = history.map(h=>`<span>${h}</span>`).join("");
 }
 
-/* ================= CAMERA (STABLE FIX) ================= */
-let scanning=false;
-let lastCode="";
-let stableCount=0;
-const STABLE_REQUIRED=3;
-
-let cameras=[];
-let camIndex=0;
-let detectCount=0;
-let switchTimer=null;
-
-async function getCameras(){
-  const devices=await navigator.mediaDevices.enumerateDevices();
-  return devices.filter(d=>d.kind==="videoinput").map(d=>d.deviceId);
+/* ================= CAMERA FILTER ================= */
+async function getRearCamerasFiltered(){
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  return devices.filter(d =>
+    d.kind === "videoinput" &&
+    !/front|user/i.test(d.label) &&
+    !/ultra|0\.5x|super/i.test(d.label)
+  );
 }
 
-function stopScanner(){
-  try{
-    Quagga.offDetected(onDetected);
+/* ================= CAMERA SCAN ================= */
+scanBtn.onclick = async ()=>{
+  if(scanning || !dataReady) return;
+
+  scanning = true;
+  reader.style.display="block";
+  lastCode="";
+  stableCount=0;
+
+  const cams = await getRearCamerasFiltered();
+  let camIndex = 0;
+
+  function startCam(deviceId){
+    Quagga.init({
+      inputStream:{
+        type:"LiveStream",
+        target:reader,
+        constraints:{
+          facingMode:{ exact:"environment" },
+          deviceId:{ exact:deviceId },
+          width:{ min:1280 },
+          height:{ min:720 }
+        },
+        area:{ top:"22%", right:"22%", left:"22%", bottom:"22%" }
+      },
+      decoder:{
+        readers:[
+          "ean_reader",
+          "ean_8_reader",
+          "code_128_reader",
+          "upc_reader",
+          "upc_e_reader"
+        ]
+      },
+      locate:true
+    }, err=>{
+      if(err){
+        tryNext();
+        return;
+      }
+
+      Quagga.start();
+
+      // Paksa zoom (anti ultra wide)
+      setTimeout(()=>{
+        const track = Quagga.CameraAccess.getActiveTrack();
+        if(!track) return;
+        const caps = track.getCapabilities();
+        if(caps.zoom){
+          track.applyConstraints({
+            advanced:[{ zoom: 3 }]
+          });
+        }
+      },500);
+
+      Quagga.onDetected(onDetectedStable);
+    });
+  }
+
+  function tryNext(){
     Quagga.stop();
-  }catch(e){}
-  clearTimeout(switchTimer);
+    camIndex++;
+    if(camIndex < cams.length){
+      startCam(cams[camIndex].deviceId);
+    }else{
+      alert("Kamera belakang tidak tersedia");
+      reader.style.display="none";
+      scanning=false;
+    }
+  }
+
+  startCam(cams[0]?.deviceId);
+};
+
+/* ================= STABLE DETECTION ================= */
+function onDetectedStable(res){
+  const code = res.codeResult.code;
+  if(code === lastCode) stableCount++;
+  else{
+    lastCode = code;
+    stableCount = 1;
+  }
+
+  if(stableCount < 3) return;
+
+  Quagga.offDetected(onDetectedStable);
+  Quagga.stop();
   reader.style.display="none";
   scanning=false;
-}
 
-function startScanner(deviceId=null){
-  Quagga.init({
-    inputStream:{
-      type:"LiveStream",
-      target:reader,
-      constraints:{
-        facingMode:"environment",
-        ...(deviceId?{deviceId}:{}),
-        width:{min:1280},
-        height:{min:720}
-      },
-      area:{ top:"22%", right:"22%", left:"22%", bottom:"22%" }
-    },
-    decoder:{
-      readers:[
-        "ean_reader",
-        "ean_8_reader",
-        "upc_reader",
-        "upc_e_reader",
-        "code_128_reader",
-        "code_39_reader"
-      ]
-    },
-    locate:true
-  },err=>{
-    if(err){
-      tryNextCamera();
-      return;
-    }
-
-    Quagga.start();
-
-    setTimeout(()=>{
-      const track=Quagga.CameraAccess.getActiveTrack();
-      const caps=track?.getCapabilities();
-      if(caps?.zoom){
-        track.applyConstraints({advanced:[{zoom:3}]});
-      }
-    },700);
-
-    detectCount=0;
-    Quagga.onDetected(onDetected);
-
-    switchTimer=setTimeout(()=>{
-      if(detectCount===0){
-        tryNextCamera();
-      }
-    },6000);
-  });
-}
-
-function tryNextCamera(){
-  try{Quagga.stop();}catch(e){}
-  camIndex++;
-  if(camIndex>=cameras.length){
-    camIndex=0;
-    startScanner(); // fallback
-  }else{
-    startScanner(cameras[camIndex]);
-  }
-}
-
-function onDetected(res){
-  detectCount++;
-  const code=res.codeResult.code;
-
-  if(code===lastCode) stableCount++;
-  else{
-    lastCode=code;
-    stableCount=1;
-  }
-
-  if(stableCount<STABLE_REQUIRED)return;
-
-  stopScanner();
-  input.value=code;
+  input.value = code;
+  clearBtn.style.display="block";
   search(code);
+
   input.focus();
   input.select();
 }
-
-/* ================= BUTTON ================= */
-scanBtn.onclick=async()=>{
-  if(scanning||!dataReady)return;
-  scanning=true;
-  lastCode="";
-  stableCount=0;
-  reader.style.display="block";
-
-  cameras=await getCameras();
-  camIndex=0;
-  startScanner(cameras[0]||null);
-};
 </script>
 
 </body>

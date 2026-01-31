@@ -6,7 +6,7 @@
 <title>MMS-X</title>
 
 <link rel="stylesheet" href="style.css">
-<script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
+<script src="https://unpkg.com/@ericblade/quagga2/dist/quagga.js"></script>
 
 <style>
 #reader{
@@ -38,7 +38,7 @@
 
 <center>
   <h2>Price Check</h2>
-  <h3>MMS-X (beta)</h3>
+  <h3>MMS-X (Quagga2)</h3>
 </center>
 
 <div class="search-box">
@@ -101,7 +101,7 @@ input.oninput = e=>{
 };
 
 input.onkeydown = e=>{
-  if(e.key==="Enter"){
+  if(e.key === "Enter"){
     e.preventDefault();
     search(input.value);
     input.focus();
@@ -152,7 +152,7 @@ function render(list){
 function addHistory(code){
   if(history.includes(code)) return;
   history.unshift(code);
-  if(history.length>5) history.pop();
+  if(history.length > 5) history.pop();
   historyDiv.innerHTML = history.map(h=>`<span>${h}</span>`).join("");
 }
 
@@ -166,14 +166,14 @@ async function getRearCamerasFiltered(){
   );
 }
 
-/* ================= CAMERA SCAN ================= */
+/* ================= CAMERA SCAN (QUAGGA2) ================= */
 scanBtn.onclick = async ()=>{
   if(scanning || !dataReady) return;
 
   scanning = true;
-  reader.style.display="block";
-  lastCode="";
-  stableCount=0;
+  reader.style.display = "block";
+  lastCode = "";
+  stableCount = 0;
 
   const cams = await getRearCamerasFiltered();
   let camIndex = 0;
@@ -181,11 +181,12 @@ scanBtn.onclick = async ()=>{
   function startCam(deviceId){
     Quagga.init({
       inputStream:{
+        name:"Live",
         type:"LiveStream",
         target:reader,
         constraints:{
-          facingMode:{ exact:"environment" },
-          deviceId:{ exact:deviceId },
+          facingMode:"environment",
+          deviceId: deviceId ? { exact: deviceId } : undefined,
           width:{ min:1280 },
           height:{ min:720 }
         },
@@ -209,17 +210,17 @@ scanBtn.onclick = async ()=>{
 
       Quagga.start();
 
-      // Paksa zoom (anti ultra wide)
+      // zoom paksa (anti ultra-wide)
       setTimeout(()=>{
         const track = Quagga.CameraAccess.getActiveTrack();
         if(!track) return;
-        const caps = track.getCapabilities();
-        if(caps.zoom){
+        const caps = track.getCapabilities?.();
+        if(caps && caps.zoom){
           track.applyConstraints({
             advanced:[{ zoom: 3 }]
           });
         }
-      },500);
+      },600);
 
       Quagga.onDetected(onDetectedStable);
     });
@@ -243,6 +244,7 @@ scanBtn.onclick = async ()=>{
 /* ================= STABLE DETECTION ================= */
 function onDetectedStable(res){
   const code = res.codeResult.code;
+
   if(code === lastCode) stableCount++;
   else{
     lastCode = code;
@@ -253,11 +255,12 @@ function onDetectedStable(res){
 
   Quagga.offDetected(onDetectedStable);
   Quagga.stop();
+
   reader.style.display="none";
-  scanning=false;
+  scanning = false;
 
   input.value = code;
-  clearBtn.style.display="block";
+  clearBtn.style.display = "block";
   search(code);
 
   input.focus();

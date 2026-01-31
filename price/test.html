@@ -79,6 +79,12 @@ let lastCode = "";
 let stableCount = 0;
 const STABLE_REQUIRED = 3;
 
+const BLUR_TIMEOUT = 3000;
+let blurTimer = null;
+
+let cameras = [];
+let camIndex = 0;
+
 /* ================= LOAD DATA ================= */
 fetch("/product/products.json")
 .then(r => r.json())
@@ -144,14 +150,27 @@ function addHistory(code){
   historyDiv.innerHTML = history.map(h => `<span>${h}</span>`).join("");
 }
 
-/* ================= STOP SCAN ================= */
+/* ================= CAMERA HELPERS ================= */
 function stopScan(){
-  try {
+  clearTimeout(blurTimer);
+  try{
     Quagga.offDetected(onDetectedStable);
     Quagga.stop();
-  } catch(e){}
+  }catch(e){}
   scanning = false;
   reader.style.display = "none";
+}
+
+function startBlurTimer(){
+  clearTimeout(blurTimer);
+  blurTimer = setTimeout(()=>{
+    camIndex++;
+    if(camIndex < cameras.length){
+      restartCamera();
+    }else{
+      stopScan();
+    }
+  }, BLUR_TIMEOUT);
 }
 
 /* ================= DETECT ================= */
@@ -175,24 +194,32 @@ function onDetectedStable(res){
   input.select();
 }
 
-/* ================= START CAMERA ================= */
-function startCamera(){
+/* ================= CAMERA ================= */
+function restartCamera(){
+  stopScan();
+  scanning = true;
+  reader.style.display = "block";
+  startCamera(cameras[camIndex]);
+}
+
+function startCamera(deviceId){
   lastCode = "";
   stableCount = 0;
 
   Quagga.init({
-    inputStream: {
-      type: "LiveStream",
+    inputStream:{
+      type:"LiveStream",
       target: reader,
-      constraints: {
-        facingMode: "environment",   // 🔒 ALWAYS REAR CAMERA
-        width: { min: 1280 },
-        height: { min: 720 }
+      constraints:{
+        deviceId: deviceId ? { exact: deviceId } : undefined,
+        facingMode:"environment",
+        width:{ min:1280 },
+        height:{ min:720 }
       },
-      area: { top:"22%", right:"22%", left:"22%", bottom:"22%" }
+      area:{ top:"22%", right:"22%", left:"22%", bottom:"22%" }
     },
-    decoder: {
-      readers: [
+    decoder:{
+      readers:[
         "ean_reader",
         "ean_8_reader",
         "upc_reader",
@@ -200,38 +227,45 @@ function startCamera(){
         "code_128_reader"
       ]
     },
-    locate: true
-  }, err => {
-    if (err) {
-      stopScan();
+    locate:true
+  },err=>{
+    if(err){
+      camIndex++;
+      if(camIndex < cameras.length) restartCamera();
+      else stopScan();
       return;
     }
 
     Quagga.start();
+    startBlurTimer();
 
-    setTimeout(() => {
+    setTimeout(()=>{
       const track = Quagga.CameraAccess.getActiveTrack();
-      if (track) {
+      if(track){
         const caps = track.getCapabilities();
-        if (caps.focusMode) {
-          track.applyConstraints({ advanced:[{ focusMode:"continuous" }] });
-        }
-        if (caps.zoom) {
-          track.applyConstraints({ advanced:[{ zoom: 2 }] });
-        }
+        if(caps.zoom) track.applyConstraints({advanced:[{zoom:3}]});
+        if(caps.focusMode) track.applyConstraints({advanced:[{focusMode:"continuous"}]});
       }
-    }, 600);
+    },600);
 
     Quagga.onDetected(onDetectedStable);
   });
 }
 
 /* ================= SCAN BUTTON ================= */
-scanBtn.onclick = () => {
+scanBtn.onclick = async () => {
   if (!dataReady || scanning) return;
+
   scanning = true;
   reader.style.display = "block";
-  startCamera();
+  camIndex = 0;
+
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  cameras = devices
+    .filter(d => d.kind === "videoinput")
+    .map(d => d.deviceId);
+
+  startCamera(cameras[camIndex]);
 };
 </script>
 

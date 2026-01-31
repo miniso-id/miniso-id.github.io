@@ -2,11 +2,11 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>MMS-X</title>
 
 <link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
+<script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 
 <style>
 #reader{
@@ -29,8 +29,7 @@
   content:"";
   position:absolute;
   inset:22%;
-  border:2px dashed rgba(0,255,0,.8);
-  pointer-events:none;
+  border:2px dashed rgba(0,255,0,.7);
 }
 </style>
 </head>
@@ -75,14 +74,7 @@ let barcodeIndex=new Map();
 let history=[];
 let dataReady=false;
 
-let scanning=false,lastCode="",stableCount=0;
-const STABLE_REQUIRED=3;
-
-let rearCameras=[];
-let camIndex=0;
-let focusTimer=null;
-
-/* ================= FETCH DATA ================= */
+/* ================= FETCH & INDEX ================= */
 fetch("/product/products.json")
 .then(r=>r.json())
 .then(data=>{
@@ -105,9 +97,18 @@ input.oninput=e=>{
   search(e.target.value);
 };
 
+input.onkeydown=e=>{
+  if(e.key==="Enter"){
+    e.preventDefault();
+    search(input.value.trim());
+    input.select();
+  }
+};
+
 clearBtn.onclick=()=>{
   input.value="";
   result.innerHTML="";
+  input.focus();
 };
 
 function search(q){
@@ -129,7 +130,7 @@ function search(q){
 function render(list){
   result.innerHTML=list.map(p=>`
     <div class="card">
-      <img src="${p.i}">
+      <img src="${p.i}" loading="lazy">
       <div class="info">
         <b>${p.n}</b>
         <small>${p.b}</small>
@@ -147,13 +148,20 @@ function addHistory(code){
   historyDiv.innerHTML=history.map(h=>`<span>${h}</span>`).join("");
 }
 
-/* ================= CAMERA UTILS ================= */
-async function getRearCameras(){
+/* ================= CAMERA (STABLE FIX) ================= */
+let scanning=false;
+let lastCode="";
+let stableCount=0;
+const STABLE_REQUIRED=3;
+
+let cameras=[];
+let camIndex=0;
+let detectCount=0;
+let switchTimer=null;
+
+async function getCameras(){
   const devices=await navigator.mediaDevices.enumerateDevices();
-  return devices
-    .filter(d=>d.kind==="videoinput")
-    .filter(d=>/back|rear|environment/i.test(d.label))
-    .map(d=>d.deviceId);
+  return devices.filter(d=>d.kind==="videoinput").map(d=>d.deviceId);
 }
 
 function stopScanner(){
@@ -161,36 +169,23 @@ function stopScanner(){
     Quagga.offDetected(onDetected);
     Quagga.stop();
   }catch(e){}
-  clearTimeout(focusTimer);
+  clearTimeout(switchTimer);
   reader.style.display="none";
   scanning=false;
 }
 
-/* ================= AUTO SWITCH CAMERA ================= */
-function startCameraByIndex(idx){
-  if(idx>=rearCameras.length){
-    stopScanner();
-    return;
-  }
-
-  camIndex=idx;
-
+function startScanner(deviceId=null){
   Quagga.init({
     inputStream:{
       type:"LiveStream",
       target:reader,
       constraints:{
-        deviceId:{ exact: rearCameras[idx] },
-        width:{ min:1280 },
-        height:{ min:720 },
-        facingMode:"environment"
+        facingMode:"environment",
+        ...(deviceId?{deviceId}:{}),
+        width:{min:1280},
+        height:{min:720}
       },
-      area:{
-        top:"22%",
-        right:"22%",
-        left:"22%",
-        bottom:"22%"
-      }
+      area:{ top:"22%", right:"22%", left:"22%", bottom:"22%" }
     },
     decoder:{
       readers:[
@@ -205,7 +200,7 @@ function startCameraByIndex(idx){
     locate:true
   },err=>{
     if(err){
-      startCameraByIndex(idx+1);
+      tryNextCamera();
       return;
     }
 
@@ -217,19 +212,32 @@ function startCameraByIndex(idx){
       if(caps?.zoom){
         track.applyConstraints({advanced:[{zoom:3}]});
       }
-    },500);
+    },700);
 
+    detectCount=0;
     Quagga.onDetected(onDetected);
 
-    focusTimer=setTimeout(()=>{
-      Quagga.stop();
-      startCameraByIndex(idx+1);
-    },5000);
+    switchTimer=setTimeout(()=>{
+      if(detectCount===0){
+        tryNextCamera();
+      }
+    },6000);
   });
 }
 
-/* ================= STABLE DETECT ================= */
+function tryNextCamera(){
+  try{Quagga.stop();}catch(e){}
+  camIndex++;
+  if(camIndex>=cameras.length){
+    camIndex=0;
+    startScanner(); // fallback
+  }else{
+    startScanner(cameras[camIndex]);
+  }
+}
+
 function onDetected(res){
+  detectCount++;
   const code=res.codeResult.code;
 
   if(code===lastCode) stableCount++;
@@ -242,8 +250,9 @@ function onDetected(res){
 
   stopScanner();
   input.value=code;
-  input.focus();
   search(code);
+  input.focus();
+  input.select();
 }
 
 /* ================= BUTTON ================= */
@@ -254,18 +263,10 @@ scanBtn.onclick=async()=>{
   stableCount=0;
   reader.style.display="block";
 
-  rearCameras=await getRearCameras();
-  if(!rearCameras.length){
-    stopScanner();
-    return;
-  }
-  startCameraByIndex(0);
+  cameras=await getCameras();
+  camIndex=0;
+  startScanner(cameras[0]||null);
 };
-
-/* ================= PDA KEEP FOCUS ================= */
-input.addEventListener("blur",()=>{
-  setTimeout(()=>input.focus(),50);
-});
 </script>
 
 </body>

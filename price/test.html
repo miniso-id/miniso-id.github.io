@@ -6,6 +6,8 @@
 <title>MMS-X</title>
 
 <link rel="stylesheet" href="style.css">
+
+<!-- QUAGGA2 (Community Fork) -->
 <script src="https://unpkg.com/@ericblade/quagga2/dist/quagga.js"></script>
 
 <style>
@@ -43,7 +45,7 @@
 
 <div class="search-box">
   <div class="input-wrap">
-    <input id="searchInput" placeholder="Loading product data..." disabled>
+    <input id="searchInput" placeholder="Loading product data..." disabled autofocus>
     <span id="clearBtn">✕</span>
   </div>
   <button id="scanBtn" disabled>📷 Camera Scan</button>
@@ -74,24 +76,20 @@ let barcodeIndex = new Map();
 let history = [];
 let dataReady = false;
 
+let cameras = [];
+let camIndex = 0;
 let scanning = false;
 let lastCode = "";
 let stableCount = 0;
-const STABLE_REQUIRED = 3;
-
-const BLUR_TIMEOUT = 3000;
 let blurTimer = null;
 
-let cameras = [];
-let camIndex = 0;
-
-/* ================= LOAD DATA ================= */
+/* ================= FETCH DATA ================= */
 fetch("/product/products.json")
-.then(r => r.json())
-.then(data => {
-  data.forEach(p => {
-    if (p.b) {
-      p.b.split("/").forEach(code => {
+.then(r=>r.json())
+.then(data=>{
+  data.forEach(p=>{
+    if(p.b){
+      p.b.split("/").forEach(code=>{
         barcodeIndex.set(code.trim(), p);
       });
     }
@@ -103,26 +101,26 @@ fetch("/product/products.json")
 });
 
 /* ================= SEARCH ================= */
-input.oninput = e => {
+input.oninput = e=>{
   clearBtn.style.display = e.target.value ? "block" : "none";
   search(e.target.value);
 };
 
-clearBtn.onclick = () => {
+clearBtn.onclick = ()=>{
   input.value = "";
   result.innerHTML = "";
-  input.focus();
 };
 
 function search(q){
+  if(!dataReady) return;
   q = q.trim();
-  if (!q) return;
+  if(!q){ result.innerHTML=""; return; }
 
-  if (barcodeIndex.has(q)) {
+  if(barcodeIndex.has(q)){
     beepOk.play();
     addHistory(q);
     render([barcodeIndex.get(q)]);
-  } else {
+  }else{
     beepErr.play();
     result.innerHTML = "";
   }
@@ -130,9 +128,9 @@ function search(q){
 
 /* ================= RENDER ================= */
 function render(list){
-  result.innerHTML = list.map(p => `
+  result.innerHTML = list.map(p=>`
     <div class="card">
-      <img src="${p.i}" loading="lazy">
+      <img src="${p.i}">
       <div class="info">
         <b>${p.n}</b>
         <small>${p.b}</small>
@@ -144,128 +142,116 @@ function render(list){
 
 /* ================= HISTORY ================= */
 function addHistory(code){
-  if (history.includes(code)) return;
+  if(history.includes(code)) return;
   history.unshift(code);
-  if (history.length > 5) history.pop();
-  historyDiv.innerHTML = history.map(h => `<span>${h}</span>`).join("");
+  if(history.length > 5) history.pop();
+  historyDiv.innerHTML = history.map(h=>`<span>${h}</span>`).join("");
 }
 
-/* ================= CAMERA HELPERS ================= */
-function stopScan(){
-  clearTimeout(blurTimer);
-  try{
-    Quagga.offDetected(onDetectedStable);
-    Quagga.stop();
-  }catch(e){}
-  scanning = false;
-  reader.style.display = "none";
+/* ================= CAMERA LIST (REAR ONLY) ================= */
+async function loadCameras(){
+  const devices = await navigator.mediaDevices.enumerateDevices();
+
+  const rear = devices.filter(d=>{
+    if(d.kind !== "videoinput") return false;
+    const l = d.label.toLowerCase();
+    if(l.includes("front") || l.includes("user") || l.includes("selfie")) return false;
+    return (
+      l.includes("back") ||
+      l.includes("rear") ||
+      l.includes("environment") ||
+      l.includes("wide") ||
+      l.includes("macro") ||
+      l === ""
+    );
+  });
+
+  cameras = rear.length
+    ? rear.map(d=>d.deviceId)
+    : devices.filter(d=>d.kind==="videoinput").slice(0,1).map(d=>d.deviceId);
+
+  camIndex = 0;
 }
 
-function startBlurTimer(){
-  clearTimeout(blurTimer);
-  blurTimer = setTimeout(()=>{
-    camIndex++;
-    if(camIndex < cameras.length){
-      restartCamera();
-    }else{
-      stopScan();
-    }
-  }, BLUR_TIMEOUT);
-}
-
-/* ================= DETECT ================= */
-function onDetectedStable(res){
-  const code = res.codeResult.code;
-
-  if (code === lastCode) stableCount++;
-  else {
-    lastCode = code;
-    stableCount = 1;
-  }
-
-  if (stableCount < STABLE_REQUIRED) return;
-
-  stopScan();
-
-  input.value = code;
-  clearBtn.style.display = "block";
-  search(code);
-  input.focus();
-  input.select();
-}
-
-/* ================= CAMERA ================= */
-function restartCamera(){
-  stopScan();
-  scanning = true;
-  reader.style.display = "block";
-  startCamera(cameras[camIndex]);
-}
-
+/* ================= START CAMERA ================= */
 function startCamera(deviceId){
-  lastCode = "";
-  stableCount = 0;
+  Quagga.stop();
+  reader.style.display = "block";
 
   Quagga.init({
     inputStream:{
       type:"LiveStream",
-      target: reader,
+      target:reader,
       constraints:{
-        deviceId: deviceId ? { exact: deviceId } : undefined,
-        facingMode:"environment",
+        deviceId:{ exact: deviceId },
+        facingMode:{ exact:"environment" },
         width:{ min:1280 },
         height:{ min:720 }
-      },
-      area:{ top:"22%", right:"22%", left:"22%", bottom:"22%" }
+      }
     },
     decoder:{
       readers:[
         "ean_reader",
-        "ean_8_reader",
+        "code_128_reader",
+        "code_39_reader",
         "upc_reader",
-        "upc_e_reader",
-        "code_128_reader"
+        "upc_e_reader"
       ]
-    },
-    locate:true
-  },err=>{
-    if(err){
-      camIndex++;
-      if(camIndex < cameras.length) restartCamera();
-      else stopScan();
-      return;
     }
-
+  },err=>{
+    if(err) return;
     Quagga.start();
-    startBlurTimer();
 
     setTimeout(()=>{
       const track = Quagga.CameraAccess.getActiveTrack();
-      if(track){
-        const caps = track.getCapabilities();
-        if(caps.zoom) track.applyConstraints({advanced:[{zoom:3}]});
-        if(caps.focusMode) track.applyConstraints({advanced:[{focusMode:"continuous"}]});
+      if(!track) return;
+      const caps = track.getCapabilities();
+      if(caps && caps.zoom){
+        track.applyConstraints({ advanced:[{ zoom:3 }] });
       }
-    },600);
-
-    Quagga.onDetected(onDetectedStable);
+    },500);
   });
 }
 
-/* ================= SCAN BUTTON ================= */
-scanBtn.onclick = async () => {
-  if (!dataReady || scanning) return;
+/* ================= AUTO SWITCH ON BLUR ================= */
+function scheduleBlurSwitch(){
+  clearTimeout(blurTimer);
+  blurTimer = setTimeout(()=>{
+    camIndex = (camIndex + 1) % cameras.length;
+    startCamera(cameras[camIndex]);
+  },3000);
+}
 
+/* ================= SCAN ================= */
+scanBtn.onclick = async ()=>{
+  if(scanning || !dataReady) return;
   scanning = true;
-  reader.style.display = "block";
-  camIndex = 0;
+  stableCount = 0;
+  lastCode = "";
 
-  const devices = await navigator.mediaDevices.enumerateDevices();
-  cameras = devices
-    .filter(d => d.kind === "videoinput")
-    .map(d => d.deviceId);
-
+  await loadCameras();
   startCamera(cameras[camIndex]);
+  scheduleBlurSwitch();
+
+  Quagga.onDetected(res=>{
+    const code = res.codeResult.code;
+
+    if(code === lastCode) stableCount++;
+    else{
+      lastCode = code;
+      stableCount = 1;
+    }
+
+    if(stableCount >= 3){
+      clearTimeout(blurTimer);
+      Quagga.stop();
+      scanning = false;
+      reader.style.display = "none";
+      input.value = code;
+      input.focus();
+      search(code);
+    }
+  });
 };
 </script>
 

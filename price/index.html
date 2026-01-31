@@ -23,20 +23,28 @@
 #reader video{
   width:100%;
   height:100%;
-  object-fit:cover
+  object-fit:cover;
 }
 #reader::after{
   content:"";
   position:absolute;
-  inset:22%;
+  inset:18%; /* FIX: lebih besar */
   border:2px dashed rgba(0,255,0,.7);
+  pointer-events:none;
+}
+#history span{
+  margin:4px;
+  padding:4px 8px;
+  background:#eee;
+  border-radius:6px;
+  display:inline-block;
+  font-size:12px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- APP -->
 <center>
   <h2>Price Check</h2>
   <h3>MMS-X (beta)</h3>
@@ -75,7 +83,7 @@ let barcodeIndex=new Map();
 let history=[];
 let dataReady=false;
 
-/* ================= FETCH & INDEX (BARCODE ONLY) ================= */
+/* ================= FETCH DATA ================= */
 fetch("/product/products.json")
 .then(r=>r.json())
 .then(data=>{
@@ -86,7 +94,6 @@ fetch("/product/products.json")
       });
     }
   });
-
   dataReady=true;
   input.disabled=false;
   scanBtn.disabled=false;
@@ -107,10 +114,7 @@ clearBtn.onclick=()=>{
 function search(q){
   if(!dataReady)return;
   q=q.trim();
-  if(!q){
-    result.innerHTML="";
-    return;
-  }
+  if(!q){ result.innerHTML=""; return; }
 
   if(barcodeIndex.has(q)){
     beepOk.play();
@@ -144,8 +148,10 @@ function addHistory(code){
   historyDiv.innerHTML=history.map(h=>`<span>${h}</span>`).join("");
 }
 
-/* ================= CAMERA ================= */
+/* ================= CAMERA (FIXED) ================= */
 let scanning=false,lastCode="",stableCount=0;
+let zoomLevel=2,zoomMin=1,zoomMax=3,lastZoomAdjust=0;
+
 scanBtn.onclick=()=>{
   if(scanning||!dataReady)return;
   scanning=true;
@@ -155,52 +161,108 @@ scanBtn.onclick=()=>{
     inputStream:{
       type:"LiveStream",
       target:reader,
-      constraints:{facingMode:"environment", focusMode: "continuous", width: { min: 1280 },
-    height: { min: 720 }}
+      constraints:{
+        facingMode:{ exact:"environment" },
+        width:{ ideal:1920 },
+        height:{ ideal:1080 },
+        focusMode:"continuous"
+      },
+      area:{                /* FIX: area diperbesar */
+        top:"18%",
+        right:"18%",
+        left:"18%",
+        bottom:"18%"
+      }
     },
     decoder:{
-      readers: [
-  "ean_reader",        // EAN-13 / EAN-8
-  "code_128_reader",  // Code 128
-  "code_39_reader",   // Code 39
-  "upc_reader",       // UPC-A
-  "upc_e_reader"      // UPC-E
-]
-    }
+      readers:[
+        "ean_reader",
+        "code_128_reader",
+        "code_39_reader",
+        "upc_reader",
+        "upc_e_reader"
+      ]
+    },
+    locate:true
   },err=>{
     if(err){
       scanning=false;
+      reader.style.display="none";
       return;
     }
-    Quagga.start();
-    setTimeout(() => {
-    const track = Quagga.CameraAccess.getActiveTrack();
-    if (!track) return;
 
-    const caps = track.getCapabilities();
-    if (caps && caps.zoom) {
-      track.applyConstraints({
-        advanced: [{ zoom: 3 }]
-      });
-    }
-  }, 500);
+    Quagga.start();
+
+    /* INIT ZOOM */
+    setTimeout(()=>{
+      const track=Quagga.CameraAccess.getActiveTrack();
+      if(!track)return;
+      const caps=track.getCapabilities();
+      if(caps.zoom){
+        zoomMin=caps.zoom.min||1;
+        zoomMax=caps.zoom.max||3;
+        zoomLevel=Math.min(2,zoomMax);
+        track.applyConstraints({ advanced:[{ zoom:zoomLevel }] });
+      }
+    },500);
+
     Quagga.onDetected(res=>{
       const code=res.codeResult.code;
-      if(code===lastCode) stableCount++;
-      else{
+      const decoded=res.codeResult.decodedCodes||[];
+
+      /* FIX: validasi lebih realistis */
+      let avgError = decoded.length
+        ? decoded.reduce((s,d)=>s+(d.error||1),0)/decoded.length
+        : 1;
+
+      const valid = decoded.length>=3 && avgError<0.35;
+
+      autoZoom(valid?"good":"bad");
+
+      /* FIX: stability logic */
+      if(code===lastCode){
+        if(valid) stableCount++;
+      }else{
         lastCode=code;
-        stableCount=2;
+        stableCount= valid ? 1 : 0;
       }
-      if(stableCount>=3){
+
+      if(stableCount>=2){
         Quagga.stop();
         scanning=false;
         reader.style.display="none";
+        stableCount=0;
+        lastCode="";
         input.value=code;
         search(code);
       }
     });
   });
 };
+
+/* ================= AUTO ZOOM (FIXED) ================= */
+function autoZoom(mode){
+  const now=Date.now();
+  if(now-lastZoomAdjust<1000)return;
+
+  const track=Quagga.CameraAccess.getActiveTrack();
+  if(!track)return;
+
+  if(mode==="bad" && zoomLevel<zoomMax){
+    zoomLevel+=0.2;
+  }
+  if(mode==="good" && zoomLevel>zoomMin+0.7){
+    zoomLevel-=0.1;
+  }
+
+  zoomLevel=Math.max(zoomMin,Math.min(zoomLevel,zoomMax));
+
+  track.applyConstraints({
+    advanced:[{ zoom:zoomLevel }]
+  });
+
+  lastZoomAdjust=now;
+}
 </script>
 
 </body>

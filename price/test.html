@@ -77,6 +77,13 @@ let scanning = false;
 let lastCode = "";
 let stableCount = 0;
 
+/* ===== BLUR DETECT STATE ===== */
+let blurTimer = null;
+let blurSamples = [];
+const BLUR_THRESHOLD = 120;      // makin kecil = makin sensitif
+const BLUR_SAMPLE_LIMIT = 12;    // jumlah frame dicek
+const BLUR_TIMEOUT = 1500;       // ms sebelum switch kamera
+
 /* ================= LOAD DATA ================= */
 fetch("/product/products.json")
 .then(r=>r.json())
@@ -123,7 +130,6 @@ function search(q){
     result.innerHTML="";
     return;
   }
-
   if(barcodeIndex.has(q)){
     beepOk.play();
     addHistory(q);
@@ -161,9 +167,51 @@ async function getRearCamerasFiltered(){
   const devices = await navigator.mediaDevices.enumerateDevices();
   return devices.filter(d =>
     d.kind === "videoinput" &&
-    !/front|user/i.test(d.label) &&
-    !/ultra|0\.5x|super/i.test(d.label)
+    !/front|user/i.test(d.label) &&          // blok kamera depan
+    !/ultra|0\.5x|super/i.test(d.label)      // buang ultra-wide
   );
+}
+
+/* ================= BLUR DETECTION ================= */
+function startBlurMonitor(onBlur){
+  stopBlurMonitor();
+  blurSamples = [];
+  blurTimer = setInterval(()=>{
+    const video = reader.querySelector("video");
+    if(!video || video.readyState < 2) return;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video,0,0);
+
+    const img = ctx.getImageData(0,0,canvas.width,canvas.height);
+    let sum = 0, sumSq = 0;
+    for(let i=0;i<img.data.length;i+=4){
+      const g = img.data[i]*0.299 + img.data[i+1]*0.587 + img.data[i+2]*0.114;
+      sum += g;
+      sumSq += g*g;
+    }
+    const mean = sum / (img.data.length/4);
+    const variance = (sumSq/(img.data.length/4)) - mean*mean;
+
+    blurSamples.push(variance);
+    if(blurSamples.length > BLUR_SAMPLE_LIMIT) blurSamples.shift();
+
+    const avg = blurSamples.reduce((a,b)=>a+b,0) / blurSamples.length;
+    if(avg < BLUR_THRESHOLD){
+      stopBlurMonitor();
+      onBlur();
+    }
+  }, 120);
+}
+
+function stopBlurMonitor(){
+  if(blurTimer){
+    clearInterval(blurTimer);
+    blurTimer = null;
+  }
 }
 
 /* ================= CAMERA SCAN (QUAGGA2) ================= */
@@ -210,31 +258,34 @@ scanBtn.onclick = async ()=>{
 
       Quagga.start();
 
-      // zoom paksa (anti ultra-wide)
+      // paksa zoom (anti wide)
       setTimeout(()=>{
         const track = Quagga.CameraAccess.getActiveTrack();
-        if(!track) return;
-        const caps = track.getCapabilities?.();
-        if(caps && caps.zoom){
-          track.applyConstraints({
-            advanced:[{ zoom: 3 }]
-          });
+        const caps = track?.getCapabilities?.();
+        if(caps?.zoom){
+          track.applyConstraints({ advanced:[{ zoom: 3 }] });
         }
       },600);
+
+      startBlurMonitor(()=>{
+        tryNext();   // 🔁 AUTO SWITCH KAMERA SAAT BLUR
+      });
 
       Quagga.onDetected(onDetectedStable);
     });
   }
 
   function tryNext(){
+    stopBlurMonitor();
+    Quagga.offDetected(onDetectedStable);
     Quagga.stop();
     camIndex++;
     if(camIndex < cams.length){
       startCam(cams[camIndex].deviceId);
     }else{
-      alert("Kamera belakang tidak tersedia");
       reader.style.display="none";
       scanning=false;
+      alert("Kamera blur / tidak fokus");
     }
   }
 
@@ -244,15 +295,14 @@ scanBtn.onclick = async ()=>{
 /* ================= STABLE DETECTION ================= */
 function onDetectedStable(res){
   const code = res.codeResult.code;
-
   if(code === lastCode) stableCount++;
   else{
     lastCode = code;
     stableCount = 1;
   }
-
   if(stableCount < 3) return;
 
+  stopBlurMonitor();
   Quagga.offDetected(onDetectedStable);
   Quagga.stop();
 
@@ -262,7 +312,6 @@ function onDetectedStable(res){
   input.value = code;
   clearBtn.style.display = "block";
   search(code);
-
   input.focus();
   input.select();
 }

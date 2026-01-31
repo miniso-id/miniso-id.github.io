@@ -230,7 +230,7 @@ function startCameraByIndex(idx){
       const track = Quagga.CameraAccess.getActiveTrack();
       const caps = track?.getCapabilities();
       if(caps?.zoom){
-        track.applyConstraints({ advanced:[{ zoom:3 }] });
+        track.applyConstraints({ advanced:[{ zoom:2 }] });
       }
     },500);
 

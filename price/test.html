@@ -38,12 +38,12 @@
 
 <center>
   <h2>Price Check</h2>
-  <h3>MMS-X (Quagga2)</h3>
+  <h3>MMS-X (beta)</h3>
 </center>
 
 <div class="search-box">
   <div class="input-wrap">
-    <input id="searchInput" placeholder="Loading product data..." disabled autocomplete="off">
+    <input id="searchInput" placeholder="Loading product data..." disabled>
     <span id="clearBtn">✕</span>
   </div>
   <button id="scanBtn" disabled>📷 Camera Scan</button>
@@ -59,77 +59,70 @@
 <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
 <script>
-/* ================= ELEMENT ================= */
-const input = document.getElementById("searchInput");
-const clearBtn = document.getElementById("clearBtn");
-const scanBtn = document.getElementById("scanBtn");
-const reader = document.getElementById("reader");
-const result = document.getElementById("result");
-const historyDiv = document.getElementById("history");
-const beepOk = document.getElementById("beepOk");
-const beepErr = document.getElementById("beepErr");
+/* =====================================================
+   ELEMENTS
+===================================================== */
+const input=document.getElementById("searchInput");
+const clearBtn=document.getElementById("clearBtn");
+const scanBtn=document.getElementById("scanBtn");
+const reader=document.getElementById("reader");
+const result=document.getElementById("result");
+const historyDiv=document.getElementById("history");
+const beepOk=document.getElementById("beepOk");
+const beepErr=document.getElementById("beepErr");
 
-/* ================= STATE ================= */
-let barcodeIndex = new Map();
-let history = [];
-let dataReady = false;
-let scanning = false;
-let lastCode = "";
-let stableCount = 0;
+/* =====================================================
+   STATE
+===================================================== */
+let barcodeIndex=new Map();
+let history=[];
+let dataReady=false;
 
-/* ===== BLUR DETECT STATE ===== */
-let blurTimer = null;
-let blurSamples = [];
-const BLUR_THRESHOLD = 120;      // makin kecil = makin sensitif
-const BLUR_SAMPLE_LIMIT = 12;    // jumlah frame dicek
-const BLUR_TIMEOUT = 1500;       // ms sebelum switch kamera
+let scanning=false;
+let lastCode="";
+let stableCount=0;
+const STABLE_REQUIRED=3;
 
-/* ================= LOAD DATA ================= */
+let rearCameras=[];
+let activeCameraId=null;
+
+/* =====================================================
+   LOAD DATA
+===================================================== */
 fetch("/product/products.json")
 .then(r=>r.json())
 .then(data=>{
   data.forEach(p=>{
     if(p.b){
       p.b.split("/").forEach(code=>{
-        barcodeIndex.set(code.trim(), p);
+        barcodeIndex.set(code.trim(),p);
       });
     }
   });
-  dataReady = true;
-  input.disabled = false;
-  scanBtn.disabled = false;
-  input.placeholder = "Scan barcode / type here";
+  dataReady=true;
+  input.disabled=false;
+  scanBtn.disabled=false;
+  input.placeholder="Scan barcode / type here";
 });
 
-/* ================= SEARCH ================= */
-input.oninput = e=>{
-  clearBtn.style.display = e.target.value ? "block" : "none";
+/* =====================================================
+   SEARCH
+===================================================== */
+input.oninput=e=>{
+  clearBtn.style.display=e.target.value?"block":"none";
   search(e.target.value);
 };
 
-input.onkeydown = e=>{
-  if(e.key === "Enter"){
-    e.preventDefault();
-    search(input.value);
-    input.focus();
-    input.select();
-  }
-};
-
-clearBtn.onclick = ()=>{
+clearBtn.onclick=()=>{
   input.value="";
-  clearBtn.style.display="none";
   result.innerHTML="";
   input.focus();
 };
 
 function search(q){
-  if(!dataReady) return;
-  q = q.trim();
-  if(!q){
-    result.innerHTML="";
-    return;
-  }
+  q=q.trim();
+  if(!q)return;
+
   if(barcodeIndex.has(q)){
     beepOk.play();
     addHistory(q);
@@ -140,9 +133,11 @@ function search(q){
   }
 }
 
-/* ================= RENDER ================= */
+/* =====================================================
+   RENDER
+===================================================== */
 function render(list){
-  result.innerHTML = list.map(p=>`
+  result.innerHTML=list.map(p=>`
     <div class="card">
       <img src="${p.i}" loading="lazy">
       <div class="info">
@@ -154,167 +149,150 @@ function render(list){
   `).join("");
 }
 
-/* ================= HISTORY ================= */
+/* =====================================================
+   HISTORY
+===================================================== */
 function addHistory(code){
-  if(history.includes(code)) return;
+  if(history.includes(code))return;
   history.unshift(code);
-  if(history.length > 5) history.pop();
-  historyDiv.innerHTML = history.map(h=>`<span>${h}</span>`).join("");
+  if(history.length>5)history.pop();
+  historyDiv.innerHTML=history.map(h=>`<span>${h}</span>`).join("");
 }
 
-/* ================= CAMERA FILTER ================= */
-async function getRearCamerasFiltered(){
-  const devices = await navigator.mediaDevices.enumerateDevices();
-  return devices.filter(d =>
-    d.kind === "videoinput" &&
-    !/front|user/i.test(d.label) &&          // blok kamera depan
-    !/ultra|0\.5x|super/i.test(d.label)      // buang ultra-wide
-  );
+/* =====================================================
+   CAMERA HELPERS
+===================================================== */
+async function getRearCameras(){
+  const devices=await navigator.mediaDevices.enumerateDevices();
+  return devices
+    .filter(d=>d.kind==="videoinput")
+    .filter(d=>/back|rear|environment/i.test(d.label))
+    .filter(d=>!/front|user/i.test(d.label))
+    .map(d=>d.deviceId);
 }
 
-/* ================= BLUR DETECTION ================= */
-function startBlurMonitor(onBlur){
-  stopBlurMonitor();
-  blurSamples = [];
-  blurTimer = setInterval(()=>{
-    const video = reader.querySelector("video");
-    if(!video || video.readyState < 2) return;
-
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video,0,0);
-
-    const img = ctx.getImageData(0,0,canvas.width,canvas.height);
-    let sum = 0, sumSq = 0;
-    for(let i=0;i<img.data.length;i+=4){
-      const g = img.data[i]*0.299 + img.data[i+1]*0.587 + img.data[i+2]*0.114;
-      sum += g;
-      sumSq += g*g;
-    }
-    const mean = sum / (img.data.length/4);
-    const variance = (sumSq/(img.data.length/4)) - mean*mean;
-
-    blurSamples.push(variance);
-    if(blurSamples.length > BLUR_SAMPLE_LIMIT) blurSamples.shift();
-
-    const avg = blurSamples.reduce((a,b)=>a+b,0) / blurSamples.length;
-    if(avg < BLUR_THRESHOLD){
-      stopBlurMonitor();
-      onBlur();
-    }
-  }, 120);
-}
-
-function stopBlurMonitor(){
-  if(blurTimer){
-    clearInterval(blurTimer);
-    blurTimer = null;
-  }
-}
-
-/* ================= CAMERA SCAN (QUAGGA2) ================= */
-scanBtn.onclick = async ()=>{
-  if(scanning || !dataReady) return;
-
-  scanning = true;
-  reader.style.display = "block";
-  lastCode = "";
-  stableCount = 0;
-
-  const cams = await getRearCamerasFiltered();
-  let camIndex = 0;
-
-  function startCam(deviceId){
-    Quagga.init({
-      inputStream:{
-        name:"Live",
-        type:"LiveStream",
-        target:reader,
-        constraints:{
-          facingMode:"environment",
-          deviceId: deviceId ? { exact: deviceId } : undefined,
-          width:{ min:1280 },
-          height:{ min:720 }
-        },
-        area:{ top:"22%", right:"22%", left:"22%", bottom:"22%" }
-      },
-      decoder:{
-        readers:[
-          "ean_reader",
-          "ean_8_reader",
-          "code_128_reader",
-          "upc_reader",
-          "upc_e_reader"
-        ]
-      },
-      locate:true
-    }, err=>{
-      if(err){
-        tryNext();
-        return;
-      }
-
-      Quagga.start();
-
-      // paksa zoom (anti wide)
-      setTimeout(()=>{
-        const track = Quagga.CameraAccess.getActiveTrack();
-        const caps = track?.getCapabilities?.();
-        if(caps?.zoom){
-          track.applyConstraints({ advanced:[{ zoom: 3 }] });
-        }
-      },600);
-
-      startBlurMonitor(()=>{
-        tryNext();   // 🔁 AUTO SWITCH KAMERA SAAT BLUR
-      });
-
-      Quagga.onDetected(onDetectedStable);
-    });
-  }
-
-  function tryNext(){
-    stopBlurMonitor();
+function stopScanner(){
+  try{
     Quagga.offDetected(onDetectedStable);
     Quagga.stop();
-    camIndex++;
-    if(camIndex < cams.length){
-      startCam(cams[camIndex].deviceId);
-    }else{
-      reader.style.display="none";
-      scanning=false;
-      alert("Kamera blur / tidak fokus");
-    }
-  }
-
-  startCam(cams[0]?.deviceId);
-};
-
-/* ================= STABLE DETECTION ================= */
-function onDetectedStable(res){
-  const code = res.codeResult.code;
-  if(code === lastCode) stableCount++;
-  else{
-    lastCode = code;
-    stableCount = 1;
-  }
-  if(stableCount < 3) return;
-
-  stopBlurMonitor();
-  Quagga.offDetected(onDetectedStable);
-  Quagga.stop();
-
+  }catch(e){}
+  scanning=false;
   reader.style.display="none";
-  scanning = false;
+}
 
-  input.value = code;
-  clearBtn.style.display = "block";
+/* =====================================================
+   START CAMERA (QUAGGA2)
+===================================================== */
+function startCamera(deviceId){
+  lastCode="";
+  stableCount=0;
+
+  Quagga.init({
+    inputStream:{
+      type:"LiveStream",
+      target:reader,
+      constraints:{
+        deviceId:{exact:deviceId},
+        width:{min:1280},
+        height:{min:720},
+        focusMode:"continuous"
+      },
+      area:{top:"22%",right:"22%",left:"22%",bottom:"22%"}
+    },
+    decoder:{
+      readers:[
+        "ean_reader",
+        "ean_8_reader",
+        "upc_reader",
+        "upc_e_reader",
+        "code_128_reader"
+      ]
+    },
+    locate:true
+  },err=>{
+    if(err){
+      tryNextCamera();
+      return;
+    }
+
+    Quagga.start();
+
+    setTimeout(()=>{
+      const track=Quagga.CameraAccess.getActiveTrack();
+      if(track){
+        const caps=track.getCapabilities();
+        if(caps.zoom){
+          track.applyConstraints({advanced:[{zoom:3}]});
+        }
+      }
+    },500);
+
+    Quagga.onDetected(onDetectedStable);
+  });
+}
+
+function tryNextCamera(){
+  rearCameras.shift();
+  if(rearCameras.length){
+    startCamera(rearCameras[0]);
+  }else{
+    stopScanner();
+  }
+}
+
+/* =====================================================
+   DETECT (STABLE + LOCK CAMERA)
+===================================================== */
+function onDetectedStable(res){
+  const code=res.codeResult.code;
+
+  if(code===lastCode) stableCount++;
+  else{
+    lastCode=code;
+    stableCount=1;
+  }
+
+  if(stableCount<STABLE_REQUIRED)return;
+
+  const track=Quagga.CameraAccess.getActiveTrack();
+  if(track){
+    activeCameraId=track.getSettings().deviceId;
+  }
+
+  stopScanner();
+
+  input.value=code;
+  clearBtn.style.display="block";
   search(code);
   input.focus();
   input.select();
 }
+
+/* =====================================================
+   SCAN BUTTON
+===================================================== */
+scanBtn.onclick=async()=>{
+  if(scanning||!dataReady)return;
+
+  scanning=true;
+  reader.style.display="block";
+
+  rearCameras=await getRearCameras();
+
+  if(activeCameraId){
+    rearCameras=[
+      activeCameraId,
+      ...rearCameras.filter(id=>id!==activeCameraId)
+    ];
+  }
+
+  if(!rearCameras.length){
+    stopScanner();
+    return;
+  }
+
+  startCamera(rearCameras[0]);
+};
 </script>
 
 </body>

@@ -61,26 +61,28 @@
 
 <script>
 /* ================= INIT ================= */
-const input=document.getElementById("searchInput");
-const clearBtn=document.getElementById("clearBtn");
-const scanBtn=document.getElementById("scanBtn");
-const reader=document.getElementById("reader");
-const result=document.getElementById("result");
-const historyDiv=document.getElementById("history");
-const beepOk=document.getElementById("beepOk");
-const beepErr=document.getElementById("beepErr");
+const input = document.getElementById("searchInput");
+const clearBtn = document.getElementById("clearBtn");
+const scanBtn = document.getElementById("scanBtn");
+const reader = document.getElementById("reader");
+const result = document.getElementById("result");
+const historyDiv = document.getElementById("history");
+const beepOk = document.getElementById("beepOk");
+const beepErr = document.getElementById("beepErr");
 
 /* ================= STATE ================= */
-let barcodeIndex=new Map();
-let history=[];
-let dataReady=false;
+let barcodeIndex = new Map();
+let history = [];
+let dataReady = false;
 
-let scanning=false,lastCode="",stableCount=0;
-const STABLE_REQUIRED=3;
+let scanning = false;
+let lastCode = "";
+let stableCount = 0;
+const STABLE_REQUIRED = 3;
 
-let rearCameras=[];
-let camIndex=0;
-let focusTimer=null;
+let rearCameras = [];
+let camIndex = 0;
+let focusTimer = null;
 
 /* ================= FETCH DATA ================= */
 fetch("/product/products.json")
@@ -89,31 +91,34 @@ fetch("/product/products.json")
   data.forEach(p=>{
     if(p.b){
       p.b.split("/").forEach(code=>{
-        barcodeIndex.set(code.trim(),p);
+        barcodeIndex.set(code.trim(), p);
       });
     }
   });
-  dataReady=true;
-  input.disabled=false;
-  scanBtn.disabled=false;
-  input.placeholder="Scan barcode / type here";
+  dataReady = true;
+  input.disabled = false;
+  scanBtn.disabled = false;
+  input.placeholder = "Scan barcode / type here";
 });
 
 /* ================= SEARCH ================= */
-input.oninput=e=>{
-  clearBtn.style.display=e.target.value?"block":"none";
+input.oninput = e=>{
+  clearBtn.style.display = e.target.value ? "block" : "none";
   search(e.target.value);
 };
 
-clearBtn.onclick=()=>{
-  input.value="";
-  result.innerHTML="";
+clearBtn.onclick = ()=>{
+  input.value = "";
+  result.innerHTML = "";
 };
 
 function search(q){
-  if(!dataReady)return;
-  q=q.trim();
-  if(!q){ result.innerHTML=""; return; }
+  if(!dataReady) return;
+  q = q.trim();
+  if(!q){
+    result.innerHTML = "";
+    return;
+  }
 
   if(barcodeIndex.has(q)){
     beepOk.play();
@@ -121,13 +126,13 @@ function search(q){
     render([barcodeIndex.get(q)]);
   }else{
     beepErr.play();
-    result.innerHTML="";
+    result.innerHTML = "";
   }
 }
 
 /* ================= RENDER ================= */
 function render(list){
-  result.innerHTML=list.map(p=>`
+  result.innerHTML = list.map(p=>`
     <div class="card">
       <img src="${p.i}">
       <div class="info">
@@ -141,49 +146,59 @@ function render(list){
 
 /* ================= HISTORY ================= */
 function addHistory(code){
-  if(history.includes(code))return;
+  if(history.includes(code)) return;
   history.unshift(code);
-  if(history.length>5)history.pop();
-  historyDiv.innerHTML=history.map(h=>`<span>${h}</span>`).join("");
+  if(history.length > 5) history.pop();
+  historyDiv.innerHTML = history.map(h=>`<span>${h}</span>`).join("");
 }
 
-/* ================= CAMERA UTILS ================= */
+/* ================= CAMERA PERMISSION UNLOCK ================= */
+async function unlockCameraPermission(){
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:"environment" }
+    });
+    stream.getTracks().forEach(t=>t.stop());
+  }catch(e){}
+}
+
+/* ================= GET REAR CAMERAS ================= */
 async function getRearCameras(){
-  const devices=await navigator.mediaDevices.enumerateDevices();
+  const devices = await navigator.mediaDevices.enumerateDevices();
   return devices
-    .filter(d=>d.kind==="videoinput")
-    .filter(d=>/back|rear|environment/i.test(d.label))
-    .map(d=>d.deviceId);
+    .filter(d => d.kind === "videoinput")
+    .filter(d => /back|rear|environment/i.test(d.label))
+    .map(d => d.deviceId);
 }
 
+/* ================= STOP SCANNER ================= */
 function stopScanner(){
   try{
     Quagga.offDetected(onDetected);
     Quagga.stop();
   }catch(e){}
   clearTimeout(focusTimer);
-  reader.style.display="none";
-  scanning=false;
+  reader.style.display = "none";
+  scanning = false;
 }
 
-/* ================= AUTO SWITCH CAMERA ================= */
+/* ================= START CAMERA BY INDEX ================= */
 function startCameraByIndex(idx){
-  if(idx>=rearCameras.length){
+  if(idx >= rearCameras.length){
     stopScanner();
     return;
   }
 
-  camIndex=idx;
+  camIndex = idx;
 
   Quagga.init({
     inputStream:{
       type:"LiveStream",
-      target:reader,
+      target: reader,
       constraints:{
         deviceId:{ exact: rearCameras[idx] },
         width:{ min:1280 },
-        height:{ min:720 },
-        facingMode:"environment"
+        height:{ min:720 }
       },
       area:{
         top:"22%",
@@ -203,7 +218,7 @@ function startCameraByIndex(idx){
       ]
     },
     locate:true
-  },err=>{
+  }, err=>{
     if(err){
       startCameraByIndex(idx+1);
       return;
@@ -212,53 +227,61 @@ function startCameraByIndex(idx){
     Quagga.start();
 
     setTimeout(()=>{
-      const track=Quagga.CameraAccess.getActiveTrack();
-      const caps=track?.getCapabilities();
+      const track = Quagga.CameraAccess.getActiveTrack();
+      const caps = track?.getCapabilities();
       if(caps?.zoom){
-        track.applyConstraints({advanced:[{zoom:3}]});
+        track.applyConstraints({ advanced:[{ zoom:3 }] });
       }
     },500);
 
     Quagga.onDetected(onDetected);
 
-    focusTimer=setTimeout(()=>{
+    focusTimer = setTimeout(()=>{
       Quagga.stop();
-      startCameraByIndex(idx+1);
+      setTimeout(()=>{
+        startCameraByIndex(idx+1);
+      },400);
     },5000);
   });
 }
 
 /* ================= STABLE DETECT ================= */
 function onDetected(res){
-  const code=res.codeResult.code;
+  const code = res.codeResult.code;
 
-  if(code===lastCode) stableCount++;
-  else{
-    lastCode=code;
-    stableCount=1;
+  if(code === lastCode){
+    stableCount++;
+  }else{
+    lastCode = code;
+    stableCount = 1;
   }
 
-  if(stableCount<STABLE_REQUIRED)return;
+  if(stableCount < STABLE_REQUIRED) return;
 
   stopScanner();
-  input.value=code;
+  input.value = code;
   input.focus();
   search(code);
 }
 
 /* ================= BUTTON ================= */
-scanBtn.onclick=async()=>{
-  if(scanning||!dataReady)return;
-  scanning=true;
-  lastCode="";
-  stableCount=0;
-  reader.style.display="block";
+scanBtn.onclick = async()=>{
+  if(scanning || !dataReady) return;
 
-  rearCameras=await getRearCameras();
+  scanning = true;
+  lastCode = "";
+  stableCount = 0;
+  reader.style.display = "block";
+
+  await unlockCameraPermission();
+  rearCameras = await getRearCameras();
+
   if(!rearCameras.length){
+    alert("Rear camera not found");
     stopScanner();
     return;
   }
+
   startCameraByIndex(0);
 };
 

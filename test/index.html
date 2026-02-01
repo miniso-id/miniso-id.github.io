@@ -138,10 +138,10 @@ function render(list){
           Category: ${p.c} / ${p.d}
         </div>
         <div style="margin:2px 0;">
-          Regular: Rp${p.r.toLocaleString()}${p.rp ? ` (${p.rp})` : ""}
+          Regular: Rp${p.r.toLocaleString()} ${p.rp ? `<span style="color:red;">(${p.rp})</span>` : ""}
         </div>
         <div style="margin:2px 0;">
-          Street: Rp${p.s.toLocaleString()}${p.sp ? ` (${p.sp})` : ""}
+          Street: Rp${p.s.toLocaleString()} ${p.sp ? `<span style="color:red;">(${p.sp})</span>` : ""}
         </div>
         ${p.e ? `<div style="margin:2px 0; color:#d9534f;">Extra: ${p.e}</div>` : ""}
       </div>

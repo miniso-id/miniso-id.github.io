@@ -128,13 +128,22 @@ function search(q){
 
 /* ================= RENDER ================= */
 function render(list){
-  result.innerHTML=list.map(p=>`
+  result.innerHTML = list.map(p => `
     <div class="card">
-      <img src="${p.i}">
+      <img src="${p.i}" alt="${p.n}">
       <div class="info">
         <b>${p.n}</b>
-        <small>${p.b}</small>
-        <div>${p.h}</div>
+        <small>Barcode: ${p.b}</small>
+        <div style="margin:4px 0; font-size:12px; color:#555;">
+          Category: ${p.c} / ${p.d}
+        </div>
+        <div style="margin:2px 0;">
+          Regular: Rp${p.r.toLocaleString()} ${p.rp ? `<span style="color:red;">(${p.rp})</span>` : ""}
+        </div>
+        <div style="margin:2px 0;">
+          Street: Rp${p.s.toLocaleString()} ${p.sp ? `<span style="color:red;">(${p.sp})</span>` : ""}
+        </div>
+        ${p.e ? `<div style="margin:2px 0; color:#d9534f;">Extra: ${p.e}</div>` : ""}
       </div>
     </div>
   `).join("");

@@ -134,7 +134,10 @@ function render(list){
       <div class="info">
         <b>${p.n}</b>
         <small>${p.b}</small>
-        <div>${p.h}</div>
+        <div>
+          <div>Regular: Rp${p.r}${p.rp?` (${p.rp})`:""}</div>
+          <div>Street: Rp${p.s}${p.sp?` (${p.sp})`:""}</div>
+        </div>
       </div>
     </div>
   `).join("");

@@ -85,9 +85,6 @@
   opacity:1;
   visibility:visible;
 }
-#goTopBtn:hover{
-  background:#4338ca;
-}
 </style>
 </head>
 
@@ -129,13 +126,17 @@
 <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 </div>
 
-<!-- GO TO TOP BUTTON -->
-<button id="goTopBtn" title="Go to top">⬆</button>
+<button id="goTopBtn">⬆</button>
 
 <script>
 /* ================= LOGIN ================= */
 let USERS=[];
 fetch("users.json").then(r=>r.json()).then(d=>USERS=d);
+
+if(localStorage.getItem("mms_auth")==="1"){
+  loginOverlay.style.display="none";
+  app.style.display="block";
+}
 
 function doLogin(){
   const u=loginUser.value.trim();
@@ -153,7 +154,7 @@ function doLogin(){
 
 <script>
 /* ================= INIT ================= */
-const input=document.getElementById("searchInput");
+const input=searchInput;
 const clearBtn=document.getElementById("clearBtn");
 const scanBtn=document.getElementById("scanBtn");
 const reader=document.getElementById("reader");
@@ -168,7 +169,16 @@ let prefixIndex=new Map();
 let history=[];
 let dataReady=false;
 
-/* ================= FETCH & INDEX ================= */
+/* 🔥 IMAGE CACHE (KEY OPTIMIZATION) */
+const imageCache=new Set();
+function preloadImage(url){
+  if(!url || imageCache.has(url)) return;
+  imageCache.add(url);
+  const img=new Image();
+  img.src=url;
+}
+
+/* ================= FETCH DATA ================= */
 fetch("products.json")
 .then(r=>r.json())
 .then(data=>{
@@ -208,17 +218,15 @@ clearBtn.onclick=()=>{
 
 function search(q){
   if(!dataReady) return;
-
   q=q.toLowerCase().trim();
-  if(!q){
-    result.innerHTML="";
-    return;
-  }
+  if(!q){ result.innerHTML=""; return; }
 
   if(barcodeIndex.has(q)){
+    const p=barcodeIndex.get(q);
+    preloadImage(p.i);
     beepOk.play();
     addHistory(q);
-    render([barcodeIndex.get(q)]);
+    render([p]);
     return;
   }
 
@@ -226,21 +234,19 @@ function search(q){
   let resultSet=null;
 
   for(const w of words){
-    if(!prefixIndex.has(w)){
-      resultSet=[];
-      break;
-    }
+    if(!prefixIndex.has(w)){ resultSet=[]; break; }
     const list=prefixIndex.get(w);
-    if(resultSet===null){
-      resultSet=new Set(list);
-    }else{
-      resultSet=new Set(list.filter(p=>resultSet.has(p)));
-    }
+    resultSet=resultSet===null?new Set(list):new Set(list.filter(p=>resultSet.has(p)));
   }
 
   if(resultSet && resultSet.size){
+    const list=[...resultSet].slice(0,50);
+
+    /* 🔥 PRELOAD IMAGE HASIL SEARCH */
+    list.forEach(p=>preloadImage(p.i));
+
     beepOk.play();
-    render([...resultSet].slice(0,1000));
+    render(list);
   }else{
     beepErr.play();
     result.innerHTML="";
@@ -249,22 +255,16 @@ function search(q){
 
 /* ================= RENDER ================= */
 function render(list){
-  result.innerHTML = list.map(p => `
+  result.innerHTML=list.map(p=>`
     <div class="card">
-      <img src="${p.i}" alt="${p.n}">
+      <img src="${p.i}" loading="lazy" alt="${p.n}">
       <div class="info">
         <b>${p.n}</b>
         <small>Barcode: ${p.b}</small>
-        <div style="margin:4px 0; font-size:12px; color:#555;">
-          Category: ${p.c} / ${p.d}
-        </div>
-        <div style="margin:2px 0;">
-          Regular: Rp${p.r.toLocaleString()} ${p.rp ? `<span style="color:red;">(${p.rp})</span>` : ""}
-        </div>
-        <div style="margin:2px 0;">
-          Street: Rp${p.s.toLocaleString()} ${p.sp ? `<span style="color:red;">(${p.sp})</span>` : ""}
-        </div>
-        ${p.e ? `<div style="margin:2px 0; color:#d9534f;">Extra: ${p.e}</div>` : ""}
+        <div style="font-size:12px;color:#555">Category: ${p.c} / ${p.d}</div>
+        <div>Regular: Rp${p.r.toLocaleString()} ${p.rp?`<span style="color:red">(${p.rp})</span>`:""}</div>
+        <div>Street: Rp${p.s.toLocaleString()} ${p.sp?`<span style="color:red">(${p.sp})</span>`:""}</div>
+        ${p.e?`<div style="color:#d9534f">Extra: ${p.e}</div>`:""}
       </div>
     </div>
   `).join("");
@@ -286,11 +286,7 @@ scanBtn.onclick=()=>{
   reader.style.display="block";
 
   Quagga.init({
-    inputStream:{
-      type:"LiveStream",
-      target:reader,
-      constraints:{facingMode:"environment"}
-    },
+    inputStream:{type:"LiveStream",target:reader,constraints:{facingMode:"environment"}},
     decoder:{readers:["ean_reader"]}
   },err=>{
     if(err){scanning=false;return;}
@@ -310,20 +306,12 @@ scanBtn.onclick=()=>{
   });
 };
 
-/* ================= GO TO TOP SCRIPT ================= */
+/* ================= GO TOP ================= */
 const goTopBtn=document.getElementById("goTopBtn");
-
 window.addEventListener("scroll",()=>{
-  if(window.scrollY>300){
-    goTopBtn.classList.add("show");
-  }else{
-    goTopBtn.classList.remove("show");
-  }
+  goTopBtn.classList.toggle("show",window.scrollY>300);
 });
-
-goTopBtn.onclick=()=>{
-  window.scrollTo({top:0,behavior:"smooth"});
-};
+goTopBtn.onclick=()=>window.scrollTo({top:0,behavior:"smooth"});
 </script>
 
 </body>

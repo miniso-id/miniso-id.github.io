@@ -9,6 +9,42 @@
 <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 
 <style>
+/* ================= LOGIN ================= */
+#loginOverlay{
+  position:fixed; inset:0;
+  background:#f3f4f6;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+.login-card{
+  width:100%; max-width:360px;
+  padding:28px;
+  background:#fff;
+  border-radius:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,.15);
+  text-align:center;
+}
+.login-card input,.login-card button{
+  width:100%; height:44px;
+  margin-bottom:14px;
+  border-radius:10px;
+}
+.login-card input{
+  border:1px solid #ddd;
+  padding:0 14px;
+}
+.login-card button{
+  border:none;
+  background:#4f46e5;
+  color:#fff;
+  cursor:pointer;
+}
+#loginErr{color:#ef4444;font-size:14px;opacity:0}
+#loginErr.show{opacity:1}
+
+/* ================= CAMERA ================= */
 #reader{
   display:none;
   width:100%;
@@ -20,34 +56,56 @@
   overflow:hidden;
   position:relative;
 }
-#reader video{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
+#reader video{width:100%;height:100%;object-fit:cover}
 #reader::after{
   content:"";
   position:absolute;
-  inset:18%; /* FIX: lebih besar */
+  inset:22%;
   border:2px dashed rgba(0,255,0,.7);
-  pointer-events:none;
 }
-#history span{
-  margin:4px;
-  padding:4px 8px;
-  background:#eee;
-  border-radius:6px;
-  display:inline-block;
-  font-size:12px;
+
+/* ================= GO TO TOP ================= */
+#goTopBtn{
+  position:fixed;
+  bottom:24px;
+  right:24px;
+  width:48px;
+  height:48px;
+  background:#4f46e5;
+  color:#fff;
+  font-size:20px;
+  cursor:pointer;
+  box-shadow:0 8px 20px rgba(0,0,0,.25);
+  opacity:0;
+  visibility:hidden;
+  transition:.3s ease;
+  z-index:998;
+}
+#goTopBtn.show{
+  opacity:1;
+  visibility:visible;
 }
 </style>
 </head>
 
 <body>
 
+<!-- LOGIN -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <h3>Login MMS-X</h3>
+    <input id="loginUser" placeholder="Username">
+    <input id="loginPass" type="password" placeholder="Password">
+    <button onclick="doLogin()">Masuk</button>
+    <div id="loginErr">Username atau password salah</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
 <center>
-  <h2>Price Check</h2>
-  <h3>MMS-X (beta)</h3>
+<h2>Product Query</h2>
+<h3>MMS-X (beta)</h3>
 </center>
 
 <div class="search-box">
@@ -66,10 +124,37 @@
 
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
+</div>
+
+<button id="goTopBtn">⬆</button>
+
+<script>
+/* ================= LOGIN ================= */
+let USERS=[];
+fetch("users.json").then(r=>r.json()).then(d=>USERS=d);
+
+if(localStorage.getItem("mms_auth")==="1"){
+  loginOverlay.style.display="none";
+  app.style.display="block";
+}
+
+function doLogin(){
+  const u=loginUser.value.trim();
+  const p=loginPass.value.trim();
+  const found=USERS.find(x=>x.user===u && x.pass===p);
+  if(found){
+    localStorage.setItem("mms_auth","1");
+    loginOverlay.style.display="none";
+    app.style.display="block";
+  }else{
+    loginErr.classList.add("show");
+  }
+}
+</script>
 
 <script>
 /* ================= INIT ================= */
-const input=document.getElementById("searchInput");
+const input=searchInput;
 const clearBtn=document.getElementById("clearBtn");
 const scanBtn=document.getElementById("scanBtn");
 const reader=document.getElementById("reader");
@@ -80,8 +165,18 @@ const beepErr=document.getElementById("beepErr");
 
 /* ================= STATE ================= */
 let barcodeIndex=new Map();
+let prefixIndex=new Map();
 let history=[];
 let dataReady=false;
+
+/* 🔥 IMAGE CACHE (KEY OPTIMIZATION) */
+const imageCache=new Set();
+function preloadImage(url){
+  if(!url || imageCache.has(url)) return;
+  imageCache.add(url);
+  const img=new Image();
+  img.src=url;
+}
 
 /* ================= FETCH DATA ================= */
 fetch("products.json")
@@ -89,11 +184,21 @@ fetch("products.json")
 .then(data=>{
   data.forEach(p=>{
     if(p.b){
-      p.b.split("/").forEach(code=>{
-        barcodeIndex.set(code.trim(),p);
+      p.b.split("/").forEach(c=>{
+        barcodeIndex.set(c.trim(),p);
+      });
+    }
+    if(p.n){
+      p.n.toLowerCase().split(/\s+/).forEach(w=>{
+        for(let i=1;i<=w.length;i++){
+          const pref=w.slice(0,i);
+          if(!prefixIndex.has(pref)) prefixIndex.set(pref,[]);
+          prefixIndex.get(pref).push(p);
+        }
       });
     }
   });
+
   dataReady=true;
   input.disabled=false;
   scanBtn.disabled=false;
@@ -112,14 +217,36 @@ clearBtn.onclick=()=>{
 };
 
 function search(q){
-  if(!dataReady)return;
-  q=q.trim();
+  if(!dataReady) return;
+  q=q.toLowerCase().trim();
   if(!q){ result.innerHTML=""; return; }
 
   if(barcodeIndex.has(q)){
+    const p=barcodeIndex.get(q);
+    preloadImage(p.i);
     beepOk.play();
     addHistory(q);
-    render([barcodeIndex.get(q)]);
+    render([p]);
+    return;
+  }
+
+  const words=q.split(/\s+/).slice(0,3);
+  let resultSet=null;
+
+  for(const w of words){
+    if(!prefixIndex.has(w)){ resultSet=[]; break; }
+    const list=prefixIndex.get(w);
+    resultSet=resultSet===null?new Set(list):new Set(list.filter(p=>resultSet.has(p)));
+  }
+
+  if(resultSet && resultSet.size){
+    const list=[...resultSet].slice(0,50);
+
+    /* 🔥 PRELOAD IMAGE HASIL SEARCH */
+    list.forEach(p=>preloadImage(p.i));
+
+    beepOk.play();
+    render(list);
   }else{
     beepErr.play();
     result.innerHTML="";
@@ -128,22 +255,16 @@ function search(q){
 
 /* ================= RENDER ================= */
 function render(list){
-  result.innerHTML = list.map(p => `
+  result.innerHTML=list.map(p=>`
     <div class="card">
-      <img src="${p.i}" alt="${p.n}">
+      <img src="${p.i}" loading="lazy" alt="${p.n}">
       <div class="info">
         <b>${p.n}</b>
         <small>Barcode: ${p.b}</small>
-        <div style="margin:4px 0; font-size:12px; color:#555;">
-          Category: ${p.c} / ${p.d}
-        </div>
-        <div style="margin:2px 0;">
-          Regular: Rp${p.r.toLocaleString()} ${p.rp ? `<span style="color:red;">(${p.rp})</span>` : ""}
-        </div>
-        <div style="margin:2px 0;">
-          Street: Rp${p.s.toLocaleString()} ${p.sp ? `<span style="color:red;">(${p.sp})</span>` : ""}
-        </div>
-        ${p.e ? `<div style="margin:2px 0; color:#d9534f;">Extra: ${p.e}</div>` : ""}
+        <div style="font-size:12px;color:#555">Category: ${p.c} / ${p.d}</div>
+        <div>Regular: Rp${p.r.toLocaleString()} ${p.rp?`<span style="color:red">(${p.rp})</span>`:""}</div>
+        <div>Street: Rp${p.s.toLocaleString()} ${p.sp?`<span style="color:red">(${p.sp})</span>`:""}</div>
+        ${p.e?`<div style="color:#d9534f">Extra: ${p.e}</div>`:""}
       </div>
     </div>
   `).join("");
@@ -151,97 +272,33 @@ function render(list){
 
 /* ================= HISTORY ================= */
 function addHistory(code){
-  if(history.includes(code))return;
+  if(history.includes(code)) return;
   history.unshift(code);
-  if(history.length>5)history.pop();
+  if(history.length>5) history.pop();
   historyDiv.innerHTML=history.map(h=>`<span>${h}</span>`).join("");
 }
 
-/* ================= CAMERA (FIXED) ================= */
+/* ================= CAMERA ================= */
 let scanning=false,lastCode="",stableCount=0;
-let zoomLevel=2,zoomMin=1,zoomMax=3,lastZoomAdjust=0;
-
 scanBtn.onclick=()=>{
-  if(scanning||!dataReady)return;
+  if(scanning||!dataReady) return;
   scanning=true;
   reader.style.display="block";
 
   Quagga.init({
-    inputStream:{
-      type:"LiveStream",
-      target:reader,
-      constraints:{
-        facingMode:{ exact:"environment" },
-        width:{ ideal:1920 },
-        height:{ ideal:1080 },
-        focusMode:"continuous"
-      },
-      area:{                /* FIX: area diperbesar */
-        top:"18%",
-        right:"18%",
-        left:"18%",
-        bottom:"18%"
-      }
-    },
-    decoder:{
-      readers:[
-        "ean_reader",
-        "code_128_reader",
-        "code_39_reader",
-        "upc_reader",
-        "upc_e_reader"
-      ]
-    },
-    locate:true
+    inputStream:{type:"LiveStream",target:reader,constraints:{facingMode:"environment"}},
+    decoder:{readers:["ean_reader"]}
   },err=>{
-    if(err){
-      scanning=false;
-      reader.style.display="none";
-      return;
-    }
-
+    if(err){scanning=false;return;}
     Quagga.start();
-
-    /* INIT ZOOM */
-    setTimeout(()=>{
-      const track=Quagga.CameraAccess.getActiveTrack();
-      if(!track)return;
-      const caps=track.getCapabilities();
-      if(caps.zoom){
-        zoomMin=caps.zoom.min||1;
-        zoomMax=caps.zoom.max||3;
-        zoomLevel=Math.min(2,zoomMax);
-        track.applyConstraints({ advanced:[{ zoom:zoomLevel }] });
-      }
-    },500);
-
     Quagga.onDetected(res=>{
       const code=res.codeResult.code;
-      const decoded=res.codeResult.decodedCodes||[];
-
-      /* FIX: validasi lebih realistis */
-      let avgError = decoded.length
-        ? decoded.reduce((s,d)=>s+(d.error||1),0)/decoded.length
-        : 1;
-
-      const valid = decoded.length>=3 && avgError<0.35;
-
-      autoZoom(valid?"good":"bad");
-
-      /* FIX: stability logic */
-      if(code===lastCode){
-        if(valid) stableCount++;
-      }else{
-        lastCode=code;
-        stableCount= valid ? 1 : 0;
-      }
-
-      if(stableCount>=2){
+      if(code===lastCode) stableCount++;
+      else{lastCode=code;stableCount=1;}
+      if(stableCount>=3){
         Quagga.stop();
         scanning=false;
         reader.style.display="none";
-        stableCount=0;
-        lastCode="";
         input.value=code;
         search(code);
       }
@@ -249,29 +306,12 @@ scanBtn.onclick=()=>{
   });
 };
 
-/* ================= AUTO ZOOM (FIXED) ================= */
-function autoZoom(mode){
-  const now=Date.now();
-  if(now-lastZoomAdjust<1000)return;
-
-  const track=Quagga.CameraAccess.getActiveTrack();
-  if(!track)return;
-
-  if(mode==="bad" && zoomLevel<zoomMax){
-    zoomLevel+=0.2;
-  }
-  if(mode==="good" && zoomLevel>zoomMin+0.7){
-    zoomLevel-=0.1;
-  }
-
-  zoomLevel=Math.max(zoomMin,Math.min(zoomLevel,zoomMax));
-
-  track.applyConstraints({
-    advanced:[{ zoom:zoomLevel }]
-  });
-
-  lastZoomAdjust=now;
-}
+/* ================= GO TOP ================= */
+const goTopBtn=document.getElementById("goTopBtn");
+window.addEventListener("scroll",()=>{
+  goTopBtn.classList.toggle("show",window.scrollY>300);
+});
+goTopBtn.onclick=()=>window.scrollTo({top:0,behavior:"smooth"});
 </script>
 
 </body>

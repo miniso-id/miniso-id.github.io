@@ -79,18 +79,7 @@ window.addEventListener('orientationchange', resizeIframe);
 window.addEventListener('load', ()=>{
   resizeIframe();
 
-  const warning=document.getElementById('warning');
-
-  if(inIframe() && isMobile()){
-    console.log("📱 Mobile browser di dalam iframe - fullscreen ON");
-  } else if(inIframe()){
-    console.log("💻 Desktop browser di dalam iframe");
-  } else if(isMobile()){
-    console.log("📱 Mobile browser (bukan iframe)");
-    warning.style.display="block";
-  } else {
-    console.log("💻 Desktop browser (bukan iframe)");
-  }
+  
 });
 </script>
 

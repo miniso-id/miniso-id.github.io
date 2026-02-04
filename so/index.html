@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock Opname</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background:#f4f6f8;
+  margin:0;
+  padding:10px;
+}
+h2 {
+  text-align:center;
+}
+input[type=text] {
+  width:100%;
+  padding:10px;
+  font-size:16px;
+  margin-bottom:10px;
+}
+table {
+  width:100%;
+  border-collapse:collapse;
+  background:#fff;
+}
+th,td {
+  padding:8px;
+  border:1px solid #ddd;
+  font-size:14px;
+}
+th {
+  background:#34495e;
+  color:#fff;
+}
+td input {
+  width:70px;
+  text-align:center;
+}
+.save {
+  background:#2ecc71;
+  color:#fff;
+  border:none;
+  padding:6px 10px;
+  border-radius:4px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>📦 Stock Opname</h2>
+
+<input type="text" id="search" placeholder="🔍 Cari barcode / nama">
+
+<div id="table">Loading...</div>
+
+<script>
+let data = [];
+
+function loadData() {
+  google.script.run.withSuccessHandler(res => {
+    data = res;
+    render(data);
+  }).getData();
+}
+
+function render(rows) {
+  let html = `
+  <table>
+    <thead>
+      <tr>
+        <th>Barcode</th>
+        <th>Nama</th>
+        <th>Stock Sistem</th>
+        <th>Stock Fisik</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody>
+  `;
+
+  rows.forEach((r,i)=>{
+    html += `
+      <tr>
+        <td>${r[0]}</td>
+        <td>${r[1]}</td>
+        <td>${r[2]}</td>
+        <td><input type="number" id="sf${i}" value="${r[3]||""}"></td>
+        <td><button class="save" onclick="save(${i})">💾</button></td>
+      </tr>
+    `;
+  });
+
+  html += "</tbody></table>";
+  document.getElementById("table").innerHTML = html;
+}
+
+function save(i) {
+  const val = document.getElementById("sf"+i).value;
+  if(val==="") return alert("Stock fisik kosong");
+
+  google.script.run.withSuccessHandler(()=>{
+    alert("Tersimpan ✔");
+    loadData();
+  }).updateStock(i, Number(val));
+}
+
+document.getElementById("search").addEventListener("input", e=>{
+  const q = e.target.value.toLowerCase();
+  const f = data.filter(r =>
+    r[0].toString().includes(q) ||
+    r[1].toLowerCase().includes(q)
+  );
+  render(f);
+});
+
+loadData();
+</script>
+
+</body>
+</html>

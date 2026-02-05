@@ -2,139 +2,135 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>iOS Home Screen Swipe</title>
-    <!-- Swiper CSS dari CDN -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>iOS Universal Adaptive</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net" />
     <style>
         :root {
-            --ios-radius: 22%;
-            --bg-url: url('https://images.unsplash.com');
+            --ios-radius: 22.37%; /* Kelengkungan presisi Apple */
+            /* clamp(min, preferred, max) membuat ukuran fleksibel berdasarkan lebar layar */
+            --icon-size: clamp(50px, 14vw, 65px); 
+            --grid-gap: clamp(10px, 4vw, 25px);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, system-ui, sans-serif; }
 
         body {
-            background: var(--bg-url) center center / cover no-repeat;
-            height: 100vh;
+            background: url('https://images.unsplash.com') center/cover no-repeat;
+            height: 100dvh; /* dvh = dynamic viewport height untuk handle bar browser mobile */
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
-        /* Swiper Container */
-        .swiper { width: 100%; height: 80vh; padding-top: 50px; }
+        /* Area Status Bar (Space untuk jam/notch) */
+        .status-bar-spacer { height: env(safe-area-inset-top, 20px); min-height: 20px; }
+
+        .swiper { width: 100%; flex-grow: 1; }
 
         .app-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            grid-template-rows: repeat(6, 1fr);
-            gap: 20px 15px;
-            padding: 0 20px;
-            max-width: 400px;
+            grid-auto-rows: min-content;
+            gap: var(--grid-gap);
+            padding: 20px clamp(15px, 5vw, 30px);
+            max-width: 500px;
             margin: 0 auto;
         }
 
-        .app-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+        .app-item { display: flex; flex-direction: column; align-items: center; text-align: center; }
+
         .app-icon {
-            width: 62px; height: 62px;
+            width: var(--icon-size);
+            height: var(--icon-size);
             border-radius: var(--ios-radius);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             display: flex; align-items: center; justify-content: center;
-            font-size: 30px; transition: transform 0.1s;
+            font-size: calc(var(--icon-size) * 0.5);
+            transition: transform 0.1s cubic-bezier(0,0,0.5,1);
+            background: white;
         }
-        .app-item:active .app-icon { transform: scale(0.9); }
-        .app-name { color: white; font-size: 11px; margin-top: 5px; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
 
-        /* Pagination Dots */
-        .swiper-pagination-bullet { background: #fff !important; opacity: 0.5; }
-        .swiper-pagination-bullet-active { opacity: 1; }
+        .app-item:active .app-icon { transform: scale(0.85); }
 
-        /* Dock */
-        .dock-wrapper { padding: 20px; padding-bottom: 40px; }
+        .app-name {
+            color: white;
+            font-size: clamp(10px, 2.5vw, 12px);
+            margin-top: 6px;
+            font-weight: 400;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+            width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Dock Responsif */
+        .dock-container {
+            padding: 10px 15px calc(env(safe-area-inset-bottom, 10px) + 15px);
+            width: 100%;
+        }
+
         .dock {
             background: rgba(255, 255, 255, 0.25);
             backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
-            padding: 15px; border-radius: 35px;
-            max-width: 360px; width: 100%; margin: 0 auto;
-            display: flex; justify-content: space-around;
+            border-radius: 30px;
+            padding: 12px;
+            max-width: 380px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
         }
 
-        /* App Window */
-        #app-window {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: white; z-index: 1000; display: none;
-            transform: scale(0.8); opacity: 0;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        #app-window.active { display: block; transform: scale(1); opacity: 1; }
+        .dock .app-name { display: none; } /* Dock iOS biasanya tidak ada teks */
+        .dock .app-icon { width: calc(var(--icon-size) * 0.95); height: calc(var(--icon-size) * 0.95); }
 
-        .mail { background: linear-gradient(#5AC8FA, #007AFF); color: white; }
+        /* Pagination style */
+        .swiper-pagination { bottom: 10px !important; }
     </style>
 </head>
 <body>
 
-    <!-- Area Slider -->
+    <div class="status-bar-spacer"></div>
+
     <div class="swiper">
         <div class="swiper-wrapper">
-            <!-- Halaman 1 -->
             <div class="swiper-slide">
                 <div class="app-grid">
-                    <div class="app-item" onclick="openApp('FaceTime', '🎥')"><div class="app-icon" style="background:#4CD964">🎥</div><span class="app-name">FaceTime</span></div>
-                    <div class="app-item" onclick="openApp('Calendar', '📅')"><div class="app-icon" style="background:#fff; color:#FF3B30">📅</div><span class="app-name">Calendar</span></div>
-                    <div class="app-item" onclick="openApp('Photos', '🖼️')"><div class="app-icon" style="background:#fff">🖼️</div><span class="app-name">Photos</span></div>
-                    <div class="app-item" onclick="openApp('Camera', '📷')"><div class="app-icon" style="background:#8E8E93">📷</div><span class="app-name">Camera</span></div>
+                    <div class="app-item"><div class="app-icon" style="background:#4CD964">📞</div><span class="app-name">Telepon</span></div>
+                    <div class="app-item"><div class="app-icon" style="background:#fff">🧭</div><span class="app-name">Safari</span></div>
+                    <div class="app-item"><div class="app-icon" style="background:#5AC8FA">💬</div><span class="app-name">Pesan</span></div>
+                    <div class="app-item"><div class="app-icon" style="background:linear-gradient(#FB4D5F, #FF2D55)">🎵</div><span class="app-name">Musik</span></div>
+                    <div class="app-item"><div class="app-icon" style="background:#fff">📅</div><span class="app-name">Kalender</span></div>
+                    <div class="app-item"><div class="app-icon" style="background:#fff">🖼️</div><span class="app-name">Foto</span></div>
+                    <div class="app-item"><div class="app-icon" style="background:#8E8E93">⚙️</div><span class="app-name">Pengaturan</span></div>
                 </div>
             </div>
-            <!-- Halaman 2 -->
             <div class="swiper-slide">
                 <div class="app-grid">
-                    <div class="app-item" onclick="openApp('Maps', '🗺️')"><div class="app-icon" style="background:#fff">🗺️</div><span class="app-name">Maps</span></div>
-                    <div class="app-item" onclick="openApp('Notes', '📝')"><div class="app-icon" style="background:#FFCC00">📝</div><span class="app-name">Notes</span></div>
+                    <div class="app-item"><div class="app-icon" style="background:#FFCC00">📝</div><span class="app-name">Catatan</span></div>
                 </div>
             </div>
         </div>
-        <!-- Titik Indikator -->
         <div class="swiper-pagination"></div>
     </div>
 
-    <!-- Dock -->
-    <div class="dock-wrapper">
+    <div class="dock-container">
         <div class="dock">
-            <div class="app-item" onclick="openApp('Phone', '📞')"><div class="app-icon" style="background:#4CD964; color:white;">📞</div></div>
-            <div class="app-item" onclick="openApp('Safari', '🧭')"><div class="app-icon" style="background:#fff">🧭</div></div>
-            <div class="app-item" onclick="openApp('Messages', '💬')"><div class="app-icon" style="background:#4CD964; color:white;">💬</div></div>
-            <div class="app-item" onclick="openApp('Music', '🎵')"><div class="app-icon" style="background:linear-gradient(#FB4D5F, #FF2D55); color:white;">🎵</div></div>
+            <div class="app-item"><div class="app-icon" style="background:#4CD964">📞</div></div>
+            <div class="app-item"><div class="app-icon" style="background:#fff">🧭</div></div>
+            <div class="app-item"><div class="app-icon" style="background:#5AC8FA">💬</div></div>
+            <div class="app-item"><div class="app-icon" style="background:linear-gradient(#FB4D5F, #FF2D55)">🎵</div></div>
         </div>
     </div>
 
-    <div id="app-window">
-        <div style="padding: 60px 20px;">
-            <h1 id="app-title">App</h1>
-            <button onclick="closeApp()" style="margin-top:20px; padding:10px 20px; border-radius:10px; border:none; background:#007AFF; color:#white;">Back to Home</button>
-        </div>
-    </div>
-
-    <!-- Swiper JS dari CDN -->
     <script src="https://cdn.jsdelivr.net"></script>
     <script>
-        // Inisialisasi Fitur Geser
-        const swiper = new Swiper('.swiper', {
+        new Swiper('.swiper', {
             pagination: { el: '.swiper-pagination', clickable: true },
+            resistanceRatio: 0, /* Mencegah overscroll berlebih di ujung */
         });
-
-        function openApp(name, icon) {
-            const win = document.getElementById('app-window');
-            document.getElementById('app-title').innerText = name;
-            win.style.display = 'block';
-            setTimeout(() => win.classList.add('active'), 10);
-        }
-
-        function closeApp() {
-            const win = document.getElementById('app-window');
-            win.classList.remove('active');
-            setTimeout(() => win.style.display = 'none', 400);
-        }
     </script>
 </body>
 </html>

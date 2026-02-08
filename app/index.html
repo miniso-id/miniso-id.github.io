@@ -13,6 +13,7 @@
             --text-dark: #333;
             --promo-blue: #007bff;
             --promo-green: #28a745;
+            --bg-gray: #f4f4f4;
         }
 
         * { box-sizing: border-box; }
@@ -20,7 +21,7 @@
 
         .app-wrapper { display: flex; height: 100vh; width: 100%; position: relative; }
 
-        /* --- SIDEBAR & OVERLAY --- */
+        /* --- SIDEBAR --- */
         .sidebar {
             width: 250px; background-color: var(--miniso-red); color: #fff;
             display: flex; flex-direction: column; padding: 20px;
@@ -29,12 +30,9 @@
         }
         .sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 1.4rem; font-weight: 800; border-bottom: 2px solid rgba(255,255,255,0.2); padding-bottom: 15px; }
         .sidebar a { text-decoration: none; color: #fff; padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; display: block; font-weight: 500; }
-        .sidebar a:hover, .sidebar a.active-link { background-color: rgba(255,255,255,0.2); }
+        .sidebar a.active-link { background-color: rgba(255,255,255,0.2); }
 
-        #overlay {
-            display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.4); z-index: 1500;
-        }
+        #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1500; }
 
         .main-content { flex: 1; padding: 15px; overflow-y: auto; position: relative; z-index: 100; }
 
@@ -59,12 +57,12 @@
             position: absolute; right: 2px; display: flex; align-items: center; justify-content: center;
         }
 
-        /* --- SCANNER VIEW (1080p) --- */
+        /* --- SCANNER --- */
         #reader {
             display:none; width:100%; max-width:340px; aspect-ratio:1/1;
             margin:15px auto; background:#000; border-radius:20px;
             overflow:hidden; position:relative; border: 4px solid white;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15); cursor: pointer;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
         }
         #reader video { width: 100%; height: 100%; object-fit: cover; }
         .focus-guide {
@@ -72,15 +70,8 @@
             border-radius: 15px; pointer-events: none; z-index: 2;
             box-shadow: 0 0 0 1000px rgba(0,0,0,0.4);
         }
-        .tap-hint {
-            position: absolute; bottom: 10px; width: 100%; text-align: center;
-            color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3;
-        }
 
-        #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
-        #videoSource { padding: 10px; border-radius: 8px; border: 2px solid var(--miniso-red); width: 100%; max-width: 300px; font-weight: 600; }
-
-        /* --- PRODUCT CARD --- */
+        /* --- PERBAIKAN STRUKTUR HARGA (RENDER) --- */
         .product-card {
             background: white; border-radius: 18px; overflow: hidden;
             box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px;
@@ -89,29 +80,31 @@
         @keyframes slideUp { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         
         .image-box { background: #fff; text-align: center; padding: 15px; position: relative; border-bottom: 1px solid #f9f9f9; }
-        .image-box img { max-width: 100%; height: 200px; object-fit: contain; }
-        .promo-badge {
-            position: absolute; top: 12px; left: 12px; background: #ff9800; color: white;
-            padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold;
+        .image-box img { max-width: 100%; height: 180px; object-fit: contain; }
+
+        .price-comparison-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0;
         }
+        .price-card {
+            padding: 12px; border-radius: 12px; border-bottom: 4px solid #ddd;
+            display: flex; flex-direction: column; background: var(--bg-gray);
+        }
+        .price-card.regular { border-bottom-color: var(--miniso-red); background: var(--miniso-soft); }
+        .price-card.street { border-bottom-color: var(--promo-green); }
+        .price-label { font-size: 10px; font-weight: 800; color: #888; margin-bottom: 4px; text-transform: uppercase; }
+        .price-value { font-size: 18px; font-weight: 800; color: #111; }
+        .price-card.regular .price-value { color: var(--miniso-red); }
 
         .p-info { padding: 20px; }
-        .p-cat { font-size: 11px; font-weight: 700; color: var(--miniso-red); text-transform: uppercase; margin-bottom: 5px; display: block; }
-        .p-title { font-size: 18px; font-weight: 700; margin: 0 0 5px 0; color: #111; }
-        .p-desc { font-size: 13px; color: #666; margin-bottom: 15px; }
+        .p-cat { font-size: 10px; font-weight: 800; color: var(--miniso-red); text-transform: uppercase; }
+        .p-title { font-size: 18px; font-weight: 700; margin: 5px 0; color: #111; }
         
-        .p-price-box { display: flex; align-items: baseline; gap: 10px; margin-bottom: 18px; }
-        .p-curr { font-size: 26px; font-weight: 800; color: var(--miniso-red); }
-        .p-old { font-size: 16px; color: #bbb; text-decoration: line-through; }
-        
-        .p-meta { border-top: 1px solid #eee; padding-top: 15px; }
-        .meta-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; align-items: center; }
-        .meta-label { color: #888; display: flex; align-items: center; gap: 5px; }
+        .meta-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
+        .meta-label { color: #888; font-weight: 500; }
         .meta-val { font-weight: 700; color: #333; }
-        .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; }
 
         #history { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
-        #history span { padding: 6px 12px; background: #fff; border: 1px solid #eee; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: 600; color: #666; }
+        #history span { padding: 6px 12px; background: #fff; border: 1px solid #eee; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: 600; }
 
         @media (max-width: 768px) {
             .sidebar { position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); }
@@ -125,10 +118,9 @@
 <div class="app-wrapper">
     <nav class="sidebar" id="sidebar">
         <h2>MMS-X (beta)</h2>
-        <a href="https://miniso-id.github.io/app/" class="active-link">📸 Price Check</a>
-        <a href="#">📦 Stock Opname ID12</a>
-        <a href="https://miniso-id.github.io/app/product.html">📝 Product</a>
-        <a href="#">⚙️ Pengaturan</a>
+        <a href="#" class="active-link">📸 Price Check</a>
+        <a href="#">📦 Stock Opname</a>
+        <a href="#">📝 Product List</a>
     </nav>
     <div id="overlay"></div>
 
@@ -137,25 +129,18 @@
             <button class="menu-toggle" id="menuToggle">☰</button>
             <div class="search-container">
                 <input id="searchInput" placeholder="Syncing Database..." disabled>
-                <button id="scanBtn" disabled title="Buka Kamera">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
-                        <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
-                        <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
-                        <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
-                        <line x1="8" y1="12" x2="16" y2="12"></line>
-                    </svg>
+                <button id="scanBtn" disabled>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                 </button>
             </div>
         </div>
 
         <div id="reader">
             <div class="focus-guide"></div>
-            <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK FOKUS</div>
         </div>
 
-        <div id="cameraControl">
-            <select id="videoSource"></select>
+        <div id="cameraControl" style="display:none; margin-bottom:15px;">
+            <select id="videoSource" style="width:100%; padding:10px; border-radius:8px; border:2px solid var(--miniso-red); font-weight:600;"></select>
         </div>
 
         <div id="history"></div>
@@ -179,34 +164,20 @@
     let history = [];
     let scanning = false;
 
-    // --- 1. DATA LOAD (No Changes) ---
     fetch("https://miniso-id.github.io/product/products.json").then(r => r.json()).then(data => {
         data.forEach(p => { if(p.b) p.b.split("/").forEach(c => barcodeIndex.set(c.trim(), p)); });
         input.disabled = false; scanBtn.disabled = false; input.placeholder = "Ketik / Scan Barcode...";
     });
 
-    // --- 2. SIDEBAR LOGIC (No Changes) ---
     document.getElementById('menuToggle').onclick = () => sidebar.classList.toggle('active');
     overlay.onclick = () => sidebar.classList.remove('active');
-    sidebar.querySelectorAll('a').forEach(a => a.onclick = () => sidebar.classList.remove('active'));
 
-    // --- 3. SCANNER LOGIC (Fixed High-Res Settings) ---
     input.oninput = (e) => search(e.target.value);
 
-    reader.onclick = async () => {
-        const track = Quagga.CameraAccess.getActiveTrack();
-        if (track && track.applyConstraints) {
-            try {
-                await track.applyConstraints({ advanced: [{ focusMode: "manual" }] });
-                await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
-            } catch (e) { console.warn("Focus failed"); }
-        }
-    };
-
+    // --- SCANNER LOGIC ---
     scanBtn.onclick = () => {
         if (scanning) { stopScan(); return; }
-        const lastId = localStorage.getItem('lastCameraId');
-        startScan(lastId);
+        startScan();
     };
 
     async function startScan(deviceId = null) {
@@ -214,89 +185,66 @@
         Quagga.init({
             inputStream: {
                 type: "LiveStream", target: reader,
-                constraints: {
-                    width: { ideal: 1920 }, height: { ideal: 1080 },
-                    deviceId: deviceId ? { exact: deviceId } : undefined,
-                    facingMode: deviceId ? undefined : "environment"
-                },
+                constraints: { width: 1280, height: 720, deviceId: deviceId, facingMode: "environment" },
                 area: { top: "20%", right: "20%", left: "20%", bottom: "20%" }
             },
-            locator: { patchSize: "small", halfSample: false },
-            decoder: { readers: ["ean_reader", "code_128_reader"] },
-            locate: true
+            decoder: { readers: ["ean_reader", "code_128_reader"] }
         }, (err) => {
-            if (err) { stopScan(); return; }
+            if (err) return;
             Quagga.start();
             document.getElementById("cameraControl").style.display = "block";
             updateCameraList();
-            
-            const track = Quagga.CameraAccess.getActiveTrack();
-            if (track && track.applyConstraints) {
-                track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
-            }
         });
     }
 
     async function updateCameraList() {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
-        const backCams = videoDevices.filter(d => /back|rear|0/i.test(d.label));
-        const final = backCams.length > 0 ? backCams : videoDevices;
-        const currentLabel = Quagga.CameraAccess.getActiveTrack().label;
-        videoSource.innerHTML = final.map(d => `<option value="${d.deviceId}" ${currentLabel === d.label ? 'selected' : ''}>${d.label || 'Kamera Utama'}</option>`).join("");
+        videoSource.innerHTML = videoDevices.map(d => `<option value="${d.deviceId}">${d.label || 'Camera'}</option>`).join("");
     }
 
-    videoSource.onchange = () => {
-        localStorage.setItem('lastCameraId', videoSource.value);
-        Quagga.stop(); startScan(videoSource.value);
-    };
-
+    videoSource.onchange = () => { Quagga.stop(); startScan(videoSource.value); };
     function stopScan() { Quagga.stop(); scanning = false; reader.style.display = "none"; document.getElementById("cameraControl").style.display = "none"; }
 
     Quagga.onDetected(res => {
         const code = res.codeResult.code;
         if(barcodeIndex.has(code)) {
-            document.getElementById("beepOk").play().catch(()=>{});
+            document.getElementById("beepOk").play();
             stopScan(); input.value = code; search(code);
         }
     });
 
-    // --- 4. RENDER WITH SPLIT PROMO (No Changes) ---
+    // --- PERBAIKAN FUNGSI SEARCH & RENDER ---
     function search(q) {
         q = q.trim();
         if(!q || !barcodeIndex.has(q)) { result.innerHTML = ""; return; }
         const p = barcodeIndex.get(q);
         addHistory(q);
 
-        const hasDiscount = p.s && p.s > p.r;
-        const discountLabel = (p.e && p.e !== "NORMAL PRICE") ? `<div class="promo-badge">${p.e}</div>` : "";
-
         result.innerHTML = `
             <div class="product-card">
                 <div class="image-box">
-                    ${discountLabel}
-                    <img src="${p.i}" onerror="this.src='https://via.placeholder.com/300x300?text=Miniso+Product'">
+                    <img src="${p.i}" onerror="this.src='https://via.placeholder.com/300?text=No+Image'">
                 </div>
                 <div class="p-info">
                     <span class="p-cat">${p.c}</span>
                     <h3 class="p-title">${p.n}</h3>
-                    <p class="p-desc">${p.d}</p>
                     
-                    <div class="p-price-box">
-                        <span class="p-curr">Rp${p.r.toLocaleString('id-ID')}</span>
-                        ${hasDiscount ? `<span class="p-old">Rp${p.s.toLocaleString('id-ID')}</span>` : ''}
+                    <div class="price-comparison-grid">
+                        <div class="price-card regular">
+                            <span class="price-label">Regular Price</span>
+                            <span class="price-value">Rp${p.r.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div class="price-card street">
+                            <span class="price-label">Street Store</span>
+                            <span class="price-value">Rp${p.s.toLocaleString('id-ID')}</span>
+                        </div>
                     </div>
 
                     <div class="p-meta">
                         <div class="meta-row"><span class="meta-label">Barcode</span><span class="meta-val">${q}</span></div>
-                        <div class="meta-row">
-                            <span class="meta-label"><span class="dot" style="background:var(--promo-blue)"></span> Regular Promo</span>
-                            <span class="meta-val" style="color:var(--promo-blue)">${p.rp}</span>
-                        </div>
-                        <div class="meta-row">
-                            <span class="meta-label"><span class="dot" style="background:var(--promo-green)"></span> Street Store Promo</span>
-                            <span class="meta-val" style="color:var(--promo-green)">${p.sp}</span>
-                        </div>
+                        <div class="meta-row"><span class="meta-label">Reg. Promo</span><span class="meta-val" style="color:var(--promo-blue)">${p.rp || '-'}</span></div>
+                        <div class="meta-row"><span class="meta-label">Street Promo</span><span class="meta-val" style="color:var(--promo-green)">${p.sp || '-'}</span></div>
                     </div>
                 </div>
             </div>

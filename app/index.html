@@ -148,7 +148,7 @@
             <div id="reader"></div>
 
             <div id="cameraControl">
-                <p style="font-size: 12px; margin-bottom: 5px; color: #666;">Pilih Lensa Utama (Bukan Wide):</p>
+                <p style="font-size: 12px; margin-bottom: 5px; color: #666;">Pilih Lensa Utama (Normal):</p>
                 <select id="videoSource"></select>
             </div>
 
@@ -225,9 +225,8 @@
             historyDiv.innerHTML = history.map(h => `<span onclick="input.value='${h}'; search('${h}')">${h}</span>`).join("");
         }
 
-        /* ================= SCANNER LOGIC ================= */
+        /* ================= SCANNER LOGIC (NO ZOOM) ================= */
         let scanning = false, lastCode = "", stableCount = 0;
-        let zoomLevel = 1, zoomMin = 1, zoomMax = 3, lastZoomAdjust = 0;
 
         async function getCameras() {
             const devices = await navigator.mediaDevices.enumerateDevices();
@@ -254,8 +253,9 @@
                     constraints: { 
                         deviceId: id ? {exact: id} : undefined, 
                         facingMode: id ? undefined : "environment",
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
+                        // Resolusi standar untuk mencegah browser melakukan auto-crop/zoom
+                        width: 640,
+                        height: 480
                     }
                 },
                 decoder: { readers: ["ean_reader", "code_128_reader", "code_39_reader"] },
@@ -263,13 +263,6 @@
             }, err => {
                 if(err){ stopScan(); alert("Kamera error: " + err); return; }
                 Quagga.start();
-                // Simpan kapabilitas zoom tapi tidak memaksa zoom (tetap di level awal 1)
-                const track = Quagga.CameraAccess.getActiveTrack();
-                if (track && track.getCapabilities && track.getCapabilities().zoom) {
-                    const caps = track.getCapabilities();
-                    zoomMin = caps.zoom.min; zoomMax = caps.zoom.max;
-                    zoomLevel = zoomMin; // Default ke paling jauh (tanpa zoom)
-                }
             });
         }
 
@@ -278,27 +271,8 @@
             reader.style.display = "none"; cameraControl.style.display = "none";
         }
 
-        // Fitur AutoZoom Pintar (Hanya jalan jika barcode terdeteksi tapi sulit dibaca)
-        function smartZoom(mode) {
-            const now = Date.now(); if(now - lastZoomAdjust < 1000) return;
-            const track = Quagga.CameraAccess.getActiveTrack();
-            if(!track || !track.getCapabilities().zoom) return;
-
-            if(mode === "bad" && zoomLevel < zoomMax) zoomLevel += 0.3;
-            if(mode === "good" && zoomLevel > zoomMin + 0.5) zoomLevel -= 0.1;
-
-            track.applyConstraints({ advanced: [{ zoom: Math.min(zoomLevel, zoomMax) }] });
-            lastZoomAdjust = now;
-        }
-
         Quagga.onDetected(res => {
             const code = res.codeResult.code;
-            const decoded = res.codeResult.decodedCodes || [];
-            let avgError = decoded.length ? decoded.reduce((s, d) => s + (d.error || 1), 0) / decoded.length : 1;
-            
-            // Masih menggunakan logika deteksi kualitas untuk membantu fokus jika dibutuhkan
-            if (avgError > 0.4) smartZoom("bad"); 
-
             if (code === lastCode) { stableCount++; } else { lastCode = code; stableCount = 0; }
             if (stableCount >= 3) {
                 stopScan(); input.value = code; search(code);

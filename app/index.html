@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>MMS-X Miniso Edition</title>
+    <title>MMS-X Miniso Edition - Final</title>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
     <style>
         :root {
@@ -31,7 +31,7 @@
 
         .main-content { flex: 1; padding: 15px; overflow-y: auto; position: relative; width: 100%; }
 
-        /* --- NAVBAR / TOP BAR --- */
+        /* --- TOP BAR --- */
         .top-bar {
             display: flex; align-items: center; gap: 10px; margin-bottom: 15px;
             background: white; padding: 10px; border-radius: 12px;
@@ -52,7 +52,7 @@
             position: absolute; right: 5px; display: flex; align-items: center; justify-content: center;
         }
 
-        /* --- SCANNER BOX --- */
+        /* --- SCANNER VIEW (MULTI-ANGLE) --- */
         #reader {
             display:none; width:100%; max-width:340px; aspect-ratio:1/1;
             margin:15px auto; background:#000; border-radius:20px;
@@ -61,16 +61,17 @@
         }
         #reader video { width: 100%; height: 100%; object-fit: cover; }
         .focus-guide {
-            position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red);
+            position: absolute; inset: 15%; border: 2.5px solid var(--miniso-red);
             border-radius: 15px; pointer-events: none; z-index: 2;
+            box-shadow: 0 0 0 1000px rgba(0,0,0,0.3); /* Dim area outside focus */
         }
         .tap-hint {
             position: absolute; bottom: 10px; width: 100%; text-align: center;
-            color: white; font-size: 10px; text-shadow: 1px 1px 2px #000; z-index: 3;
+            color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3;
         }
 
         #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
-        #videoSource { padding: 10px; border-radius: 8px; border: 2px solid var(--miniso-red); width: 100%; max-width: 300px; }
+        #videoSource { padding: 10px; border-radius: 8px; border: 2px solid var(--miniso-red); width: 100%; max-width: 300px; font-weight: 600; }
 
         /* --- CARDS & HISTORY --- */
         .card {
@@ -82,7 +83,7 @@
         #history span {
             padding: 6px 14px; background: white; color: var(--miniso-red);
             border: 1px solid var(--miniso-red); border-radius: 20px;
-            font-size: 12px; cursor: pointer; margin: 0 5px 8px 0; display: inline-block;
+            font-size: 12px; cursor: pointer; margin: 0 5px 8px 0; display: inline-block; font-weight: 600;
         }
 
         @media (max-width: 768px) {
@@ -106,20 +107,20 @@
         <div class="top-bar">
             <button class="menu-toggle" id="menuToggle">☰</button>
             <div class="search-container">
-                <input id="searchInput" placeholder="Memuat data..." disabled>
+                <input id="searchInput" placeholder="Syncing Data..." disabled>
                 <button id="scanBtn" disabled>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                 </button>
             </div>
         </div>
 
         <div id="reader">
             <div class="focus-guide"></div>
-            <div class="tap-hint">Ketuk untuk fokus ulang</div>
+            <div class="tap-hint">BARCODE DI DALAM KOTAK • TAP UNTUK FOKUS</div>
         </div>
 
         <div id="cameraControl">
-            <p style="font-size: 12px; margin-bottom: 5px;">Pilih Lensa Belakang:</p>
+            <p style="font-size: 12px; margin-bottom: 5px; color: #666;">Lensa Terpilih:</p>
             <select id="videoSource"></select>
         </div>
 
@@ -143,34 +144,32 @@
     let history = [];
     let scanning = false;
 
-    // --- DATA LOAD ---
+    // --- 1. LOAD DATA ---
     fetch("https://miniso-id.github.io/product/products.json").then(r => r.json()).then(data => {
         data.forEach(p => { if(p.b) p.b.split("/").forEach(c => barcodeIndex.set(c.trim(), p)); });
         input.disabled = false; scanBtn.disabled = false; input.placeholder = "Ketik / Scan Barcode...";
     });
 
-    // --- UI LOGIC ---
+    // --- 2. UI HANDLERS ---
     document.getElementById('menuToggle').onclick = () => sidebar.classList.toggle('active');
     input.oninput = (e) => search(e.target.value);
 
-    // --- TAP TO FOCUS ---
+    // --- 3. TAP TO FOCUS (MANUAL TRIGGER) ---
     reader.onclick = async () => {
         const track = Quagga.CameraAccess.getActiveTrack();
         if (track && track.applyConstraints) {
             try {
                 await track.applyConstraints({ advanced: [{ focusMode: "manual" }] });
                 await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
-            } catch (e) { console.log("AF Reset failed"); }
+            } catch (e) { console.warn("Autofocus reset not supported"); }
         }
     };
 
-    // --- SCANNER LOGIC DENGAN MEMORY ---
+    // --- 4. SCANNER CORE (MULTI-ANGLE & MEMORY) ---
     scanBtn.onclick = () => {
         if (scanning) { stopScan(); return; }
-        
-        // Ambil ID kamera terakhir dari penyimpanan
-        const lastCameraId = localStorage.getItem('lastCameraId');
-        startScan(lastCameraId);
+        const lastId = localStorage.getItem('lastCameraId');
+        startScan(lastId);
     };
 
     async function startScan(deviceId = null) {
@@ -182,33 +181,29 @@
                 type: "LiveStream",
                 target: reader,
                 constraints: {
-                    // Jika ada deviceId, gunakan itu. Jika tidak, pakai default belakang.
                     deviceId: deviceId ? { exact: deviceId } : undefined,
                     facingMode: deviceId ? undefined : "environment",
                     width: { ideal: 1280 },
                     height: { ideal: 720 }
                 }
             },
-            decoder: { readers: ["ean_reader", "code_128_reader"] },
+            locator: { patchSize: "medium", halfSample: true },
+            decoder: { 
+                readers: ["ean_reader", "code_128_reader"],
+                multiple: false 
+            },
             locate: true
         }, (err) => {
             if (err) { 
-                console.error(err);
-                // Jika error karena ID kamera lama tidak ditemukan, coba reset ke default
-                if(deviceId) {
-                    localStorage.removeItem('lastCameraId');
-                    startScan(null);
-                } else {
-                    alert("Error Kamera: " + err); 
-                    stopScan(); 
-                }
+                if(deviceId) { localStorage.removeItem('lastCameraId'); startScan(null); }
+                else { alert("Kamera Error: " + err); stopScan(); }
                 return; 
             }
             Quagga.start();
             document.getElementById("cameraControl").style.display = "block";
             updateCameraList();
             
-            // Aktifkan Autofocus
+            // Continuous Focus
             const track = Quagga.CameraAccess.getActiveTrack();
             if (track && track.applyConstraints) {
                 track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
@@ -219,27 +214,23 @@
     async function updateCameraList() {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
-        
         const backCams = videoDevices.filter(d => 
-            d.label.toLowerCase().includes('back') || 
-            d.label.toLowerCase().includes('rear') || 
-            d.label.toLowerCase().includes('0')
+            /back|rear|facing 0|0/i.test(d.label)
         );
 
         const final = backCams.length > 0 ? backCams : videoDevices;
         const currentLabel = Quagga.CameraAccess.getActiveTrack().label;
 
         videoSource.innerHTML = final.map(d => 
-            `<option value="${d.deviceId}" ${currentLabel === d.label ? 'selected' : ''}>${d.label || 'Kamera Belakang'}</option>`
+            `<option value="${d.deviceId}" ${currentLabel === d.label ? 'selected' : ''}>${d.label || 'Kamera Utama'}</option>`
         ).join("");
     }
 
-    // SIMPAN PILIHAN KAMERA BARU
     videoSource.onchange = () => {
-        const selectedId = videoSource.value;
-        localStorage.setItem('lastCameraId', selectedId); // Simpan ke Memori
+        const newId = videoSource.value;
+        localStorage.setItem('lastCameraId', newId);
         Quagga.stop();
-        startScan(selectedId);
+        startScan(newId);
     };
 
     function stopScan() {
@@ -252,13 +243,14 @@
     Quagga.onDetected(res => {
         const code = res.codeResult.code;
         if(barcodeIndex.has(code)) {
-            document.getElementById("beepOk").play();
+            document.getElementById("beepOk").play().catch(()=>{});
             stopScan();
             input.value = code;
             search(code);
         }
     });
 
+    // --- 5. SEARCH & RENDER ---
     function search(q) {
         q = q.trim();
         if(!q) { result.innerHTML = ""; return; }
@@ -267,7 +259,7 @@
             addHistory(q);
             result.innerHTML = `
                 <div class="card">
-                    <img src="${p.i}" onerror="this.src='https://via.placeholder.com/70'">
+                    <img src="${p.i}" onerror="this.src='https://via.placeholder.com/70?text=No+Img'">
                     <div class="info">
                         <b style="display:block; font-size:15px; margin-bottom:4px;">${p.n}</b>
                         <div style="font-size:11px; color:#999; margin-bottom:6px;">BC: ${p.b}</div>

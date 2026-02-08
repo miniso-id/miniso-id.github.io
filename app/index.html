@@ -153,22 +153,24 @@
     document.getElementById('menuToggle').onclick = () => sidebar.classList.toggle('active');
     input.oninput = (e) => search(e.target.value);
 
-    // --- FOKUS MANUAL (TAP TO FOCUS) ---
+    // --- TAP TO FOCUS ---
     reader.onclick = async () => {
         const track = Quagga.CameraAccess.getActiveTrack();
         if (track && track.applyConstraints) {
             try {
-                // Reset fokus dengan switch mode
                 await track.applyConstraints({ advanced: [{ focusMode: "manual" }] });
                 await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
             } catch (e) { console.log("AF Reset failed"); }
         }
     };
 
-    // --- SCANNER LOGIC ---
+    // --- SCANNER LOGIC DENGAN MEMORY ---
     scanBtn.onclick = () => {
         if (scanning) { stopScan(); return; }
-        startScan();
+        
+        // Ambil ID kamera terakhir dari penyimpanan
+        const lastCameraId = localStorage.getItem('lastCameraId');
+        startScan(lastCameraId);
     };
 
     async function startScan(deviceId = null) {
@@ -180,8 +182,9 @@
                 type: "LiveStream",
                 target: reader,
                 constraints: {
+                    // Jika ada deviceId, gunakan itu. Jika tidak, pakai default belakang.
                     deviceId: deviceId ? { exact: deviceId } : undefined,
-                    facingMode: "environment",
+                    facingMode: deviceId ? undefined : "environment",
                     width: { ideal: 1280 },
                     height: { ideal: 720 }
                 }
@@ -189,7 +192,18 @@
             decoder: { readers: ["ean_reader", "code_128_reader"] },
             locate: true
         }, (err) => {
-            if (err) { alert("Error Kamera: " + err); stopScan(); return; }
+            if (err) { 
+                console.error(err);
+                // Jika error karena ID kamera lama tidak ditemukan, coba reset ke default
+                if(deviceId) {
+                    localStorage.removeItem('lastCameraId');
+                    startScan(null);
+                } else {
+                    alert("Error Kamera: " + err); 
+                    stopScan(); 
+                }
+                return; 
+            }
             Quagga.start();
             document.getElementById("cameraControl").style.display = "block";
             updateCameraList();
@@ -206,7 +220,6 @@
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
         
-        // Filter hanya belakang
         const backCams = videoDevices.filter(d => 
             d.label.toLowerCase().includes('back') || 
             d.label.toLowerCase().includes('rear') || 
@@ -214,12 +227,20 @@
         );
 
         const final = backCams.length > 0 ? backCams : videoDevices;
+        const currentLabel = Quagga.CameraAccess.getActiveTrack().label;
+
         videoSource.innerHTML = final.map(d => 
-            `<option value="${d.deviceId}" ${Quagga.CameraAccess.getActiveTrack().label === d.label ? 'selected' : ''}>${d.label || 'Kamera Belakang'}</option>`
+            `<option value="${d.deviceId}" ${currentLabel === d.label ? 'selected' : ''}>${d.label || 'Kamera Belakang'}</option>`
         ).join("");
     }
 
-    videoSource.onchange = () => { Quagga.stop(); startScan(videoSource.value); };
+    // SIMPAN PILIHAN KAMERA BARU
+    videoSource.onchange = () => {
+        const selectedId = videoSource.value;
+        localStorage.setItem('lastCameraId', selectedId); // Simpan ke Memori
+        Quagga.stop();
+        startScan(selectedId);
+    };
 
     function stopScan() {
         Quagga.stop();

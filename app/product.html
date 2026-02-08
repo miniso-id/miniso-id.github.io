@@ -67,7 +67,7 @@
         #searchInput { width: 100%; height: 42px; padding: 0 50px 0 15px; font-size: 14px; border: 2px solid #eee; border-radius: 10px; outline: none; background: #f9f9f9; }
         #scanBtn { background: var(--miniso-red); color: white; border: none; width: 38px; height: 38px; border-radius: 10px; position: absolute; right: 2px; display: flex; align-items: center; justify-content: center; }
 
-        /* --- NEW SCANNER VIEW UI --- */
+        /* SCANNER VIEW */
         #reader {
             display:none; width:100%; max-width:340px; aspect-ratio:1/1; 
             margin:15px auto; background:#000; border-radius:20px; 
@@ -85,16 +85,28 @@
             color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3;
         }
 
-        /* LIST & ITEMS */
+        /* FIX GLITCH IMAGE & LIST */
         .search-results-list { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .search-item { padding: 10px 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 12px; }
-        .thumb-img { width: 50px; height: 50px; object-fit: contain; border-radius: 6px; border: 1px solid #eee; cursor: zoom-in; }
+        
+        .thumb-img { 
+            width: 50px; height: 50px; object-fit: contain; border-radius: 6px; 
+            border: 1px solid #eee; cursor: zoom-in; background: #f9f9f9; 
+            flex-shrink: 0;
+        }
+
         .item-clickable-area { flex: 1; overflow: hidden; cursor: pointer; display: flex; align-items: center; gap: 12px; }
 
-        /* PRODUCT DETAIL CARD */
+        /* PRODUCT DETAIL CARD FIX */
         .product-card { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); display: none; margin-bottom: 20px; }
-        .image-box { text-align: center; padding: 15px; position: relative; cursor: zoom-in; }
-        .image-box img { max-width: 100%; height: 220px; object-fit: contain; }
+        
+        .image-box { 
+            text-align: center; padding: 15px; position: relative; cursor: zoom-in;
+            min-height: 220px; display: flex; align-items: center; justify-content: center;
+            background: #fff;
+        }
+        .image-box img { max-width: 100%; max-height: 220px; object-fit: contain; }
+        
         .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
         .price-item { background: var(--bg-gray); padding: 12px 10px; border-radius: 12px; border-bottom: 3px solid #ddd; }
         .barcode-box { background: #fff; padding: 15px; border-radius: 12px; border: 1px dashed #ccc; text-align: center; margin-top: 10px; }
@@ -131,7 +143,7 @@
         <nav class="sidebar" id="sidebar">
             <h2>MMS-X</h2>
             <div id="userDisplay" class="user-tag"></div>
-            <a href="https://miniso-id.github.io/app/" style="background:rgba(255,255,255,0.1)">📸 Price Check</a>
+            <a href="#" style="background:rgba(255,255,255,0.1)">📸 Price Check</a>
             <a href="#">📦 Stock Opname</a>
             <a href="#" class="logout-btn" onclick="handleLogout()">LOGOUT</a>
         </nav>
@@ -225,12 +237,11 @@
         });
     }
 
-    // --- LOGIKA SCANNER TERBARU (PORTED) ---
+    // --- SCANNER ---
     reader.onclick = async () => {
         const track = Quagga.CameraAccess.getActiveTrack();
         if (track && track.applyConstraints) {
             try {
-                await track.applyConstraints({ advanced: [{ focusMode: "manual" }] });
                 await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
             } catch (e) { console.warn("Focus failed"); }
         }
@@ -254,9 +265,7 @@
                 },
                 area: { top: "20%", right: "20%", left: "20%", bottom: "20%" }
             },
-            locator: { patchSize: "small", halfSample: false },
-            decoder: { readers: ["ean_reader", "code_128_reader"] },
-            locate: true
+            decoder: { readers: ["ean_reader", "code_128_reader"] }
         }, (err) => {
             if (err) { stopScan(); return; }
             Quagga.start();
@@ -292,7 +301,7 @@
         }
     });
 
-    // --- RENDER & UI LOGIC ---
+    // --- RENDER LOGIC ---
     input.oninput = () => renderResults();
     catFilter.onchange = () => renderResults();
 
@@ -310,18 +319,20 @@
         if(q) filtered = filtered.filter(p => p.n && p.n.toLowerCase().includes(q));
 
         document.getElementById("countDisplay").textContent = `Ditemukan ${filtered.length} produk`;
+        
         let html = '<div class="search-results-list">';
         filtered.slice(0, 50).forEach(p => {
             const b = p.b ? p.b.split("/")[0].trim() : "";
+            const imgSrc = p.i ? p.i : 'https://via.placeholder.com/150?text=No+Image';
             html += `
                 <div class="search-item">
-                    <img class="thumb-img" src="${p.i}" onclick="openPopup('${p.i}')" onerror="this.src='https://via.placeholder.com/50'">
+                    <img class="thumb-img" src="${imgSrc}" onclick="openPopup('${imgSrc}')" onerror="this.onerror=null;this.src='https://via.placeholder.com/50?text=?';">
                     <div class="item-clickable-area" onclick="selectItem('${b}')">
                         <div style="flex:1">
-                            <span style="font-size:10px; font-weight:800; color:var(--miniso-red);">${p.c}</span>
+                            <span style="font-size:10px; font-weight:800; color:var(--miniso-red);">${p.c || ''}</span>
                             <span style="font-size:13px; font-weight:700; display:block;">${p.n}</span>
                         </div>
-                        <div style="font-weight:800; font-size:13px;">Rp${p.r.toLocaleString('id-ID')}</div>
+                        <div style="font-weight:800; font-size:13px;">Rp${(p.r || 0).toLocaleString('id-ID')}</div>
                     </div>
                 </div>`;
         });
@@ -338,17 +349,20 @@
         document.getElementById("ui-controls").style.display = "none";
         detailContainer.style.display = "block";
         scrollContainer.scrollTop = 0;
+
         const barcodeApi = `https://bwipjs-api.metafloor.com/?bcid=ean13&text=${q}&scale=3&rotate=N&includetext`;
+        const imgSrc = p.i ? p.i : 'https://via.placeholder.com/300?text=No+Image';
+
         detailContainer.innerHTML = `
-            <div class="image-box" onclick="openPopup('${p.i}')">
-                <img src="${p.i}" onerror="this.src='https://via.placeholder.com/300'">
+            <div class="image-box" onclick="openPopup('${imgSrc}')">
+                <img src="${imgSrc}" onerror="this.onerror=null;this.src='https://via.placeholder.com/300?text=No+Image';">
             </div>
             <div style="padding:15px;">
-                <span style="color:var(--miniso-red); font-weight:800; font-size:11px;">${p.c}</span>
+                <span style="color:var(--miniso-red); font-weight:800; font-size:11px;">${p.c || ''}</span>
                 <h3 style="margin:5px 0 15px 0;">${p.n}</h3>
                 <div class="price-grid">
-                    <div class="price-item"><small>REGULER</small><b style="color:var(--miniso-red); display:block;">Rp${p.r.toLocaleString('id-ID')}</b></div>
-                    <div class="price-item"><small>STREET</small><b style="display:block;">Rp${p.s.toLocaleString('id-ID')}</b></div>
+                    <div class="price-item"><small>REGULER</small><b style="color:var(--miniso-red); display:block;">Rp${(p.r || 0).toLocaleString('id-ID')}</b></div>
+                    <div class="price-item"><small>STREET</small><b style="display:block;">Rp${(p.s || 0).toLocaleString('id-ID')}</b></div>
                 </div>
                 <div class="barcode-box"><img src="${barcodeApi}" style="max-width:100%"><div style="font-weight:700; margin-top:5px;">${q}</div></div>
                 <button onclick="backToPrev()" style="width:100%; margin-top:20px; padding:16px; border:none; background:var(--miniso-red); border-radius:12px; font-weight:bold; color:white;">KEMBALI</button>

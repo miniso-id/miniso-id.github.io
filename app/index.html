@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>MMS-X</title>
+    <title>MMS-X Pro Edition</title>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
     <style>
         :root {
@@ -50,13 +50,13 @@
         }
         .search-container { position: relative; flex-grow: 1; display: flex; align-items: center; }
         #searchInput {
-            width: 100%; height: 42px; padding: 0 80px 0 15px; font-size: 15px;
+            width: 100%; height: 42px; padding: 0 50px 0 15px; font-size: 15px;
             border: 2px solid #eee; border-radius: 10px; outline: none; background: #f9f9f9;
         }
         #scanBtn {
             background: var(--miniso-red); color: white; border: none;
-            width: 34px; height: 34px; border-radius: 8px; cursor: pointer;
-            position: absolute; right: 5px; display: flex; align-items: center; justify-content: center;
+            width: 38px; height: 38px; border-radius: 10px; cursor: pointer;
+            position: absolute; right: 2px; display: flex; align-items: center; justify-content: center;
         }
 
         /* --- SCANNER VIEW (1080p) --- */
@@ -104,7 +104,6 @@
         .p-curr { font-size: 26px; font-weight: 800; color: var(--miniso-red); }
         .p-old { font-size: 16px; color: #bbb; text-decoration: line-through; }
         
-        /* --- META TABLE SPLIT --- */
         .p-meta { border-top: 1px solid #eee; padding-top: 15px; }
         .meta-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; align-items: center; }
         .meta-label { color: #888; display: flex; align-items: center; gap: 5px; }
@@ -138,7 +137,15 @@
             <button class="menu-toggle" id="menuToggle">☰</button>
             <div class="search-container">
                 <input id="searchInput" placeholder="Syncing Database..." disabled>
-                <button id="scanBtn" disabled>🔍</button>
+                <button id="scanBtn" disabled title="Buka Kamera">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+                        <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                        <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+                        <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                    </svg>
+                </button>
             </div>
         </div>
 
@@ -172,18 +179,18 @@
     let history = [];
     let scanning = false;
 
-    // --- 1. DATA LOAD ---
+    // --- 1. DATA LOAD (No Changes) ---
     fetch("https://miniso-id.github.io/product/products.json").then(r => r.json()).then(data => {
         data.forEach(p => { if(p.b) p.b.split("/").forEach(c => barcodeIndex.set(c.trim(), p)); });
         input.disabled = false; scanBtn.disabled = false; input.placeholder = "Ketik / Scan Barcode...";
     });
 
-    // --- 2. SIDEBAR LOGIC ---
+    // --- 2. SIDEBAR LOGIC (No Changes) ---
     document.getElementById('menuToggle').onclick = () => sidebar.classList.toggle('active');
     overlay.onclick = () => sidebar.classList.remove('active');
     sidebar.querySelectorAll('a').forEach(a => a.onclick = () => sidebar.classList.remove('active'));
 
-    // --- 3. SCANNER LOGIC ---
+    // --- 3. SCANNER LOGIC (Fixed High-Res Settings) ---
     input.oninput = (e) => search(e.target.value);
 
     reader.onclick = async () => {
@@ -222,6 +229,11 @@
             Quagga.start();
             document.getElementById("cameraControl").style.display = "block";
             updateCameraList();
+            
+            const track = Quagga.CameraAccess.getActiveTrack();
+            if (track && track.applyConstraints) {
+                track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
+            }
         });
     }
 
@@ -249,7 +261,7 @@
         }
     });
 
-    // --- 4. RENDER LENGKAP DENGAN SPLIT PROMO ---
+    // --- 4. RENDER WITH SPLIT PROMO (No Changes) ---
     function search(q) {
         q = q.trim();
         if(!q || !barcodeIndex.has(q)) { result.innerHTML = ""; return; }
@@ -276,10 +288,7 @@
                     </div>
 
                     <div class="p-meta">
-                        <div class="meta-row">
-                            <span class="meta-label">Barcode</span>
-                            <span class="meta-val">${q}</span>
-                        </div>
+                        <div class="meta-row"><span class="meta-label">Barcode</span><span class="meta-val">${q}</span></div>
                         <div class="meta-row">
                             <span class="meta-label"><span class="dot" style="background:var(--promo-blue)"></span> Regular Promo</span>
                             <span class="meta-val" style="color:var(--promo-blue)">${p.rp}</span>

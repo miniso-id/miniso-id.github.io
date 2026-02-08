@@ -80,10 +80,14 @@
         #searchInput { width: 100%; height: 44px; padding: 0 45px 0 15px; border: 1.5px solid #eee; border-radius: 12px; outline: none; background: #f5f5f7; }
         #scanBtn { background: var(--miniso-red); color: white; border: none; width: 36px; height: 36px; border-radius: 9px; position: absolute; right: 4px; top: 4px; display: flex; align-items: center; justify-content: center; }
 
-        /* --- SCANNER (REFINED CONFIG) --- */
+        /* --- SCANNER --- */
         #reader { display:none; width:100%; max-width:350px; aspect-ratio:1/1; margin:10px auto 20px; border-radius:24px; overflow:hidden; position:relative; border: 4px solid white; box-shadow: var(--shadow-soft); }
         #reader video { width: 100%; height: 100%; object-fit: cover; }
         .focus-guide { position: absolute; inset: 20%; border: 2px solid rgba(255,255,255,0.5); border-radius: 20px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.5); }
+        
+        /* Camera Selector Style */
+        #cameraSelector { display: none; width: 100%; max-width: 350px; margin: 0 auto 15px; }
+        #videoSource { width: 100%; padding: 12px; border-radius: 12px; border: 2px solid var(--miniso-red); background: white; font-weight: bold; color: var(--miniso-red); outline: none; }
 
         /* --- LIST & ITEMS --- */
         .search-item { padding: 12px; border-radius: 16px; background: white; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #f0f0f0; }
@@ -151,6 +155,11 @@
                 </div>
 
                 <div id="reader"><div class="focus-guide"></div></div>
+                
+                <div id="cameraSelector">
+                    <select id="videoSource"></select>
+                </div>
+
                 <div id="countDisplay" style="font-size:12px; color:#8e8e93; margin-bottom:10px; font-weight:600;"></div>
             </div>
 
@@ -180,6 +189,8 @@
     const input = document.getElementById("searchInput"), catFilter = document.getElementById("catFilter");
     const listContainer = document.getElementById("listContainer"), detailContainer = document.getElementById("detailContainer");
     const scrollContainer = document.getElementById("scrollContainer"), reader = document.getElementById("reader");
+    const videoSource = document.getElementById("videoSource");
+    const cameraSelector = document.getElementById("cameraSelector");
 
     function initApp() {
         if(sessionStorage.getItem("isLoggedIn") !== "true") return;
@@ -206,11 +217,14 @@
         document.getElementById("overlay").classList.toggle("active"); 
     }
 
-    // --- SCANNER: REFINED SETTINGS ---
+    // --- SCANNER LOGIC ---
     document.getElementById("scanBtn").onclick = () => { if (scanning) { stopScan(); return; } startScan(); };
 
-    async function startScan() {
-        scanning = true; reader.style.display = "block";
+    async function startScan(deviceId = null) {
+        scanning = true; 
+        reader.style.display = "block";
+        cameraSelector.style.display = "none";
+
         Quagga.init({
             inputStream: { 
                 type: "LiveStream", 
@@ -218,7 +232,8 @@
                 constraints: { 
                     width: 1920, 
                     height: 1080, 
-                    facingMode: "environment" // Paksa kamera belakang
+                    deviceId: deviceId ? { exact: deviceId } : undefined,
+                    facingMode: deviceId ? undefined : "environment" 
                 },
                 area: { top: "20%", right: "20%", left: "20%", bottom: "20%" } 
             },
@@ -227,17 +242,35 @@
         }, (err) => {
             if (err) { stopScan(); return; }
             Quagga.start();
+            initCameraList(); // Load daftar kamera setelah Quagga aktif
         });
     }
 
-    function stopScan() { Quagga.stop(); scanning = false; reader.style.display = "none"; }
+    async function initCameraList() {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const backCameras = devices.filter(d => d.kind === 'videoinput');
+        
+        if (backCameras.length > 1) {
+            cameraSelector.style.display = "block";
+            videoSource.innerHTML = backCameras.map((d, i) => 
+                `<option value="${d.deviceId}" ${i === 0 ? 'selected' : ''}>Kamera Belakang ${i + 1}</option>`
+            ).join("");
+        }
+    }
+
+    videoSource.onchange = () => {
+        Quagga.stop();
+        startScan(videoSource.value);
+    };
+
+    function stopScan() { Quagga.stop(); scanning = false; reader.style.display = "none"; cameraSelector.style.display = "none"; }
 
     Quagga.onDetected(res => {
         const code = res.codeResult.code;
         if(barcodeIndex.has(code)) { document.getElementById("beepOk").play().catch(()=>{}); stopScan(); input.value = code; showDetail(barcodeIndex.get(code), code); }
     });
 
-    // --- SEARCH & LOGIC ---
+    // --- SEARCH & UI LOGIC ---
     input.oninput = () => renderResults();
     catFilter.onchange = () => renderResults();
 

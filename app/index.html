@@ -98,7 +98,6 @@
         .p-title { font-size: 18px; font-weight: 700; margin: 0 0 5px 0; color: #111; }
         .p-desc { font-size: 13px; color: #666; margin-bottom: 15px; }
 
-        /* --- HARGA SIDE BY SIDE --- */
         .price-comparison-grid {
             display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px;
         }
@@ -193,7 +192,12 @@
         Quagga.init({
             inputStream: {
                 type: "LiveStream", target: reader,
-                constraints: { width: { ideal: 1920 }, height: { ideal: 1080 }, deviceId: deviceId, facingMode: "environment" },
+                constraints: { 
+                    width: { ideal: 1920 }, 
+                    height: { ideal: 1080 }, 
+                    deviceId: deviceId, 
+                    facingMode: "environment" // Ini memprioritaskan kamera belakang
+                },
                 area: { top: "20%", right: "20%", left: "20%", bottom: "20%" }
             },
             decoder: { readers: ["ean_reader", "code_128_reader"] }
@@ -207,8 +211,19 @@
 
     async function updateCameraList() {
         const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(d => d.kind === 'videoinput');
-        videoSource.innerHTML = videoDevices.map(d => `<option value="${d.deviceId}">${d.label || 'Kamera'}</option>`).join("");
+        // Filter: Hanya ambil input video yang labelnya TIDAK mengandung kata 'front', 'user', atau 'depan'
+        const videoDevices = devices.filter(d => {
+            const label = d.label.toLowerCase();
+            return d.kind === 'videoinput' && 
+                   !label.includes('front') && 
+                   !label.includes('user') && 
+                   !label.includes('depan');
+        });
+
+        // Jika filter menghasilkan list kosong (misal pada PC), tampilkan semua saja
+        const finalDevices = videoDevices.length > 0 ? videoDevices : devices.filter(d => d.kind === 'videoinput');
+
+        videoSource.innerHTML = finalDevices.map(d => `<option value="${d.deviceId}">${d.label || 'Back Camera'}</option>`).join("");
     }
 
     videoSource.onchange = () => { Quagga.stop(); startScan(videoSource.value); };
@@ -224,14 +239,13 @@
 
     input.oninput = (e) => search(e.target.value);
 
-    // --- RENDER LOGIC (Dual Price + Extra Promo) ---
+    // --- RENDER LOGIC ---
     function search(q) {
         q = q.trim();
         if(!q || !barcodeIndex.has(q)) { result.innerHTML = ""; return; }
         const p = barcodeIndex.get(q);
         addHistory(q);
 
-        // EXTRA PROMO (e)
         const discountLabel = (p.e && p.e !== "NORMAL PRICE") ? `<div class="promo-badge">${p.e}</div>` : "";
 
         result.innerHTML = `
@@ -243,7 +257,7 @@
                 <div class="p-info">
                     <span class="p-cat">${p.c}</span>
                     <h3 class="p-title">${p.n}</h3>
-                    <p class="p-desc">${p.d}</p>
+                    <p class="p-desc">${p.d || ''}</p>
                     
                     <div class="price-comparison-grid">
                         <div class="price-item reg">

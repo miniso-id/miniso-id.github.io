@@ -3,42 +3,63 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MMS-X Red Edition</title>
+<title>MMS-X Miniso Edition</title>
 
 <link rel="stylesheet" href="style.css">
 <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 
 <style>
-/* ================= PALET WARNA MERAH PASTEL ================= */
+/* ================= PALET WARNA MINISO RED ================= */
 :root {
-  --primary-red: #ffbaba; /* Warna Request Anda */
-  --dark-red: #ff7b7b;    /* Untuk aksen tombol */
-  --soft-red: #fff5f5;    /* Untuk background halus */
-  --text-color: #444;
+  --miniso-red: #e61523; /* Warna Request Anda */
+  --miniso-soft: #fff1f2;
+  --text-dark: #333;
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #fdf8f8; color: var(--text-color); }
+body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; overflow: hidden; background: #fdfdfd; color: var(--text-dark); }
 
 .app-wrapper { display: flex; height: 100vh; width: 100%; }
 
-/* ================= SIDEBAR (MERAH PASTEL) ================= */
+/* ================= SIDEBAR (MINISO RED) ================= */
 .sidebar {
   width: 250px;
-  background-color: var(--primary-red);
-  color: #a43a3a; /* Teks merah gelap agar kontras */
+  background-color: var(--miniso-red);
+  color: #fff; /* Putih agar kontras */
   display: flex;
   flex-direction: column;
   padding: 20px;
   transition: transform 0.3s ease;
   z-index: 1001;
   flex-shrink: 0;
-  box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+  box-shadow: 2px 0 10px rgba(0,0,0,0.1);
 }
 
-.sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.6); padding-bottom: 15px; }
-.sidebar a { text-decoration: none; color: #a43a3a; padding: 12px 15px; margin-bottom: 5px; border-radius: 6px; display: block; font-weight: 600; }
-.sidebar a:hover, .sidebar a.active-link { background-color: white; color: var(--dark-red); }
+.sidebar h2 { 
+    text-align: center; 
+    margin-bottom: 30px; 
+    font-size: 1.4rem; 
+    font-weight: 800;
+    letter-spacing: 1px;
+    border-bottom: 2px solid rgba(255,255,255,0.2); 
+    padding-bottom: 15px; 
+}
+
+.sidebar a { 
+    text-decoration: none; 
+    color: rgba(255,255,255,0.9); 
+    padding: 12px 15px; 
+    margin-bottom: 8px; 
+    border-radius: 8px; 
+    display: block; 
+    font-weight: 500; 
+    transition: 0.2s;
+}
+
+.sidebar a:hover, .sidebar a.active-link { 
+    background-color: rgba(255,255,255,0.2); 
+    color: #fff; 
+}
 
 .main-content { flex: 1; padding: 15px; overflow-y: auto; position: relative; width: 100%; }
 
@@ -46,22 +67,22 @@ body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hid
 .top-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 15px;
   background: white;
-  padding: 8px;
+  padding: 10px;
   border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 
 .menu-toggle {
-  background: var(--soft-red);
-  color: var(--dark-red);
+  background: var(--miniso-soft);
+  color: var(--miniso-red);
   border: none;
-  width: 40px;
-  height: 40px;
-  font-size: 18px;
-  border-radius: 8px;
+  width: 42px;
+  height: 42px;
+  font-size: 20px;
+  border-radius: 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -72,58 +93,74 @@ body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hid
 
 #searchInput {
   width: 100%;
-  height: 40px;
-  padding: 0 75px 0 12px;
-  font-size: 14px;
-  border: 1.5px solid var(--primary-red);
-  border-radius: 8px;
+  height: 42px;
+  padding: 0 80px 0 15px;
+  font-size: 15px;
+  border: 2px solid #eee;
+  border-radius: 10px;
   outline: none;
-  background: #fff;
+  background: #f9f9f9;
+  transition: 0.3s;
 }
 
-#searchInput:focus { border-color: var(--dark-red); box-shadow: 0 0 5px var(--primary-red); }
+#searchInput:focus { 
+    border-color: var(--miniso-red); 
+    background: #fff;
+    box-shadow: 0 0 8px rgba(230, 21, 35, 0.1);
+}
 
-.input-actions { position: absolute; right: 5px; display: flex; align-items: center; gap: 8px; }
+.input-actions { position: absolute; right: 6px; display: flex; align-items: center; gap: 8px; }
 
-#clearBtn { cursor: pointer; color: #ccc; display: none; padding: 5px; }
+#clearBtn { cursor: pointer; color: #bbb; display: none; padding: 5px; font-size: 18px; }
 
-/* Tombol Scan Menggunakan Merah Terang */
 #scanBtn {
-  background: var(--dark-red);
+  background: var(--miniso-red);
   color: white;
   border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 2px 6px rgba(230, 21, 35, 0.3);
 }
 
-#scanBtn:disabled { background: #eee; color: #bbb; }
+#scanBtn:disabled { background: #eee; color: #bbb; box-shadow: none; }
 
 /* ================= SCANNER & RESULT ================= */
 #reader {
-  display:none; width:100%; max-width:320px; aspect-ratio:1/1;
-  margin:10px auto; background:#000; border-radius:15px;
+  display:none; width:100%; max-width:340px; aspect-ratio:1/1;
+  margin:15px auto; background:#000; border-radius:20px;
   overflow:hidden; position:relative;
+  border: 4px solid white;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
 }
+
 #reader::after {
   content:""; position:absolute; inset:20%; 
-  border:2px solid var(--dark-red); border-radius:10px; pointer-events:none;
+  border:2.5px solid var(--miniso-red); border-radius:15px; pointer-events:none;
 }
 
 .card {
-    background: white; padding: 12px; margin-bottom: 10px;
-    border-radius: 12px; border-left: 4px solid var(--dark-red);
-    display: flex; gap: 12px; align-items: center;
+    background: white; padding: 15px; margin-bottom: 12px;
+    border-radius: 15px; border-left: 5px solid var(--miniso-red);
+    display: flex; gap: 15px; align-items: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 
+.card img { width: 65px; height: 65px; object-fit: contain; border-radius: 8px; }
+
+#history { margin-bottom: 15px; }
 #history span {
-  padding: 5px 12px; background: var(--primary-red); color: white;
-  border-radius: 20px; font-size: 11px; cursor: pointer; margin-right: 5px; margin-bottom: 5px; display: inline-block;
+  padding: 6px 14px; background: white; color: var(--miniso-red);
+  border: 1px solid var(--miniso-red);
+  border-radius: 20px; font-size: 12px; cursor: pointer; 
+  margin-right: 6px; margin-bottom: 8px; display: inline-block;
+  font-weight: 600; transition: 0.2s;
 }
+#history span:hover { background: var(--miniso-red); color: white; }
 
 @media (max-width: 768px) {
   .sidebar { position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); }
@@ -135,7 +172,7 @@ body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hid
 <body>
     <div class="app-wrapper">
         <nav class="sidebar" id="sidebar">
-            <h2>MMS-X</h2>
+            <h2>MINISO</h2>
             <a href="#" class="active-link" onclick="closeSidebarOnly()">📸 Price Check</a>
             <a href="#">📦 Stock Opname</a>
             <a href="#">📝 List Barang</a>
@@ -146,15 +183,16 @@ body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hid
             <div class="top-bar">
                 <button class="menu-toggle" id="menuToggle">☰</button>
                 <div class="search-container">
-                    <input id="searchInput" placeholder="Loading data..." disabled>
+                    <input id="searchInput" placeholder="Scan / Cari Produk..." disabled>
                     <div class="input-actions">
                         <span id="clearBtn">✕</span>
                         <button id="scanBtn" title="Scan Barcode" disabled>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                         </button>
                     </div>
                 </div>
             </div>
+
             <div id="reader"></div>
             <div id="history"></div>
             <div id="result"></div>
@@ -165,8 +203,7 @@ body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hid
     <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
     <script>
-        /* SCRIPT SAMA SEPERTI SEBELUMNYA (Data Fetch, Search, & Quagga) */
-        // ... (Tempelkan semua script dari respon sebelumnya di sini) ...
+        /* SEMUA LOGIKA DATA & SCANNER DIJAGA AGAR TETAP BERFUNGSI */
         const sidebar = document.getElementById('sidebar');
         const menuToggle = document.getElementById('menuToggle');
         const input=document.getElementById("searchInput");
@@ -212,11 +249,11 @@ body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hid
         function render(list){
           result.innerHTML = list.map(p => `
             <div class="card">
-              <img src="${p.i}" alt="${p.n}" onerror="this.src='https://via.placeholder.com/60?text=No+Img'">
+              <img src="${p.i}" alt="${p.n}" onerror="this.src='https://via.placeholder.com/65?text=No+Img'">
               <div class="info">
-                <b style="display:block; font-size:14px; margin-bottom:2px;">${p.n}</b>
-                <div style="font-size:11px; color:#999; margin-bottom:5px;">BC: ${p.b}</div>
-                <div style="font-size:13px; color:#c0392b;">Harga: <b>Rp${p.r.toLocaleString()}</b></div>
+                <b style="display:block; font-size:15px; margin-bottom:4px; color:#111;">${p.n}</b>
+                <div style="font-size:11px; color:#999; margin-bottom:6px;">BC: ${p.b}</div>
+                <div style="font-size:14px; color:var(--miniso-red); font-weight:700;">Harga: Rp${p.r.toLocaleString()}</div>
               </div>
             </div>
           `).join("");
@@ -228,7 +265,7 @@ body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hid
           historyDiv.innerHTML=history.map(h=>`<span onclick="input.value='${h}'; search('${h}')">${h}</span>`).join("");
         }
 
-        /* KAMERA LOGIC */
+        /* KAMERA LOGIC (QUAGGA) */
         let scanning=false,lastCode="",stableCount=0;
         let zoomLevel=2,zoomMin=1,zoomMax=3,lastZoomAdjust=0;
 

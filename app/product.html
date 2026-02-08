@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <link rel="manifest" href="manifest.json">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MMS-X (beta)</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MMS-X">
+    <link rel="apple-touch-icon" href="https://miniso-id.github.io/app/icon.png">
+
+    <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
+    <style>
+        :root {
+            --miniso-red: #e61523;
+            --miniso-soft: #fff1f2;
+            --text-dark: #333;
+            --promo-blue: #007bff;
+            --promo-green: #28a745;
+            --bg-gray: #f8f9fa;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #fdfdfd; color: var(--text-dark); }
+
+        .app-wrapper { display: flex; height: 100vh; width: 100%; position: relative; }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 250px; background-color: var(--miniso-red); color: #fff;
+            display: flex; flex-direction: column; padding: 20px;
+            transition: transform 0.3s ease; z-index: 2000; flex-shrink: 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        .sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 1.4rem; font-weight: 800; border-bottom: 2px solid rgba(255,255,255,0.2); padding-bottom: 15px; }
+        .sidebar a { text-decoration: none; color: #fff; padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; display: block; font-weight: 500; }
+        .sidebar a:hover, .sidebar a.active-link { background-color: rgba(255,255,255,0.2); }
+
+        #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1500; }
+        .main-content { flex: 1; padding: 15px; overflow-y: auto; position: relative; z-index: 100; }
+
+        /* --- TOP BAR --- */
+        .top-bar-container { background: white; padding: 10px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 15px; }
+        .top-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        
+        /* Filter Row */
+        .filter-row { display: flex; gap: 8px; }
+        #catFilter { 
+            flex: 1; height: 35px; border-radius: 8px; border: 1px solid #ddd; 
+            padding: 0 10px; font-size: 12px; background: var(--bg-gray); font-weight: 600;
+        }
+
+        .menu-toggle {
+            background: var(--miniso-soft); color: var(--miniso-red); border: none;
+            width: 42px; height: 42px; font-size: 20px; border-radius: 10px; cursor: pointer;
+        }
+        .search-container { position: relative; flex-grow: 1; display: flex; align-items: center; }
+        #searchInput {
+            width: 100%; height: 42px; padding: 0 50px 0 15px; font-size: 14px;
+            border: 2px solid #eee; border-radius: 10px; outline: none; background: #f9f9f9;
+        }
+        #scanBtn {
+            background: var(--miniso-red); color: white; border: none;
+            width: 38px; height: 38px; border-radius: 10px; cursor: pointer;
+            position: absolute; right: 2px; display: flex; align-items: center; justify-content: center;
+        }
+
+        /* --- UI COMPONENTS --- */
+        #reader { display:none; width:100%; max-width:340px; aspect-ratio:1/1; margin:15px auto; background:#000; border-radius:20px; overflow:hidden; position:relative; border: 4px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+        #reader video { width: 100%; height: 100%; object-fit: cover; }
+        .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
+
+        .search-results-list { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        .search-item { padding: 12px 15px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; flex-direction: column; }
+        .search-item:active { background: #f0f0f0; }
+        .search-item .item-n { font-size: 14px; font-weight: 700; color: #111; }
+        .search-item .item-meta { font-size: 11px; color: #888; margin-top: 3px; display: flex; gap: 10px; }
+
+        /* --- PRODUCT CARD --- */
+        .product-card { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .image-box { background: #fff; text-align: center; padding: 15px; position: relative; border-bottom: 1px solid #f9f9f9; }
+        .image-box img { max-width: 100%; height: 200px; object-fit: contain; }
+        .p-info { padding: 20px; }
+        .p-cat { font-size: 11px; font-weight: 800; color: var(--miniso-red); text-transform: uppercase; display: block; }
+        .p-title { font-size: 18px; font-weight: 700; margin: 5px 0; color: #111; line-height: 1.3; }
+        .p-detail-cat { font-size: 13px; color: #666; font-weight: 500; margin-bottom: 15px; display: block; }
+
+        .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .price-item { background: var(--bg-gray); padding: 12px 10px; border-radius: 12px; border-bottom: 3px solid #ddd; }
+        .price-item.is-regular { border-bottom-color: var(--miniso-red); }
+        .price-item.is-street { border-bottom-color: var(--promo-green); background: #f0fdf4; }
+        .price-label { font-size: 10px; color: #777; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 4px; }
+        .price-val { font-size: 16px; font-weight: 800; }
+
+        .p-meta { border-top: 1px solid #eee; padding-top: 15px; }
+        .meta-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; }
+        .meta-val { font-weight: 700; }
+
+        #history { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
+        #history span { padding: 6px 12px; background: #fff; border: 1px solid #eee; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: 600; }
+
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); }
+            .sidebar.active { transform: translateX(0); }
+            .sidebar.active ~ #overlay { display: block; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-wrapper">
+    <nav class="sidebar" id="sidebar">
+        <h2>MMS-X (beta)</h2>
+        <a href="#" class="active-link">📸 Price Check</a>
+        <a href="#">📦 Stock Opname</a>
+        <a href="#">📝 List Barang</a>
+    </nav>
+    <div id="overlay"></div>
+
+    <main class="main-content">
+        <div class="top-bar-container">
+            <div class="top-bar">
+                <button class="menu-toggle" id="menuToggle">☰</button>
+                <div class="search-container">
+                    <input id="searchInput" placeholder="Loading Data..." disabled>
+                    <button id="scanBtn" disabled>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="filter-row">
+                <select id="catFilter">
+                    <option value="">Semua Kategori</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="reader">
+            <div class="focus-guide"></div>
+        </div>
+        <div id="cameraControl" style="display:none; text-align:center; margin-bottom:20px;">
+            <select id="videoSource" style="padding:8px; border-radius:8px; width:100%; max-width:300px;"></select>
+        </div>
+        <div id="history"></div>
+        <div id="result"></div>
+    </main>
+</div>
+
+<audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
+
+<script>
+    const input = document.getElementById("searchInput");
+    const catFilter = document.getElementById("catFilter");
+    const result = document.getElementById("result");
+    const historyDiv = document.getElementById("history");
+    
+    let allProducts = [];
+    let barcodeIndex = new Map();
+    let history = [];
+    let scanning = false;
+
+    // 1. LOAD DATA & BUILD CATEGORY FILTER
+    fetch("https://miniso-id.github.io/product/products.json").then(r => r.json()).then(data => {
+        allProducts = data;
+        const categories = new Set();
+
+        data.forEach(p => { 
+            if(p.b) p.b.split("/").forEach(c => barcodeIndex.set(c.trim(), p)); 
+            if(p.c) categories.add(p.c);
+        });
+
+        // Isi dropdown kategori
+        Array.from(categories).sort().forEach(cat => {
+            const opt = document.createElement("option");
+            opt.value = cat; opt.textContent = cat;
+            catFilter.appendChild(opt);
+        });
+
+        input.disabled = false; document.getElementById("scanBtn").disabled = false;
+        input.placeholder = "Barcode / Nama Produk...";
+    });
+
+    // 2. SEARCH LOGIC (NAME + CATEGORY FILTER)
+    input.oninput = () => performSearch();
+    catFilter.onchange = () => performSearch();
+
+    function performSearch() {
+        const q = input.value.trim().toLowerCase();
+        const selectedCat = catFilter.value;
+        
+        if(!q && !selectedCat) { result.innerHTML = ""; return; }
+
+        // A. Jika Barcode murni (hanya angka & ditemukan di index)
+        if(barcodeIndex.has(q)) {
+            showDetail(barcodeIndex.get(q), q);
+            return;
+        }
+
+        // B. Jika Pencarian Nama
+        let filtered = allProducts;
+        if(selectedCat) filtered = filtered.filter(p => p.c === selectedCat);
+        if(q) filtered = filtered.filter(p => p.n && p.n.toLowerCase().includes(q));
+
+        const matches = filtered.slice(0, 5); // Limit 5 hasil
+
+        if(matches.length > 0) {
+            let listHtml = '<div class="search-results-list">';
+            matches.forEach(p => {
+                const b = p.b ? p.b.split("/")[0].trim() : "N/A";
+                listHtml += `
+                    <div class="search-item" onclick="selectFromList('${b}')">
+                        <span class="item-n">${p.n}</span>
+                        <div class="item-meta">
+                            <span>📦 ${p.c}</span>
+                            <span># ${b}</span>
+                        </div>
+                    </div>`;
+            });
+            result.innerHTML = listHtml + '</div>';
+        } else {
+            result.innerHTML = "<p style='text-align:center; padding:20px; color:#999;'>Produk tidak ditemukan</p>";
+        }
+    }
+
+    window.selectFromList = (barcode) => {
+        input.value = barcode;
+        showDetail(barcodeIndex.get(barcode), barcode);
+    };
+
+    // 3. SHOW DETAIL CARD
+    function showDetail(p, q) {
+        addHistory(q);
+        const promo = (p.e && p.e !== "NORMAL PRICE") ? `<div style="position:absolute; top:10px; left:10px; background:#ff9800; color:white; padding:4px 8px; border-radius:5px; font-size:10px; font-weight:bold;">${p.e}</div>` : "";
+        
+        result.innerHTML = `
+            <div class="product-card">
+                <div class="image-box">${promo}<img src="${p.i}" onerror="this.src='https://via.placeholder.com/300?text=MINISO'"></div>
+                <div class="p-info">
+                    <span class="p-cat">${p.c}</span>
+                    <h3 class="p-title">${p.n}</h3>
+                    <span class="p-detail-cat">${p.d}</span>
+                    <div class="price-grid">
+                        <div class="price-item is-regular"><span class="price-label">Reguler</span><span class="price-val" style="color:var(--miniso-red)">Rp${p.r.toLocaleString('id-ID')}</span></div>
+                        <div class="price-item is-street"><span class="price-label">Street</span><span class="price-val">Rp${p.s.toLocaleString('id-ID')}</span></div>
+                    </div>
+                    <div class="p-meta">
+                        <div class="meta-row"><span style="color:#888">Barcode</span><span class="meta-val">${q}</span></div>
+                        <div class="meta-row"><span style="color:#888">Reg Promo</span><span class="meta-val" style="color:var(--promo-blue)">${p.rp}</span></div>
+                        <div class="meta-row"><span style="color:#888">Street Promo</span><span class="meta-val" style="color:var(--promo-green)">${p.sp}</span></div>
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    function addHistory(code) {
+        if(history.includes(code)) return;
+        history.unshift(code); if(history.length > 5) history.pop();
+        historyDiv.innerHTML = history.map(h => `<span onclick="input.value='${h}'; performSearch()">${h}</span>`).join("");
+    }
+
+    // 4. SCANNER (PERSISTENT FEATURE)
+    const scanBtn = document.getElementById("scanBtn");
+    const reader = document.getElementById("reader");
+    scanBtn.onclick = () => { if(scanning) { Quagga.stop(); scanning=false; reader.style.display="none"; } else { startScan(); } };
+
+    async function startScan() {
+        scanning = true; reader.style.display = "block";
+        Quagga.init({
+            inputStream: { type: "LiveStream", target: reader, constraints: { width: 1920, height: 1080, facingMode: "environment" } },
+            decoder: { readers: ["ean_reader", "code_128_reader"] }
+        }, (err) => { 
+            if(err) return; 
+            Quagga.start(); 
+        });
+    }
+
+    Quagga.onDetected(res => {
+        const code = res.codeResult.code;
+        if(barcodeIndex.has(code)) {
+            document.getElementById("beepOk").play();
+            Quagga.stop(); scanning=false; reader.style.display="none";
+            input.value = code; performSearch();
+        }
+    });
+
+    document.getElementById('menuToggle').onclick = () => sidebar.classList.toggle('active');
+    overlay.onclick = () => sidebar.classList.remove('active');
+</script>
+</body>
+</html>

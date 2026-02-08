@@ -15,7 +15,6 @@
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 
     <style>
-        /* ================= PALET WARNA MINISO RED ================= */
         :root {
             --miniso-red: #e61523;
             --miniso-soft: #fff1f2;
@@ -27,17 +26,10 @@
 
         .app-wrapper { display: flex; height: 100vh; width: 100%; }
 
-        /* ================= SIDEBAR ================= */
         .sidebar {
-            width: 250px;
-            background-color: var(--miniso-red);
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            transition: transform 0.3s ease;
-            z-index: 1001;
-            flex-shrink: 0;
+            width: 250px; background-color: var(--miniso-red); color: #fff;
+            display: flex; flex-direction: column; padding: 20px;
+            transition: transform 0.3s ease; z-index: 1001; flex-shrink: 0;
             box-shadow: 2px 0 10px rgba(0,0,0,0.1);
         }
 
@@ -51,13 +43,10 @@
             margin-bottom: 8px; border-radius: 8px; display: block; font-weight: 500; transition: 0.2s;
         }
 
-        .sidebar a:hover, .sidebar a.active-link { 
-            background-color: rgba(255,255,255,0.2); color: #fff; 
-        }
+        .sidebar a:hover, .sidebar a.active-link { background-color: rgba(255,255,255,0.2); color: #fff; }
 
         .main-content { flex: 1; padding: 15px; overflow-y: auto; position: relative; width: 100%; }
 
-        /* ================= TOP BAR ================= */
         .top-bar {
             display: flex; align-items: center; gap: 10px; margin-bottom: 15px;
             background: white; padding: 10px; border-radius: 12px;
@@ -90,7 +79,6 @@
             display: flex; align-items: center; justify-content: center;
         }
 
-        /* ================= SCANNER & CAMERA SELECT ================= */
         #reader {
             display:none; width:100%; max-width:340px; aspect-ratio:1/1;
             margin:15px auto; background:#000; border-radius:20px;
@@ -103,16 +91,13 @@
             border:2.5px solid var(--miniso-red); border-radius:15px; pointer-events:none;
         }
 
-        #cameraControl {
-            display:none; text-align:center; margin: 10px 0 20px 0;
-        }
+        #cameraControl { display:none; text-align:center; margin: 10px 0 20px 0; }
 
         #videoSource {
             padding: 10px; border-radius: 8px; border: 2px solid var(--miniso-red);
             width: 100%; max-width: 300px; background: white; font-weight: 600;
         }
 
-        /* ================= RESULT CARD ================= */
         .card {
             background: white; padding: 15px; margin-bottom: 12px;
             border-radius: 15px; border-left: 5px solid var(--miniso-red);
@@ -163,7 +148,7 @@
             <div id="reader"></div>
 
             <div id="cameraControl">
-                <p style="font-size: 12px; margin-bottom: 5px; color: #666;">Pilih Lensa Jika Blur:</p>
+                <p style="font-size: 12px; margin-bottom: 5px; color: #666;">Pilih Lensa Utama (Bukan Wide):</p>
                 <select id="videoSource"></select>
             </div>
 
@@ -202,7 +187,6 @@
             input.placeholder = "Ketik / Scan Barcode...";
         });
 
-        // Sidebar & UI Logic
         menuToggle.onclick = (e) => { e.stopPropagation(); sidebar.classList.toggle('active'); };
         function closeSidebarOnly() { if(window.innerWidth <= 768) sidebar.classList.remove('active'); }
         document.addEventListener('click', (e) => {
@@ -211,7 +195,6 @@
             }
         });
 
-        // Search Logic
         input.oninput = e => { clearBtn.style.display = e.target.value ? "block" : "none"; search(e.target.value); };
         clearBtn.onclick = () => { input.value = ""; result.innerHTML = ""; clearBtn.style.display = "none"; };
 
@@ -244,7 +227,7 @@
 
         /* ================= SCANNER LOGIC ================= */
         let scanning = false, lastCode = "", stableCount = 0;
-        let zoomLevel = 2, zoomMin = 1, zoomMax = 3, lastZoomAdjust = 0;
+        let zoomLevel = 1, zoomMin = 1, zoomMax = 3, lastZoomAdjust = 0;
 
         async function getCameras() {
             const devices = await navigator.mediaDevices.enumerateDevices();
@@ -268,14 +251,25 @@
             Quagga.init({
                 inputStream: {
                     type: "LiveStream", target: reader,
-                    constraints: { deviceId: id ? {exact: id} : undefined, facingMode: id ? undefined : "environment" }
+                    constraints: { 
+                        deviceId: id ? {exact: id} : undefined, 
+                        facingMode: id ? undefined : "environment",
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
                 },
                 decoder: { readers: ["ean_reader", "code_128_reader", "code_39_reader"] },
                 locate: true
             }, err => {
                 if(err){ stopScan(); alert("Kamera error: " + err); return; }
                 Quagga.start();
-                initZoom();
+                // Simpan kapabilitas zoom tapi tidak memaksa zoom (tetap di level awal 1)
+                const track = Quagga.CameraAccess.getActiveTrack();
+                if (track && track.getCapabilities && track.getCapabilities().zoom) {
+                    const caps = track.getCapabilities();
+                    zoomMin = caps.zoom.min; zoomMax = caps.zoom.max;
+                    zoomLevel = zoomMin; // Default ke paling jauh (tanpa zoom)
+                }
             });
         }
 
@@ -284,20 +278,27 @@
             reader.style.display = "none"; cameraControl.style.display = "none";
         }
 
-        function initZoom() {
-            setTimeout(() => {
-                const track = Quagga.CameraAccess.getActiveTrack();
-                if (track && track.getCapabilities && track.getCapabilities().zoom) {
-                    const caps = track.getCapabilities();
-                    zoomMin = caps.zoom.min; zoomMax = caps.zoom.max;
-                    zoomLevel = Math.min(2.2, zoomMax);
-                    track.applyConstraints({ advanced: [{ zoom: zoomLevel }] });
-                }
-            }, 600);
+        // Fitur AutoZoom Pintar (Hanya jalan jika barcode terdeteksi tapi sulit dibaca)
+        function smartZoom(mode) {
+            const now = Date.now(); if(now - lastZoomAdjust < 1000) return;
+            const track = Quagga.CameraAccess.getActiveTrack();
+            if(!track || !track.getCapabilities().zoom) return;
+
+            if(mode === "bad" && zoomLevel < zoomMax) zoomLevel += 0.3;
+            if(mode === "good" && zoomLevel > zoomMin + 0.5) zoomLevel -= 0.1;
+
+            track.applyConstraints({ advanced: [{ zoom: Math.min(zoomLevel, zoomMax) }] });
+            lastZoomAdjust = now;
         }
 
         Quagga.onDetected(res => {
             const code = res.codeResult.code;
+            const decoded = res.codeResult.decodedCodes || [];
+            let avgError = decoded.length ? decoded.reduce((s, d) => s + (d.error || 1), 0) / decoded.length : 1;
+            
+            // Masih menggunakan logika deteksi kualitas untuk membantu fokus jika dibutuhkan
+            if (avgError > 0.4) smartZoom("bad"); 
+
             if (code === lastCode) { stableCount++; } else { lastCode = code; stableCount = 0; }
             if (stableCount >= 3) {
                 stopScan(); input.value = code; search(code);

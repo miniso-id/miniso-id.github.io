@@ -3,37 +3,46 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MMS-X</title>
+<title>MMS-X Blue Edition</title>
 
 <link rel="stylesheet" href="style.css">
 <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 
 <style>
-/* ================= LAYOUT & SIDEBAR ================= */
+/* ================= PALET WARNA BIRU MUDA ================= */
+:root {
+  --primary-blue: #add8e6; /* Biru Muda */
+  --soft-blue: #e3f2fd;
+  --dark-blue: #87ceeb;
+  --text-color: #445;
+}
+
 * { box-sizing: border-box; }
-body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; background: #f4f7f6; }
+body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #f0f7f9; color: var(--text-color); }
 
 .app-wrapper { display: flex; height: 100vh; width: 100%; }
 
+/* ================= SIDEBAR (BIRU MUDA) ================= */
 .sidebar {
   width: 250px;
-  background-color: #1a1a1a;
-  color: #fff;
+  background-color: var(--primary-blue);
+  color: #333;
   display: flex;
   flex-direction: column;
   padding: 20px;
   transition: transform 0.3s ease;
   z-index: 1001;
   flex-shrink: 0;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.05);
 }
 
-.sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 1.2rem; letter-spacing: 2px; border-bottom: 1px solid #333; padding-bottom: 15px; }
-.sidebar a { text-decoration: none; color: #bbb; padding: 12px 15px; margin-bottom: 5px; border-radius: 6px; display: block; transition: 0.2s; }
-.sidebar a:hover, .sidebar a.active-link { background-color: #007bff; color: white; }
+.sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 1.2rem; color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); border-bottom: 1px solid rgba(255,255,255,0.5); padding-bottom: 15px; }
+.sidebar a { text-decoration: none; color: #555; padding: 12px 15px; margin-bottom: 5px; border-radius: 6px; display: block; font-weight: 500; }
+.sidebar a:hover, .sidebar a.active-link { background-color: white; color: var(--dark-blue); }
 
 .main-content { flex: 1; padding: 15px; overflow-y: auto; position: relative; width: 100%; }
 
-/* ================= HEADER COMPACT (FIXED) ================= */
+/* ================= TOP BAR COMPACT ================= */
 .top-bar {
   display: flex;
   align-items: center;
@@ -42,108 +51,79 @@ body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, 
   background: white;
   padding: 8px;
   border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.03);
 }
 
 .menu-toggle {
-  background: #f0f0f0;
-  color: #333;
+  background: var(--soft-blue);
+  color: var(--dark-blue);
   border: none;
   width: 40px;
   height: 40px;
   font-size: 18px;
   border-radius: 8px;
   cursor: pointer;
-  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* SEARCH BOX DENGAN ICON DI DALAM */
-.search-container {
-  position: relative;
-  flex-grow: 1;
-  display: flex;
-  align-items: center;
-}
+.search-container { position: relative; flex-grow: 1; display: flex; align-items: center; }
 
 #searchInput {
   width: 100%;
   height: 40px;
-  padding: 0 75px 0 12px; /* Ruang kanan untuk X dan Scanner */
+  padding: 0 75px 0 12px;
   font-size: 14px;
-  border: 1.5px solid #e0e0e0;
+  border: 1.5px solid var(--soft-blue);
   border-radius: 8px;
   outline: none;
-  background: #fafafa;
+  background: #fff;
 }
 
-#searchInput:focus { border-color: #007bff; background: #fff; }
+#searchInput:focus { border-color: var(--primary-blue); }
 
-.input-actions {
-  position: absolute;
-  right: 5px; /* Jarak dari garis tepi kanan */
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+.input-actions { position: absolute; right: 5px; display: flex; align-items: center; gap: 8px; }
 
-#clearBtn {
-  cursor: pointer;
-  font-size: 16px;
-  color: #ccc;
-  display: none;
-  padding: 5px;
-}
+#clearBtn { cursor: pointer; color: #ccc; display: none; padding: 5px; }
 
+/* Tombol Scan Biru Muda */
 #scanBtn {
-  background: #007bff;
+  background: var(--primary-blue);
   color: white;
   border: none;
-  width: 32px; /* Ukuran tombol lebih kecil */
+  width: 32px;
   height: 32px;
   border-radius: 6px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: 0.2s;
 }
 
-#scanBtn:active { transform: scale(0.9); }
 #scanBtn:disabled { background: #eee; color: #bbb; }
 
 /* ================= SCANNER & RESULT ================= */
 #reader {
-  display:none;
-  width:100%;
-  max-width:320px;
-  aspect-ratio:1/1;
-  margin:10px auto;
-  background:#000;
-  border-radius:15px;
-  overflow:hidden;
-  position:relative;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+  display:none; width:100%; max-width:320px; aspect-ratio:1/1;
+  margin:10px auto; background:#000; border-radius:15px;
+  overflow:hidden; position:relative;
 }
-#reader video { width:100%; height:100%; object-fit:cover; }
 #reader::after {
   content:""; position:absolute; inset:20%; 
-  border:2px solid rgba(0,255,0,0.5); border-radius:10px; pointer-events:none;
+  border:2px solid var(--primary-blue); border-radius:10px; pointer-events:none;
 }
 
 .card {
     background: white; padding: 12px; margin-bottom: 10px;
-    border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    border-radius: 12px; border-left: 4px solid var(--primary-blue);
     display: flex; gap: 12px; align-items: center;
 }
-.card img { width: 60px; height: 60px; object-fit: contain; border-radius: 8px; }
+.card img { width: 60px; height: 60px; object-fit: contain; }
 
-#history { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px; }
 #history span {
-  padding: 5px 12px; background: #eee; color: #666;
-  border-radius: 20px; font-size: 11px; cursor: pointer;
+  padding: 5px 12px; background: var(--soft-blue); color: var(--dark-blue);
+  border-radius: 20px; font-size: 11px; cursor: pointer; margin-right: 5px; margin-bottom: 5px; display: inline-block;
 }
 
 @media (max-width: 768px) {
@@ -165,7 +145,6 @@ body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, 
     </nav>
 
     <main class="main-content" id="mainContent">
-        
         <div class="top-bar">
             <button class="menu-toggle" id="menuToggle">☰</button>
             <div class="search-container">
@@ -180,9 +159,7 @@ body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, 
         </div>
 
         <div id="reader"></div>
-
         <div id="history"></div>
-        
         <div id="result"></div>
     </main>
 </div>
@@ -191,29 +168,9 @@ body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, 
 <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
 <script>
-/* ================= LOGIKA UI & SIDEBAR ================= */
+/* SEMUA LOGIKA JAVASCRIPT TETAP SAMA SEPERTI SEBELUMNYA */
 const sidebar = document.getElementById('sidebar');
 const menuToggle = document.getElementById('menuToggle');
-
-menuToggle.onclick = (e) => {
-    e.stopPropagation();
-    sidebar.classList.toggle('active');
-};
-
-function closeSidebarOnly() {
-    if(window.innerWidth <= 768) sidebar.classList.remove('active');
-}
-
-// Klik luar sidebar untuk menutup
-document.addEventListener('click', (e) => {
-    if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
-        if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
-            sidebar.classList.remove('active');
-        }
-    }
-});
-
-/* ================= LOGIKA CORE (DATA & SEARCH) ================= */
 const input=document.getElementById("searchInput");
 const clearBtn=document.getElementById("clearBtn");
 const scanBtn=document.getElementById("scanBtn");
@@ -223,48 +180,35 @@ const historyDiv=document.getElementById("history");
 const beepOk=document.getElementById("beepOk");
 const beepErr=document.getElementById("beepErr");
 
+menuToggle.onclick = (e) => { e.stopPropagation(); sidebar.classList.toggle('active'); };
+function closeSidebarOnly() { if(window.innerWidth <= 768) sidebar.classList.remove('active'); }
+
+document.addEventListener('click', (e) => {
+    if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+        if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) sidebar.classList.remove('active');
+    }
+});
+
 let barcodeIndex=new Map();
 let history=[];
 let dataReady=false;
 
-// Fetch JSON Anda
 fetch("/product/products.json")
 .then(r=>r.json())
 .then(data=>{
-  data.forEach(p=>{
-    if(p.b){
-      p.b.split("/").forEach(code=>{ barcodeIndex.set(code.trim(),p); });
-    }
-  });
-  dataReady=true;
-  input.disabled=false;
-  scanBtn.disabled=false;
+  data.forEach(p=>{ if(p.b){ p.b.split("/").forEach(code=>{ barcodeIndex.set(code.trim(),p); }); } });
+  dataReady=true; input.disabled=false; scanBtn.disabled=false;
   input.placeholder="Ketik / Scan Barcode...";
 });
 
-input.oninput=e=>{
-  clearBtn.style.display=e.target.value?"block":"none";
-  search(e.target.value);
-};
-
-clearBtn.onclick=()=>{
-  input.value="";
-  result.innerHTML="";
-  clearBtn.style.display="none";
-};
+input.oninput=e=>{ clearBtn.style.display=e.target.value?"block":"none"; search(e.target.value); };
+clearBtn.onclick=()=>{ input.value=""; result.innerHTML=""; clearBtn.style.display="none"; };
 
 function search(q){
-  if(!dataReady)return;
-  q=q.trim();
-  if(!q){ result.innerHTML=""; return; }
+  if(!dataReady)return; q=q.trim(); if(!q){ result.innerHTML=""; return; }
   if(barcodeIndex.has(q)){
-    beepOk.play().catch(e=>{});
-    addHistory(q);
-    render([barcodeIndex.get(q)]);
-  }else{
-    beepErr.play().catch(e=>{});
-    result.innerHTML="";
-  }
+    beepOk.play().catch(e=>{}); addHistory(q); render([barcodeIndex.get(q)]);
+  } else { beepErr.play().catch(e=>{}); result.innerHTML=""; }
 }
 
 function render(list){
@@ -274,7 +218,7 @@ function render(list){
       <div class="info">
         <b style="display:block; font-size:14px; margin-bottom:2px;">${p.n}</b>
         <div style="font-size:11px; color:#999; margin-bottom:5px;">BC: ${p.b}</div>
-        <div style="font-size:13px; color:#333;">Harga: <b>Rp${p.r.toLocaleString()}</b></div>
+        <div style="font-size:13px; color:var(--dark-blue);">Harga: <b>Rp${p.r.toLocaleString()}</b></div>
       </div>
     </div>
   `).join("");
@@ -282,41 +226,27 @@ function render(list){
 
 function addHistory(code){
   if(history.includes(code))return;
-  history.unshift(code);
-  if(history.length>8)history.pop();
+  history.unshift(code); if(history.length>8)history.pop();
   historyDiv.innerHTML=history.map(h=>`<span onclick="input.value='${h}'; search('${h}')">${h}</span>`).join("");
 }
 
-/* ================= KAMERA & QUAGGA (FITUR ASLI) ================= */
+/* KAMERA LOGIC */
 let scanning=false,lastCode="",stableCount=0;
 let zoomLevel=2,zoomMin=1,zoomMax=3,lastZoomAdjust=0;
 
 scanBtn.onclick=()=>{
   if(scanning||!dataReady)return;
-  scanning=true;
-  reader.style.display="block";
-
+  scanning=true; reader.style.display="block";
   Quagga.init({
     inputStream:{
-      type:"LiveStream",
-      target:reader,
-      constraints:{
-        facingMode:{ exact:"environment" },
-        width:{ ideal:1280 }, height:{ ideal:720 },
-        focusMode:"continuous"
-      },
+      type:"LiveStream", target:reader,
+      constraints:{ facingMode:{ exact:"environment" }, width:{ ideal:1280 }, height:{ ideal:720 }, focusMode:"continuous" },
       area:{ top:"20%", right:"20%", left:"20%", bottom:"20%" }
     },
-    decoder:{
-      readers:[ "ean_reader", "code_128_reader", "code_39_reader", "upc_reader", "upc_e_reader" ]
-    },
+    decoder:{ readers:[ "ean_reader", "code_128_reader", "code_39_reader", "upc_reader", "upc_e_reader" ] },
     locate:true
   },err=>{
-    if(err){
-      scanning=false; reader.style.display="none";
-      alert("Izin kamera diperlukan");
-      return;
-    }
+    if(err){ scanning=false; reader.style.display="none"; alert("Izin kamera diperlukan"); return; }
     Quagga.start();
     setTimeout(()=>{
       const track=Quagga.CameraAccess.getActiveTrack();
@@ -327,32 +257,23 @@ scanBtn.onclick=()=>{
         track.applyConstraints({ advanced:[{ zoom:zoomLevel }] });
       }
     },500);
-
     Quagga.onDetected(res=>{
-      const code=res.codeResult.code;
-      const decoded=res.codeResult.decodedCodes||[];
+      const code=res.codeResult.code; const decoded=res.codeResult.decodedCodes||[];
       let avgError = decoded.length ? decoded.reduce((s,d)=>s+(d.error||1),0)/decoded.length : 1;
       const valid = decoded.length>=3 && avgError<0.35;
-
       autoZoom(valid?"good":"bad");
-
       if(code===lastCode){ if(valid) stableCount++; }
       else { lastCode=code; stableCount= valid ? 1 : 0; }
-
       if(stableCount>=2){
-        Quagga.stop();
-        scanning=false;
-        reader.style.display="none";
-        input.value=code;
-        search(code);
+        Quagga.stop(); scanning=false; reader.style.display="none";
+        input.value=code; search(code);
       }
     });
   });
 };
 
 function autoZoom(mode){
-  const now=Date.now();
-  if(now-lastZoomAdjust<1000)return;
+  const now=Date.now(); if(now-lastZoomAdjust<1000)return;
   const track=Quagga.CameraAccess.getActiveTrack();
   if(!track)return;
   if(mode==="bad" && zoomLevel<zoomMax) zoomLevel+=0.2;

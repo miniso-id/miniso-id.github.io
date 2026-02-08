@@ -1,0 +1,11 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "miniso-id.github",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "miniso-id.github",
+  "start_url": "/",
+  "theme_color": "#ffffff"
+}

@@ -4,24 +4,64 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>MMS-X Miniso Edition - Sharp Focus</title>
+    <title>MMS-X Miniso Edition</title>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
     <style>
-        :root { --miniso-red: #e61523; --miniso-soft: #fff1f2; }
-        body { margin: 0; font-family: sans-serif; background: #fdfdfd; }
-        .app-wrapper { padding: 15px; display: flex; flex-direction: column; align-items: center; }
-        
-        /* Area Scanner */
-        #reader { 
-            width: 100%; max-width: 350px; aspect-ratio: 1/1; 
-            background: #000; border-radius: 20px; overflow: hidden; 
-            position: relative; border: 4px solid #fff; box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        :root {
+            --miniso-red: #e61523;
+            --miniso-soft: #fff1f2;
+            --text-dark: #333;
+        }
+
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; overflow: hidden; background: #fdfdfd; color: var(--text-dark); }
+
+        .app-wrapper { display: flex; height: 100vh; width: 100%; }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 250px; background-color: var(--miniso-red); color: #fff;
+            display: flex; flex-direction: column; padding: 20px;
+            transition: transform 0.3s ease; z-index: 1001; flex-shrink: 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        .sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 1.4rem; font-weight: 800; border-bottom: 2px solid rgba(255,255,255,0.2); padding-bottom: 15px; }
+        .sidebar a { text-decoration: none; color: #fff; padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; display: block; font-weight: 500; }
+        .sidebar a:hover, .sidebar a.active-link { background-color: rgba(255,255,255,0.2); }
+
+        .main-content { flex: 1; padding: 15px; overflow-y: auto; position: relative; width: 100%; }
+
+        /* --- NAVBAR / TOP BAR --- */
+        .top-bar {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 15px;
+            background: white; padding: 10px; border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .menu-toggle {
+            background: var(--miniso-soft); color: var(--miniso-red); border: none;
+            width: 42px; height: 42px; font-size: 20px; border-radius: 10px; cursor: pointer;
+        }
+        .search-container { position: relative; flex-grow: 1; display: flex; align-items: center; }
+        #searchInput {
+            width: 100%; height: 42px; padding: 0 80px 0 15px; font-size: 15px;
+            border: 2px solid #eee; border-radius: 10px; outline: none; background: #f9f9f9;
+        }
+        #scanBtn {
+            background: var(--miniso-red); color: white; border: none;
+            width: 34px; height: 34px; border-radius: 8px; cursor: pointer;
+            position: absolute; right: 5px; display: flex; align-items: center; justify-content: center;
+        }
+
+        /* --- SCANNER BOX --- */
+        #reader {
+            display:none; width:100%; max-width:340px; aspect-ratio:1/1;
+            margin:15px auto; background:#000; border-radius:20px;
+            overflow:hidden; position:relative; border: 4px solid white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15); cursor: pointer;
         }
         #reader video { width: 100%; height: 100%; object-fit: cover; }
-
-        /* Bingkai Fokus & Instruksi */
         .focus-guide {
-            position: absolute; inset: 20%; border: 2px solid var(--miniso-red);
+            position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red);
             border-radius: 15px; pointer-events: none; z-index: 2;
         }
         .tap-hint {
@@ -29,67 +69,112 @@
             color: white; font-size: 10px; text-shadow: 1px 1px 2px #000; z-index: 3;
         }
 
-        .controls { width: 100%; max-width: 350px; margin-top: 15px; text-align: center; }
-        #scanBtn { 
-            background: var(--miniso-red); color: white; border: none; 
-            padding: 12px 25px; border-radius: 10px; font-weight: bold; cursor: pointer;
+        #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
+        #videoSource { padding: 10px; border-radius: 8px; border: 2px solid var(--miniso-red); width: 100%; max-width: 300px; }
+
+        /* --- CARDS & HISTORY --- */
+        .card {
+            background: white; padding: 15px; margin-bottom: 12px;
+            border-radius: 15px; border-left: 5px solid var(--miniso-red);
+            display: flex; gap: 15px; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
-        #videoSource { width: 100%; padding: 10px; margin-top: 10px; border-radius: 8px; border: 1px solid #ccc; }
-        #result { margin-top: 20px; width: 100%; max-width: 350px; }
+        .card img { width: 70px; height: 70px; object-fit: contain; }
+        #history span {
+            padding: 6px 14px; background: white; color: var(--miniso-red);
+            border: 1px solid var(--miniso-red); border-radius: 20px;
+            font-size: 12px; cursor: pointer; margin: 0 5px 8px 0; display: inline-block;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); }
+            .sidebar.active { transform: translateX(0); }
+        }
     </style>
 </head>
 <body>
 
 <div class="app-wrapper">
-    <div id="reader">
-        <div class="focus-guide"></div>
-        <div class="tap-hint">Sentuh layar untuk fokus ulang</div>
-    </div>
+    <nav class="sidebar" id="sidebar">
+        <h2>MINISO</h2>
+        <a href="#" class="active-link">📸 Price Check</a>
+        <a href="#">📦 Stock Opname</a>
+        <a href="#">📝 List Barang</a>
+        <a href="#">⚙️ Pengaturan</a>
+    </nav>
 
-    <div class="controls">
-        <button id="scanBtn">START SCAN</button>
-        <select id="videoSource" style="display:none;"></select>
-    </div>
+    <main class="main-content">
+        <div class="top-bar">
+            <button class="menu-toggle" id="menuToggle">☰</button>
+            <div class="search-container">
+                <input id="searchInput" placeholder="Memuat data..." disabled>
+                <button id="scanBtn" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                </button>
+            </div>
+        </div>
 
-    <div id="result"></div>
+        <div id="reader">
+            <div class="focus-guide"></div>
+            <div class="tap-hint">Ketuk untuk fokus ulang</div>
+        </div>
+
+        <div id="cameraControl">
+            <p style="font-size: 12px; margin-bottom: 5px;">Pilih Lensa Belakang:</p>
+            <select id="videoSource"></select>
+        </div>
+
+        <div id="history"></div>
+        <div id="result"></div>
+    </main>
 </div>
 
+<audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
+
 <script>
-    const reader = document.getElementById("reader");
+    const sidebar = document.getElementById('sidebar');
+    const input = document.getElementById("searchInput");
     const scanBtn = document.getElementById("scanBtn");
+    const reader = document.getElementById("reader");
     const videoSource = document.getElementById("videoSource");
+    const result = document.getElementById("result");
+    const historyDiv = document.getElementById("history");
+    
+    let barcodeIndex = new Map();
+    let history = [];
     let scanning = false;
 
-    // 1. FUNGSI TRIGGER AUTOFOCUS MANUAL (Tap to Focus)
+    // --- DATA LOAD ---
+    fetch("https://miniso-id.github.io/product/products.json").then(r => r.json()).then(data => {
+        data.forEach(p => { if(p.b) p.b.split("/").forEach(c => barcodeIndex.set(c.trim(), p)); });
+        input.disabled = false; scanBtn.disabled = false; input.placeholder = "Ketik / Scan Barcode...";
+    });
+
+    // --- UI LOGIC ---
+    document.getElementById('menuToggle').onclick = () => sidebar.classList.toggle('active');
+    input.oninput = (e) => search(e.target.value);
+
+    // --- FOKUS MANUAL (TAP TO FOCUS) ---
     reader.onclick = async () => {
         const track = Quagga.CameraAccess.getActiveTrack();
-        if (track && track.getCapabilities) {
-            const caps = track.getCapabilities();
+        if (track && track.applyConstraints) {
             try {
-                // Paksa sensor untuk re-focus
-                await track.applyConstraints({
-                    advanced: [{ focusMode: "continuous" }, { focusMode: "manual" }]
-                });
-                await track.applyConstraints({
-                    advanced: [{ focusMode: "continuous" }]
-                });
-                console.log("Re-focus triggered");
-            } catch (e) { console.log("AF not supported on this lens"); }
+                // Reset fokus dengan switch mode
+                await track.applyConstraints({ advanced: [{ focusMode: "manual" }] });
+                await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+            } catch (e) { console.log("AF Reset failed"); }
         }
     };
 
+    // --- SCANNER LOGIC ---
     scanBtn.onclick = () => {
-        if (scanning) {
-            Quagga.stop();
-            scanning = false;
-            scanBtn.innerText = "START SCAN";
-            videoSource.style.display = "none";
-        } else {
-            startScan();
-        }
+        if (scanning) { stopScan(); return; }
+        startScan();
     };
 
-    function startScan(deviceId = null) {
+    async function startScan(deviceId = null) {
+        scanning = true;
+        reader.style.display = "block";
+        
         Quagga.init({
             inputStream: {
                 type: "LiveStream",
@@ -104,42 +189,78 @@
             decoder: { readers: ["ean_reader", "code_128_reader"] },
             locate: true
         }, (err) => {
-            if (err) return alert("Error: " + err);
+            if (err) { alert("Error Kamera: " + err); stopScan(); return; }
             Quagga.start();
-            scanning = true;
-            scanBtn.innerText = "STOP SCAN";
-            videoSource.style.display = "block";
+            document.getElementById("cameraControl").style.display = "block";
+            updateCameraList();
             
-            // 2. AKTIFKAN CONTINUOUS AUTOFOCUS SAAT START
+            // Aktifkan Autofocus
             const track = Quagga.CameraAccess.getActiveTrack();
             if (track && track.applyConstraints) {
-                track.applyConstraints({
-                    advanced: [{ focusMode: "continuous" }]
-                }).catch(() => console.log("Continuous Focus not supported"));
+                track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
             }
-            
-            updateCameraList();
         });
     }
 
     async function updateCameraList() {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
-        videoSource.innerHTML = videoDevices.map(d => 
-            `<option value="${d.deviceId}" ${Quagga.CameraAccess.getActiveTrack().label === d.label ? 'selected' : ''}>${d.label || 'Kamera'}</option>`
+        
+        // Filter hanya belakang
+        const backCams = videoDevices.filter(d => 
+            d.label.toLowerCase().includes('back') || 
+            d.label.toLowerCase().includes('rear') || 
+            d.label.toLowerCase().includes('0')
+        );
+
+        const final = backCams.length > 0 ? backCams : videoDevices;
+        videoSource.innerHTML = final.map(d => 
+            `<option value="${d.deviceId}" ${Quagga.CameraAccess.getActiveTrack().label === d.label ? 'selected' : ''}>${d.label || 'Kamera Belakang'}</option>`
         ).join("");
     }
 
-    videoSource.onchange = () => {
+    videoSource.onchange = () => { Quagga.stop(); startScan(videoSource.value); };
+
+    function stopScan() {
         Quagga.stop();
-        startScan(videoSource.value);
-    };
+        scanning = false;
+        reader.style.display = "none";
+        document.getElementById("cameraControl").style.display = "none";
+    }
 
     Quagga.onDetected(res => {
         const code = res.codeResult.code;
-        document.getElementById("result").innerHTML = `<h3>Terdeteksi: ${code}</h3>`;
-        // Opsional: Quagga.stop(); scanning = false;
+        if(barcodeIndex.has(code)) {
+            document.getElementById("beepOk").play();
+            stopScan();
+            input.value = code;
+            search(code);
+        }
     });
+
+    function search(q) {
+        q = q.trim();
+        if(!q) { result.innerHTML = ""; return; }
+        if(barcodeIndex.has(q)) {
+            const p = barcodeIndex.get(q);
+            addHistory(q);
+            result.innerHTML = `
+                <div class="card">
+                    <img src="${p.i}" onerror="this.src='https://via.placeholder.com/70'">
+                    <div class="info">
+                        <b style="display:block; font-size:15px; margin-bottom:4px;">${p.n}</b>
+                        <div style="font-size:11px; color:#999; margin-bottom:6px;">BC: ${p.b}</div>
+                        <div style="font-size:16px; color:var(--miniso-red); font-weight:700;">Rp${p.r.toLocaleString('id-ID')}</div>
+                    </div>
+                </div>`;
+        }
+    }
+
+    function addHistory(code) {
+        if(history.includes(code)) return;
+        history.unshift(code); if(history.length > 6) history.pop();
+        historyDiv.innerHTML = history.map(h => `<span onclick="input.value='${h}'; search('${h}')">${h}</span>`).join("");
+    }
 </script>
 </body>
 </html>

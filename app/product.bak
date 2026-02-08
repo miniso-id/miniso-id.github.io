@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <link rel="manifest" href="manifest.json">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MMS-X (beta) - Multi User</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MMS-X">
+
+    <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
+    <style>
+        :root {
+            --miniso-red: #e61523;
+            --miniso-soft: #fff1f2;
+            --text-dark: #333;
+            --bg-gray: #f8f9fa;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; background: #fdfdfd; color: var(--text-dark); height: 100vh; overflow: hidden; }
+
+        /* --- LOGIN SCREEN --- */
+        #loginScreen {
+            position: fixed; inset: 0; background: white; z-index: 5000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px;
+        }
+        .login-card { width: 100%; max-width: 350px; text-align: center; }
+        .login-card h1 { color: var(--miniso-red); font-size: 2.5rem; margin-bottom: 5px; font-weight: 900; }
+        .login-input {
+            width: 100%; padding: 15px; margin-bottom: 12px; border: 2px solid #eee;
+            border-radius: 12px; outline: none; font-size: 16px; transition: 0.3s;
+        }
+        .login-input:focus { border-color: var(--miniso-red); background: var(--miniso-soft); }
+        .btn-login {
+            width: 100%; padding: 15px; background: var(--miniso-red); color: white;
+            border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(230,21,35,0.3);
+        }
+
+        /* --- APP WRAPPER --- */
+        #appContent { display: none; height: 100vh; width: 100%; flex-direction: column; }
+        .app-wrapper { display: flex; flex: 1; overflow: hidden; position: relative; }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 250px; background-color: var(--miniso-red); color: #fff;
+            display: flex; flex-direction: column; padding: 20px;
+            transition: transform 0.3s ease; z-index: 2000; flex-shrink: 0;
+        }
+        .sidebar h2 { text-align: center; margin-bottom: 5px; font-size: 1.4rem; font-weight: 800; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        .user-tag { font-size: 12px; text-align: center; margin-bottom: 25px; color: #ffcccc; }
+        .sidebar a { text-decoration: none; color: #fff; padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; display: block; font-weight: 500; }
+        .logout-btn { margin-top: auto; background: rgba(0,0,0,0.2); text-align: center; cursor: pointer; }
+
+        #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1500; }
+        
+        /* MAIN AREA */
+        .main-content { flex: 1; overflow-y: auto; position: relative; padding: 15px; scroll-behavior: auto; }
+
+        .top-bar-container { background: white; padding: 10px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 15px; position: sticky; top: 0; z-index: 1100; }
+        .top-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .menu-toggle { background: var(--miniso-soft); color: var(--miniso-red); border: none; width: 42px; height: 42px; font-size: 20px; border-radius: 10px; }
+        .search-container { position: relative; flex-grow: 1; display: flex; align-items: center; }
+        #searchInput { width: 100%; height: 42px; padding: 0 50px 0 15px; font-size: 14px; border: 2px solid #eee; border-radius: 10px; outline: none; background: #f9f9f9; }
+        #scanBtn { background: var(--miniso-red); color: white; border: none; width: 38px; height: 38px; border-radius: 10px; position: absolute; right: 2px; display: flex; align-items: center; justify-content: center; }
+
+        /* LIST & ITEMS */
+        .search-results-list { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .search-item { padding: 10px 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 12px; }
+        .search-item:active { background-color: #f0f0f0; }
+        
+        /* Thumbnail clickable */
+        .thumb-container { position: relative; cursor: zoom-in; }
+        .thumb-img { width: 50px; height: 50px; object-fit: contain; border-radius: 6px; border: 1px solid #eee; background: white; }
+        .item-clickable-area { flex: 1; overflow: hidden; cursor: pointer; display: flex; align-items: center; gap: 12px; }
+
+        /* PRODUCT DETAIL CARD */
+        .product-card { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); display: none; margin-bottom: 20px; }
+        .image-box { text-align: center; padding: 15px; border-bottom: 1px solid #f9f9f9; position: relative; cursor: zoom-in; }
+        .image-box img { max-width: 100%; height: 220px; object-fit: contain; }
+        .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
+        .price-item { background: var(--bg-gray); padding: 12px 10px; border-radius: 12px; border-bottom: 3px solid #ddd; }
+        .barcode-box { background: #fff; padding: 15px; border-radius: 12px; border: 1px dashed #ccc; text-align: center; margin-top: 10px; }
+
+        /* LIGHTBOX & READER */
+        #imagePopup { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 6000; align-items: center; justify-content: center; animation: fadeIn 0.2s; }
+        #imagePopup img { max-width: 95%; max-height: 85vh; border-radius: 10px; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        #reader { display:none; width:100%; max-width:340px; aspect-ratio:1/1; margin:15px auto; background:#000; border-radius:20px; overflow:hidden; border: 4px solid white; }
+
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; height: 100%; left: -250px; top: 0; }
+            .sidebar.active { left: 0; }
+            .sidebar.active ~ #overlay { display: block; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="loginScreen">
+    <div class="login-card">
+        <h1>MINISO</h1>
+        <p style="color:#888; margin-bottom:25px; font-size:14px;">MMS-X Product Checker v2.1</p>
+        <input type="text" id="username" class="login-input" placeholder="Username" autocomplete="off">
+        <input type="password" id="password" class="login-input" placeholder="Password">
+        <button class="btn-login" onclick="handleLogin()">LOGIN</button>
+        <div id="loginError" style="color:var(--miniso-red); font-size:12px; margin-top:15px; font-weight:bold; display:none;">Akun tidak ditemukan!</div>
+    </div>
+</div>
+
+<div id="appContent">
+    <div id="imagePopup" onclick="this.style.display='none'">
+        <div style="position:absolute; top:20px; right:20px; color:white; font-size:30px;">×</div>
+        <img id="popupImg" src="">
+        <div style="position:absolute; bottom:30px; color:white; font-size:12px; background:rgba(0,0,0,0.5); padding:5px 15px; border-radius:20px;">Tap di mana saja untuk menutup</div>
+    </div>
+    
+    <div class="app-wrapper">
+        <nav class="sidebar" id="sidebar">
+            <h2>MMS-X</h2>
+            <div id="userDisplay" class="user-tag"></div>
+            <a href="https://miniso-id.github.io/app/" style="background:rgba(255,255,255,0.1)">📸 Price Check</a>
+            <a href="#">📦 Stock Opname</a>
+            <a href="#" class="logout-btn" onclick="handleLogout()">LOGOUT</a>
+        </nav>
+        <div id="overlay" onclick="toggleSidebar()"></div>
+
+        <main class="main-content" id="scrollContainer">
+            <div id="ui-controls">
+                <div class="top-bar-container">
+                    <div class="top-bar">
+                        <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                        <div class="search-container">
+                            <input id="searchInput" placeholder="Cari Produk...">
+                            <button id="scanBtn">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <select id="catFilter" style="width:100%; height:35px; border-radius:8px; border:1px solid #ddd; background:var(--bg-gray); font-size:12px; font-weight:600;"><option value="">Semua Kategori</option></select>
+                </div>
+                <div id="reader"></div>
+                <div id="countDisplay" style="font-size:11px; color:#888; margin-bottom:10px; font-weight:600;"></div>
+            </div>
+
+            <div id="listContainer"></div>
+            <div id="detailContainer" class="product-card"></div>
+        </main>
+    </div>
+</div>
+
+<audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
+
+<script>
+    // --- MULTI USER CONFIG ---
+    const USERS = {
+        "admin": { pass: "miniso123", name: "Administrator" },
+        "staff1": { pass: "mms001", name: "Rizky Ramadhan" },
+        "staff2": { pass: "mms002", name: "Siti Aminah" }
+    };
+
+    // --- AUTH LOGIC ---
+    function handleLogin() {
+        const u = document.getElementById("username").value.toLowerCase().trim();
+        const p = document.getElementById("password").value;
+        const err = document.getElementById("loginError");
+
+        if(USERS[u] && USERS[u].pass === p) {
+            sessionStorage.setItem("isLoggedIn", "true");
+            sessionStorage.setItem("activeUserName", USERS[u].name);
+            location.reload(); 
+        } else {
+            err.style.display = "block";
+        }
+    }
+
+    function handleLogout() {
+        sessionStorage.clear();
+        location.reload();
+    }
+
+    // --- APP LOGIC ---
+    let allProducts = [];
+    let barcodeIndex = new Map();
+    let lastScrollPos = 0;
+
+    const input = document.getElementById("searchInput");
+    const catFilter = document.getElementById("catFilter");
+    const listContainer = document.getElementById("listContainer");
+    const detailContainer = document.getElementById("detailContainer");
+    const scrollContainer = document.getElementById("scrollContainer");
+
+    function initApp() {
+        if(sessionStorage.getItem("isLoggedIn") !== "true") return;
+        
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("appContent").style.display = "flex";
+        document.getElementById("userDisplay").textContent = "Hi, " + sessionStorage.getItem("activeUserName");
+
+        fetch("https://miniso-id.github.io/product/products.json").then(r => r.json()).then(data => {
+            allProducts = data;
+            const cats = new Set();
+            data.forEach(p => { 
+                if(p.b) p.b.split("/").forEach(c => barcodeIndex.set(c.trim(), p)); 
+                if(p.c) cats.add(p.c);
+            });
+            Array.from(cats).sort().forEach(c => {
+                const o = document.createElement("option"); o.value = c; o.textContent = c; catFilter.appendChild(o);
+            });
+        });
+    }
+
+    input.oninput = () => renderResults();
+    catFilter.onchange = () => renderResults();
+
+    function renderResults() {
+        detailContainer.style.display = "none";
+        listContainer.style.display = "block";
+        document.getElementById("ui-controls").style.display = "block";
+        
+        const q = input.value.trim().toLowerCase();
+        const selectedCat = catFilter.value;
+        
+        if(!q && !selectedCat) { listContainer.innerHTML = ""; return; }
+        if(barcodeIndex.has(q)) { showDetail(barcodeIndex.get(q), q); return; }
+
+        let filtered = allProducts;
+        if(selectedCat) filtered = filtered.filter(p => p.c === selectedCat);
+        if(q) filtered = filtered.filter(p => p.n && p.n.toLowerCase().includes(q));
+
+        const displayItems = filtered.slice(0, 100);
+        document.getElementById("countDisplay").textContent = `Ditemukan ${filtered.length} produk (tampil 100)`;
+
+        let html = '<div class="search-results-list">';
+        displayItems.forEach(p => {
+            const b = p.b ? p.b.split("/")[0].trim() : "";
+            html += `
+                <div class="search-item">
+                    <div class="thumb-container" onclick="openPopup('${p.i}')">
+                        <img class="thumb-img" src="${p.i}" onerror="this.src='https://via.placeholder.com/50'">
+                    </div>
+                    
+                    <div class="item-clickable-area" onclick="selectItem('${b}')">
+                        <div style="flex:1; overflow:hidden;">
+                            <span style="font-size:10px; font-weight:800; color:var(--miniso-red);">${p.c}</span>
+                            <span style="font-size:13px; font-weight:700; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.n}</span>
+                        </div>
+                        <div style="font-weight:800; font-size:13px;">Rp${p.r.toLocaleString('id-ID')}</div>
+                    </div>
+                </div>`;
+        });
+        listContainer.innerHTML = html + '</div>';
+    }
+
+    window.selectItem = (b) => {
+        lastScrollPos = scrollContainer.scrollTop; 
+        showDetail(barcodeIndex.get(b), b);
+    };
+
+    function showDetail(p, q) {
+        listContainer.style.display = "none";
+        document.getElementById("ui-controls").style.display = "none";
+        detailContainer.style.display = "block";
+        scrollContainer.scrollTop = 0;
+        
+        const barcodeApi = `https://bwipjs-api.metafloor.com/?bcid=ean13&text=${q}&scale=3&rotate=N&includetext`;
+        detailContainer.innerHTML = `
+            <div class="image-box" onclick="openPopup('${p.i}')">
+                <img src="${p.i}" onerror="this.src='https://via.placeholder.com/300'">
+                <div style="position:absolute; bottom:10px; right:10px; background:rgba(0,0,0,0.5); color:white; padding:4px 8px; border-radius:5px; font-size:10px;">🔍 Tap untuk Zoom</div>
+            </div>
+            <div class="p-info">
+                <span style="color:var(--miniso-red); font-weight:800; font-size:11px;">${p.c}</span>
+                <h3 style="margin:5px 0 15px 0;">${p.n}</h3>
+                <div class="price-grid">
+                    <div class="price-item" style="border-bottom-color:var(--miniso-red)"><span style="font-size:10px; color:#777;">REGULER</span><span style="font-size:18px; font-weight:800; color:var(--miniso-red); display:block;">Rp${p.r.toLocaleString('id-ID')}</span></div>
+                    <div class="price-item"><span style="font-size:10px; color:#777;">STREET</span><span style="font-size:18px; font-weight:800; display:block;">Rp${p.s.toLocaleString('id-ID')}</span></div>
+                </div>
+                <div class="barcode-box"><img src="${barcodeApi}"><div style="font-weight:700; letter-spacing:3px; margin-top:5px;">${q}</div></div>
+                <button onclick="backToPrev()" style="width:100%; margin-top:20px; padding:16px; border:none; background:var(--miniso-red); border-radius:12px; font-weight:bold; color:white; cursor:pointer;">← KEMBALI KE DAFTAR</button>
+            </div>`;
+    }
+
+    window.backToPrev = () => {
+        detailContainer.style.display = "none";
+        listContainer.style.display = "block";
+        document.getElementById("ui-controls").style.display = "block";
+        setTimeout(() => { scrollContainer.scrollTo(0, lastScrollPos); }, 10);
+    }
+
+    // --- UI HELPERS ---
+    function toggleSidebar() { document.getElementById("sidebar").classList.toggle("active"); }
+    function openPopup(src) { 
+        document.getElementById("popupImg").src = src; 
+        document.getElementById("imagePopup").style.display = "flex"; 
+    }
+
+    // --- SCANNER ---
+    const scanBtn = document.getElementById("scanBtn");
+    const reader = document.getElementById("reader");
+    let scanning = false;
+    scanBtn.onclick = () => {
+        if(scanning) { Quagga.stop(); scanning=false; reader.style.display="none"; }
+        else { scanning=true; reader.style.display="block"; Quagga.init({ inputStream: { type: "LiveStream", target: reader, constraints: { facingMode: "environment" } }, decoder: { readers: ["ean_reader"] } }, (err) => { if(!err) Quagga.start(); }); }
+    };
+    Quagga.onDetected(res => {
+        const code = res.codeResult.code;
+        if(barcodeIndex.has(code)) { 
+            document.getElementById("beepOk").play(); Quagga.stop(); scanning=false; reader.style.display="none"; 
+            input.value = code; showDetail(barcodeIndex.get(code), code); 
+        }
+    });
+
+    window.onload = initApp;
+</script>
+</body>
+</html>

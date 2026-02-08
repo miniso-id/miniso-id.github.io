@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X (beta) - Premium UI</title>
+    <title>MMS-X (beta)</title>
     
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -286,11 +286,11 @@
                 <span style="color:var(--miniso-red); font-weight:800; font-size:12px;">${p.c || ''}</span>
                 <h2 style="margin:5px 0 20px 0; font-size:22px;">${p.n}</h2>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                    <div class="price-item"><small style="color:#8e8e93;">REGULER</small><b style="color:var(--miniso-red);">Rp${(p.r || 0).toLocaleString('id-ID')}</b></div>
-                    <div class="price-item"><small style="color:#8e8e93;">STREET</small><b>Rp${(p.s || 0).toLocaleString('id-ID')}</b></div>
+                    <div class="price-item"><small style="color:#8e8e93;">Regular Store: </small><b style="color:var(--miniso-red);">Rp${(p.r || 0).toLocaleString('id-ID')}</b></div>
+                    <div class="price-item"><small style="color:#8e8e93;">Street Store: </small><b>Rp${(p.s || 0).toLocaleString('id-ID')}</b></div>
                 </div>
                 <div style="background:#fff; border:1px solid #eee; border-radius:16px; padding:15px; margin-top:15px;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:13px;"><span style="color:#666;">Reg Promo:</span> <b style="color:#007aff;">${p.rp || '-'}</b></div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:13px;"><span style="color:#666;">Regular Promo:</span> <b style="color:#007aff;">${p.rp || '-'}</b></div>
                     <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:#666;">Street Promo:</span> <b style="color:#34c759;">${p.sp || '-'}</b></div>
                 </div>
                 <div class="barcode-box">

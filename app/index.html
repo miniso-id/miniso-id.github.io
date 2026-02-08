@@ -27,19 +27,8 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { margin: 0; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #fdfdfd; color: var(--text-dark); height: 100vh; }
 
-        /* --- LOGIN SCREEN --- */
-        #loginScreen {
-            position: fixed; inset: 0; background: white; z-index: 5000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px;
-        }
-        .btn-login {
-            width: 100%; max-width: 300px; padding: 15px; background: var(--miniso-red); color: white;
-            border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px;
-        }
-        .login-input { width: 100%; max-width: 300px; padding: 12px; margin-bottom: 10px; border: 2px solid #eee; border-radius: 10px; }
-
         /* --- APP STRUCTURE --- */
-        #appContent { display: none; height: 100vh; width: 100%; flex-direction: column; }
+        #appContent { display: flex; height: 100vh; width: 100%; flex-direction: column; }
         .app-wrapper { display: flex; flex: 1; overflow: hidden; position: relative; }
 
         .sidebar {
@@ -49,7 +38,6 @@
         }
         .sidebar h2 { text-align: center; margin-bottom: 5px; font-weight: 800; border-bottom: 2px solid rgba(255,255,255,0.2); padding-bottom: 15px; }
         .sidebar a { text-decoration: none; color: #fff; padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; display: block; font-weight: 500; }
-        .logout-btn { margin-top: auto; background: rgba(0,0,0,0.2); text-align: center; cursor: pointer; }
 
         #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1500; }
         
@@ -92,13 +80,6 @@
 </head>
 <body>
 
-<div id="loginScreen">
-    <h1 style="color:var(--miniso-red); font-weight:900;">MINISO MMS-X</h1>
-    <input type="text" id="username" class="login-input" placeholder="Username">
-    <input type="password" id="password" class="login-input" placeholder="Password">
-    <button class="btn-login" onclick="handleLogin()">LOGIN</button>
-</div>
-
 <div id="imagePopup" onclick="this.style.display='none'">
     <img id="popupImg" src="">
 </div>
@@ -107,10 +88,9 @@
     <div class="app-wrapper">
         <nav class="sidebar" id="sidebar">
             <h2>MMS-X</h2>
-            <div id="userDisplay" style="text-align:center; font-size:12px; margin-bottom:20px; color:#ffcccc;"></div>
             <a href="#" class="active-link">📸 Price Check</a>
             <a href="#">📦 Stock Opname</a>
-            <a href="#" class="logout-btn" onclick="handleLogout()">LOGOUT</a>
+            <a href="https://miniso-id.github.io/app/product.html">📝 Product List</a>
         </nav>
         <div id="overlay" onclick="toggleSidebar()"></div>
 
@@ -143,36 +123,19 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
-    // --- SERVICE WORKER (ANTI URL BAR) ---
+    // --- SERVICE WORKER ---
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
     }
 
-    // --- CONFIG & DATA ---
-    const USERS = { "admin": "miniso123", "staff": "mms001" };
+    // --- DATA ---
     let allProducts = [];
     let barcodeIndex = new Map();
     let lastScrollPos = 0;
     let scanning = false;
 
-    // --- AUTH ---
-    function handleLogin() {
-        const u = document.getElementById("username").value.toLowerCase();
-        const p = document.getElementById("password").value;
-        if(USERS[u] && USERS[u] === p) {
-            sessionStorage.setItem("user", u);
-            location.reload();
-        }
-    }
-    function handleLogout() { sessionStorage.clear(); location.reload(); }
-
-    // --- CORE LOGIC ---
+    // --- INITIALIZE ---
     function init() {
-        if(!sessionStorage.getItem("user")) return;
-        document.getElementById("loginScreen").style.display = "none";
-        document.getElementById("appContent").style.display = "flex";
-        document.getElementById("userDisplay").textContent = "User: " + sessionStorage.getItem("user");
-
         fetch("https://miniso-id.github.io/product/products.json").then(r => r.json()).then(data => {
             allProducts = data;
             const cats = new Set();
@@ -187,7 +150,6 @@
         });
     }
 
-    // --- SEARCH & RENDER ---
     const input = document.getElementById("searchInput");
     const catFilter = document.getElementById("catFilter");
     const listContainer = document.getElementById("listContainer");
@@ -275,7 +237,7 @@
         setTimeout(() => { document.getElementById("scrollContainer").scrollTo(0, lastScrollPos); }, 10);
     }
 
-    // --- UI HELPERS ---
+    // --- HELPERS ---
     function toggleSidebar() { document.getElementById("sidebar").classList.toggle("active"); }
     function openPopup(src) { 
         document.getElementById("popupImg").src = src; 

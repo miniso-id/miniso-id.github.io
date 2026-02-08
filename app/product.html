@@ -46,53 +46,33 @@
             padding: 10px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 15px; 
         }
         .top-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-        .filter-row { display: flex; gap: 8px; }
-        #catFilter { 
-            flex: 1; height: 38px; border-radius: 8px; border: 1px solid #ddd; 
-            padding: 0 10px; font-size: 13px; background: var(--bg-gray); font-weight: 600;
-        }
+        #searchInput { width: 100%; height: 42px; padding: 0 50px 0 15px; font-size: 14px; border: 2px solid #eee; border-radius: 10px; outline: none; background: #f9f9f9; }
+        #scanBtn { background: var(--miniso-red); color: white; border: none; width: 38px; height: 38px; border-radius: 10px; position: absolute; right: 2px; }
 
-        .menu-toggle {
-            background: var(--miniso-soft); color: var(--miniso-red); border: none;
-            width: 42px; height: 42px; font-size: 20px; border-radius: 10px; cursor: pointer;
-        }
-        .search-container { position: relative; flex-grow: 1; display: flex; align-items: center; }
-        #searchInput {
-            width: 100%; height: 42px; padding: 0 50px 0 15px; font-size: 14px;
-            border: 2px solid #eee; border-radius: 10px; outline: none; background: #f9f9f9;
-        }
-        #scanBtn {
-            background: var(--miniso-red); color: white; border: none;
-            width: 38px; height: 38px; border-radius: 10px; position: absolute; right: 2px;
-        }
-
-        /* --- RESULTS LIST WITH IMAGES --- */
+        /* --- RESULTS --- */
         .search-results-list { background: white; border-radius: 12px; border: 1px solid #eee; margin-bottom: 15px; }
-        .search-item { 
-            padding: 10px; border-bottom: 1px solid #f1f1f1; cursor: pointer; 
-            display: flex; align-items: center; gap: 12px;
+        .search-item { padding: 10px; border-bottom: 1px solid #f1f1f1; cursor: pointer; display: flex; align-items: center; gap: 12px; }
+        .thumb-img { width: 50px; height: 50px; object-fit: contain; border-radius: 6px; border: 1px solid #eee; }
+
+        /* --- IMAGE POPUP (LIGHTBOX) --- */
+        #imagePopup {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+            z-index: 3000; align-items: center; justify-content: center; padding: 20px;
         }
-        .search-item:last-child { border-bottom: none; }
-        .search-item:active { background: #f9f9f9; }
-        
-        .thumb-img { width: 50px; height: 50px; object-fit: contain; background: #fff; border-radius: 6px; border: 1px solid #eee; flex-shrink: 0; }
-        
-        .item-info { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .item-n { font-size: 13px; font-weight: 700; color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .item-cat { font-size: 10px; color: var(--miniso-red); font-weight: 800; text-transform: uppercase; }
-        
-        .item-price-tag { text-align: right; flex-shrink: 0; }
-        .item-price { font-size: 13px; font-weight: 800; color: #333; }
+        #imagePopup img { max-width: 100%; max-height: 80vh; border-radius: 10px; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
+        .close-popup { position: absolute; top: 20px; right: 20px; color: white; font-size: 30px; font-weight: bold; cursor: pointer; }
 
-        /* --- PRODUCT DETAIL CARD --- */
+        /* --- PRODUCT DETAIL --- */
         .product-card { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 8px 25px rgba(0,0,0,0.1); margin-bottom: 20px; animation: slideUp 0.3s ease; }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .image-box { background: #fff; text-align: center; padding: 15px; position: relative; border-bottom: 1px solid #f9f9f9; }
+        .image-box { text-align: center; padding: 15px; position: relative; border-bottom: 1px solid #f9f9f9; cursor: zoom-in; }
         .image-box img { max-width: 100%; height: 220px; object-fit: contain; }
-        .p-info { padding: 20px; }
         
-        .result-count { font-size: 11px; color: #888; margin-bottom: 8px; padding-left: 5px; font-weight: 600; }
-
+        .barcode-display { 
+            background: #fff; padding: 15px; border-radius: 12px; 
+            margin-top: 15px; border: 1px dashed #ccc; text-align: center;
+        }
+        .barcode-display img { max-width: 100%; height: auto; }
+        
         @media (max-width: 768px) {
             .sidebar { position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); transition: 0.3s; }
             .sidebar.active { transform: translateX(0); }
@@ -102,12 +82,16 @@
 </head>
 <body>
 
+<div id="imagePopup" onclick="this.style.display='none'">
+    <span class="close-popup">&times;</span>
+    <img id="popupImg" src="">
+</div>
+
 <div class="app-wrapper">
     <nav class="sidebar" id="sidebar">
         <h2>MMS-X (beta)</h2>
         <a href="#" class="active-link">📸 Price Check</a>
         <a href="#">📦 Stock Opname</a>
-        <a href="#">📝 List Barang</a>
     </nav>
     <div id="overlay"></div>
 
@@ -116,22 +100,18 @@
             <div class="top-bar">
                 <button class="menu-toggle" id="menuToggle">☰</button>
                 <div class="search-container">
-                    <input id="searchInput" placeholder="Loading Data..." disabled>
-                    <button id="scanBtn" disabled>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                    </button>
+                    <input id="searchInput" placeholder="Loading..." disabled>
+                    <button id="scanBtn" disabled>Scan</button>
                 </div>
             </div>
-            <div class="filter-row">
-                <select id="catFilter">
-                    <option value="">Semua Kategori</option>
-                </select>
-            </div>
+            <select id="catFilter" style="width:100%; height:38px; border-radius:8px; background:#f8f9fa; border:1px solid #ddd; font-weight:600;">
+                <option value="">Semua Kategori</option>
+            </select>
         </div>
 
         <div id="reader" style="display:none; width:100%; max-width:340px; aspect-ratio:1/1; margin:10px auto; background:#000; border-radius:20px; overflow:hidden;"></div>
         
-        <div id="countDisplay" class="result-count"></div>
+        <div id="countDisplay" style="font-size:11px; color:#888; margin-bottom:8px; padding-left:5px;"></div>
         <div id="result"></div>
     </main>
 </div>
@@ -143,6 +123,8 @@
     const catFilter = document.getElementById("catFilter");
     const result = document.getElementById("result");
     const countDisplay = document.getElementById("countDisplay");
+    const imagePopup = document.getElementById("imagePopup");
+    const popupImg = document.getElementById("popupImg");
     
     let allProducts = [];
     let barcodeIndex = new Map();
@@ -161,58 +143,49 @@
             catFilter.appendChild(opt);
         });
         input.disabled = false; document.getElementById("scanBtn").disabled = false;
-        input.placeholder = "Cari Nama atau Barcode...";
+        input.placeholder = "Cari Produk...";
     });
 
-    // 2. SEARCH & RENDER (LIMIT 100 WITH IMAGES)
+    // 2. POPUP IMAGE FUNCTION
+    function openPopup(src) {
+        popupImg.src = src;
+        imagePopup.style.display = 'flex';
+    }
+
+    // 3. RENDER RESULTS
     input.oninput = () => renderResults();
     catFilter.onchange = () => renderResults();
 
     function renderResults() {
         const q = input.value.trim().toLowerCase();
         const selectedCat = catFilter.value;
-        
-        if(!q && !selectedCat) { 
-            result.innerHTML = ""; 
-            countDisplay.innerHTML = "";
-            return; 
-        }
+        if(!q && !selectedCat) { result.innerHTML = ""; return; }
 
-        if(barcodeIndex.has(q)) {
-            showDetail(barcodeIndex.get(q), q);
-            countDisplay.innerHTML = "Ditemukan 1 produk (Barcode Match)";
-            return;
-        }
+        if(barcodeIndex.has(q)) { showDetail(barcodeIndex.get(q), q); return; }
 
         let filtered = allProducts;
         if(selectedCat) filtered = filtered.filter(p => p.c === selectedCat);
         if(q) filtered = filtered.filter(p => p.n && p.n.toLowerCase().includes(q));
 
-        const totalFound = filtered.length;
-        const displayList = filtered.slice(0, 100); // AMBIL HANYA 100 PRODUK PERTAMA
+        const displayList = filtered.slice(0, 100);
+        countDisplay.innerHTML = `Menampilkan ${displayList.length} produk`;
 
-        countDisplay.innerHTML = `Menampilkan ${displayList.length} dari ${totalFound} produk ditemukan`;
-
-        if(displayList.length > 0) {
-            let listHtml = '<div class="search-results-list">';
-            displayList.forEach(p => {
-                const b = p.b ? p.b.split("/")[0].trim() : "N/A";
-                listHtml += `
-                    <div class="search-item" onclick="openProduct('${b}')">
-                        <img class="thumb-img" src="${p.i}" onerror="this.src='https://via.placeholder.com/50?text=NO+IMG'">
-                        <div class="item-info">
-                            <span class="item-cat">${p.c}</span>
-                            <span class="item-n">${p.n}</span>
-                        </div>
-                        <div class="item-price-tag">
-                            <span class="item-price">Rp${p.r.toLocaleString('id-ID')}</span>
-                        </div>
-                    </div>`;
-            });
-            result.innerHTML = listHtml + '</div>';
-        } else {
-            result.innerHTML = "<p style='text-align:center; padding:30px; color:#999;'>Produk tidak ditemukan</p>";
-        }
+        let listHtml = '<div class="search-results-list">';
+        displayList.forEach(p => {
+            const firstB = p.b ? p.b.split("/")[0].trim() : "";
+            listHtml += `
+                <div class="search-item">
+                    <img class="thumb-img" src="${p.i}" onclick="event.stopPropagation(); openPopup('${p.i}')" onerror="this.src='https://via.placeholder.com/50'">
+                    <div style="flex:1" onclick="openProduct('${firstB}')">
+                        <span style="font-size:10px; color:var(--miniso-red); font-weight:800;">${p.c}</span><br>
+                        <span style="font-size:13px; font-weight:700;">${p.n}</span>
+                    </div>
+                    <div style="text-align:right" onclick="openProduct('${firstB}')">
+                        <span style="font-size:13px; font-weight:800;">Rp${p.r.toLocaleString('id-ID')}</span>
+                    </div>
+                </div>`;
+        });
+        result.innerHTML = listHtml + '</div>';
     }
 
     window.openProduct = (barcode) => {
@@ -221,27 +194,39 @@
     };
 
     function showDetail(p, q) {
-        const promo = (p.e && p.e !== "NORMAL PRICE") ? `<div style="position:absolute; top:10px; left:10px; background:#ff9800; color:white; padding:4px 8px; border-radius:5px; font-size:10px; font-weight:bold; z-index:10;">${p.e}</div>` : "";
-        
+        // Barcode generator menggunakan BWIP-JS atau API eksternal sederhana
+        const barcodeImgUrl = `https://bwipjs-api.metafloor.com/?bcid=ean13&text=${q}&scale=3&rotate=N&includetext`;
+
         result.innerHTML = `
             <div class="product-card">
-                <div class="image-box">${promo}<img src="${p.i}" onerror="this.src='https://via.placeholder.com/300?text=MINISO'"></div>
-                <div class="p-info">
-                    <span style="font-size:11px; color:var(--miniso-red); font-weight:800; text-transform:uppercase;">${p.c}</span>
-                    <h3 style="margin:5px 0 10px 0; font-size:18px;">${p.n}</h3>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0;">
-                        <div style="background:var(--bg-gray); padding:10px; border-radius:10px; border-bottom:3px solid var(--miniso-red);"><span style="font-size:10px; color:#777;">REGULER</span><span style="font-size:16px; font-weight:800; display:block; color:var(--miniso-red)">Rp${p.r.toLocaleString('id-ID')}</span></div>
-                        <div style="background:var(--bg-gray); padding:10px; border-radius:10px; border-bottom:3px solid #ddd;"><span style="font-size:10px; color:#777;">STREET</span><span style="font-size:16px; font-weight:800; display:block;">Rp${p.s.toLocaleString('id-ID')}</span></div>
+                <div class="image-box" onclick="openPopup('${p.i}')">
+                    <img src="${p.i}" onerror="this.src='https://via.placeholder.com/300'">
+                    <div style="position:absolute; bottom:10px; right:10px; background:rgba(0,0,0,0.5); color:white; padding:5px; border-radius:5px; font-size:10px;">🔍 Tap Zoom</div>
+                </div>
+                <div style="padding:20px;">
+                    <span style="color:var(--miniso-red); font-weight:800; font-size:11px;">${p.c}</span>
+                    <h3 style="margin:5px 0 15px 0;">${p.n}</h3>
+                    
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
+                        <div style="background:var(--bg-gray); padding:10px; border-radius:10px; border-bottom:3px solid var(--miniso-red);">
+                            <span style="font-size:10px; color:#777;">REGULER</span>
+                            <span style="font-size:18px; font-weight:800; color:var(--miniso-red); display:block;">Rp${p.r.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div style="background:var(--bg-gray); padding:10px; border-radius:10px; border-bottom:3px solid #ddd;">
+                            <span style="font-size:10px; color:#777;">STREET</span>
+                            <span style="font-size:18px; font-weight:800; display:block;">Rp${p.s.toLocaleString('id-ID')}</span>
+                        </div>
                     </div>
-                    <div style="border-top:1px solid #eee; padding-top:10px; font-size:12px;">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span style="color:#888">Barcode</span><b>${q}</b></div>
-                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span style="color:#888">Reg Promo</span><b style="color:var(--promo-blue)">${p.rp}</b></div>
-                        <div style="display:flex; justify-content:space-between;"><span style="color:#888">Street Promo</span><b style="color:var(--promo-green)">${p.sp}</b></div>
+
+                    <div class="barcode-display">
+                        <span style="font-size:10px; color:#888; display:block; margin-bottom:5px;">BARCODE GENERATED</span>
+                        <img src="${barcodeImgUrl}" alt="Barcode">
+                        <div style="margin-top:5px; font-weight:bold; letter-spacing:2px;">${q}</div>
                     </div>
-                    <button onclick="renderResults()" style="width:100%; margin-top:15px; padding:12px; border:none; background:#eee; border-radius:10px; font-weight:bold; cursor:pointer;">← Kembali ke List</button>
+
+                    <button onclick="renderResults()" style="width:100%; margin-top:20px; padding:12px; border:none; background:#eee; border-radius:10px; font-weight:bold;">← Kembali</button>
                 </div>
             </div>`;
-        document.querySelector('.main-content').scrollTo(0,0);
     }
 
     // --- SIDEBAR & SCANNER ---
@@ -255,7 +240,7 @@
         if(scanning) { Quagga.stop(); scanning=false; reader.style.display="none"; }
         else { 
             scanning=true; reader.style.display="block";
-            Quagga.init({ inputStream: { type: "LiveStream", target: reader, constraints: { facingMode: "environment", width: 1280, height: 720 } }, decoder: { readers: ["ean_reader"] } }, (err) => { if(!err) Quagga.start(); });
+            Quagga.init({ inputStream: { type: "LiveStream", target: reader, constraints: { facingMode: "environment" } }, decoder: { readers: ["ean_reader"] } }, (err) => { if(!err) Quagga.start(); });
         }
     };
     Quagga.onDetected(res => {

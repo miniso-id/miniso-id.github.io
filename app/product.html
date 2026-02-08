@@ -93,7 +93,7 @@
         .thumb-img { width: 50px; height: 50px; object-fit: contain; border-radius: 6px; border: 1px solid #eee; cursor: zoom-in; background: #f9f9f9; flex-shrink: 0;}
         .item-clickable-area { flex: 1; overflow: hidden; cursor: pointer; display: flex; align-items: center; gap: 12px; }
 
-        /* PRODUCT DETAIL CARD (FIXED GLITCH) */
+        /* PRODUCT DETAIL CARD */
         .product-card { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); display: none; margin-bottom: 20px; }
         .image-box { 
             text-align: center; padding: 15px; position: relative; cursor: zoom-in;
@@ -243,7 +243,6 @@
         });
     }
 
-    // --- SCANNER LOGIC (NO FEATURES DELETED) ---
     reader.onclick = async () => {
         const track = Quagga.CameraAccess.getActiveTrack();
         if (track && track.applyConstraints) {
@@ -283,9 +282,20 @@
 
     async function updateCameraList() {
         const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        // Memfilter hanya kamera video yang BUKAN kamera depan (front/user)
+        const backCameras = devices.filter(d => {
+            const label = (d.label || "").toLowerCase();
+            return d.kind === 'videoinput' && 
+                   !label.includes("front") && 
+                   !label.includes("user") && 
+                   !label.includes("selfie");
+        });
+
+        // Gunakan backCameras jika ditemukan, jika tidak (seperti di laptop) gunakan semua videoinput
+        const finalDevices = backCameras.length > 0 ? backCameras : devices.filter(d => d.kind === 'videoinput');
+        
         const currentLabel = Quagga.CameraAccess.getActiveTrack()?.label;
-        videoSource.innerHTML = videoDevices.map(d => `<option value="${d.deviceId}" ${currentLabel === d.label ? 'selected' : ''}>${d.label || 'Kamera Utama'}</option>`).join("");
+        videoSource.innerHTML = finalDevices.map(d => `<option value="${d.deviceId}" ${currentLabel === d.label ? 'selected' : ''}>${d.label || 'Kamera Utama'}</option>`).join("");
     }
 
     videoSource.onchange = () => {
@@ -306,7 +316,6 @@
         }
     });
 
-    // --- RENDER LOGIC ---
     input.oninput = () => renderResults();
     catFilter.onchange = () => renderResults();
 

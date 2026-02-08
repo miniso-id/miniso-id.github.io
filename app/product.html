@@ -23,9 +23,9 @@
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #fdfdfd; color: var(--text-dark); }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; background: #fdfdfd; color: var(--text-dark); height: 100vh; display: flex; flex-direction: column; }
 
-        .app-wrapper { display: flex; height: 100vh; width: 100%; position: relative; }
+        .app-wrapper { display: flex; flex: 1; overflow: hidden; position: relative; }
 
         .sidebar {
             width: 250px; background-color: var(--miniso-red); color: #fff;
@@ -37,14 +37,15 @@
         .sidebar a { text-decoration: none; color: #fff; padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; display: block; font-weight: 500; }
         
         #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1500; }
-        .main-content { flex: 1; padding: 15px; overflow-y: auto; position: relative; z-index: 100; }
+        
+        /* Area Konten Utama */
+        .main-content { flex: 1; overflow-y: auto; position: relative; padding: 15px; scroll-behavior: auto; }
 
         .top-bar-container { background: white; padding: 10px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 15px; position: sticky; top: 0; z-index: 1100; }
         .top-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-        .filter-row { display: flex; gap: 8px; }
         #catFilter { flex: 1; height: 35px; border-radius: 8px; border: 1px solid #ddd; padding: 0 10px; font-size: 12px; background: var(--bg-gray); font-weight: 600; }
 
-        .menu-toggle { background: var(--miniso-soft); color: var(--miniso-red); border: none; width: 42px; height: 42px; font-size: 20px; border-radius: 10px; cursor: pointer; }
+        .menu-toggle { background: var(--miniso-soft); color: var(--miniso-red); border: none; width: 42px; height: 42px; font-size: 20px; border-radius: 10px; }
         .search-container { position: relative; flex-grow: 1; display: flex; align-items: center; }
         #searchInput { width: 100%; height: 42px; padding: 0 50px 0 15px; font-size: 14px; border: 2px solid #eee; border-radius: 10px; outline: none; background: #f9f9f9; }
         #scanBtn { background: var(--miniso-red); color: white; border: none; width: 38px; height: 38px; border-radius: 10px; position: absolute; right: 2px; display: flex; align-items: center; justify-content: center; }
@@ -54,41 +55,31 @@
 
         .search-results-list { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 15px; }
         .search-item { padding: 10px 15px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; align-items: center; gap: 12px; }
-        .thumb-img { width: 45px; height: 45px; object-fit: contain; border-radius: 6px; border: 1px solid #eee; background: white; }
-        .item-info { flex: 1; overflow: hidden; }
-        .item-n { font-size: 13px; font-weight: 700; color: #111; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .item-cat { font-size: 10px; font-weight: 800; color: var(--miniso-red); text-transform: uppercase; }
-
-        .product-card { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; animation: slideUp 0.3s ease-out; }
+        .thumb-img { width: 45px; height: 45px; object-fit: contain; border-radius: 6px; border: 1px solid #eee; }
+        
+        /* Kartu Produk Detail */
+        .product-card { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; display: none; }
         .image-box { background: #fff; text-align: center; padding: 15px; position: relative; border-bottom: 1px solid #f9f9f9; }
         .image-box img { max-width: 100%; height: 200px; object-fit: contain; }
         .p-info { padding: 20px; }
-        .p-cat { font-size: 11px; font-weight: 800; color: var(--miniso-red); text-transform: uppercase; display: block; }
-        .p-title { font-size: 18px; font-weight: 700; margin: 5px 0; color: #111; }
-        
         .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; margin-top: 15px; }
         .price-item { background: var(--bg-gray); padding: 12px 10px; border-radius: 12px; border-bottom: 3px solid #ddd; }
         .price-item.is-regular { border-bottom-color: var(--miniso-red); }
-        .price-label { font-size: 10px; color: #777; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 4px; }
         .price-val { font-size: 16px; font-weight: 800; }
-
         .barcode-box { background: #fff; padding: 15px; border-radius: 12px; border: 1px dashed #ccc; text-align: center; margin-top: 10px; }
-        .barcode-box img { max-width: 100%; height: auto; margin-bottom: 5px; }
+        .barcode-box img { max-width: 100%; height: auto; }
 
-        #reader { display:none; width:100%; max-width:340px; aspect-ratio:1/1; margin:15px auto; background:#000; border-radius:20px; overflow:hidden; position:relative; border: 4px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+        #reader { display:none; width:100%; max-width:340px; aspect-ratio:1/1; margin:15px auto; background:#000; border-radius:20px; overflow:hidden; border: 4px solid white; }
 
         @media (max-width: 768px) {
             .sidebar { position: fixed; height: 100%; left: -250px; top: 0; }
             .sidebar.active { left: 0; }
-            .sidebar.active ~ #overlay { display: block; }
         }
     </style>
 </head>
 <body>
 
-<div id="imagePopup" onclick="this.style.display='none'">
-    <img id="popupImg" src="">
-</div>
+<div id="imagePopup" onclick="this.style.display='none'"><img id="popupImg" src=""></div>
 
 <div class="app-wrapper">
     <nav class="sidebar" id="sidebar">
@@ -98,27 +89,27 @@
     </nav>
     <div id="overlay"></div>
 
-    <main class="main-content">
-        <div class="top-bar-container">
-            <div class="top-bar">
-                <button class="menu-toggle" id="menuToggle">☰</button>
-                <div class="search-container">
-                    <input id="searchInput" placeholder="Loading Data..." disabled>
-                    <button id="scanBtn" disabled>
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                    </button>
+    <main class="main-content" id="scrollContainer">
+        <div id="ui-controls">
+            <div class="top-bar-container">
+                <div class="top-bar">
+                    <button class="menu-toggle" id="menuToggle">☰</button>
+                    <div class="search-container">
+                        <input id="searchInput" placeholder="Loading Data..." disabled>
+                        <button id="scanBtn" disabled>
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                        </button>
+                    </div>
                 </div>
+                <select id="catFilter"><option value="">Semua Kategori</option></select>
             </div>
-            <div class="filter-row">
-                <select id="catFilter">
-                    <option value="">Semua Kategori</option>
-                </select>
-            </div>
+            <div id="reader"></div>
+            <div id="countDisplay" style="font-size:11px; color:#888; margin-bottom:10px; font-weight:600;"></div>
         </div>
 
-        <div id="reader"></div>
-        <div id="countDisplay" style="font-size:11px; color:#888; margin-bottom:10px; font-weight:600;"></div>
-        <div id="result"></div>
+        <div id="listContainer"></div>
+
+        <div id="detailContainer" class="product-card"></div>
     </main>
 </div>
 
@@ -127,141 +118,98 @@
 <script>
     const input = document.getElementById("searchInput");
     const catFilter = document.getElementById("catFilter");
-    const result = document.getElementById("result");
-    const countDisplay = document.getElementById("countDisplay");
+    const listContainer = document.getElementById("listContainer");
+    const detailContainer = document.getElementById("detailContainer");
+    const scrollContainer = document.getElementById("scrollContainer");
+    const uiControls = document.getElementById("ui-controls");
     
     let allProducts = [];
     let barcodeIndex = new Map();
-    let currentKeyword = ""; // Variabel baru untuk menyimpan kata kunci pencarian terakhir
+    let lastScrollPos = 0; // PENYIMPAN POSISI SCROLL
 
-    // 1. DATA LOADING
     fetch("https://miniso-id.github.io/product/products.json").then(r => r.json()).then(data => {
         allProducts = data;
-        const categories = new Set();
-        data.forEach(p => { 
-            if(p.b) p.b.split("/").forEach(c => barcodeIndex.set(c.trim(), p)); 
-            if(p.c) categories.add(p.c);
-        });
-        Array.from(categories).sort().forEach(cat => {
-            const opt = document.createElement("option");
-            opt.value = cat; opt.textContent = cat;
-            catFilter.appendChild(opt);
-        });
+        data.forEach(p => { if(p.b) p.b.split("/").forEach(c => barcodeIndex.set(c.trim(), p)); });
         input.disabled = false; document.getElementById("scanBtn").disabled = false;
         input.placeholder = "Cari Produk / Barcode...";
     });
 
-    function openPopup(src) {
-        document.getElementById("popupImg").src = src;
-        document.getElementById("imagePopup").style.display = "flex";
-    }
+    input.oninput = () => renderResults();
+    catFilter.onchange = () => renderResults();
 
-    // Input listener yang membedakan ketikan manual
-    input.oninput = () => {
-        currentKeyword = input.value.trim(); // Simpan apa yang diketik user
-        renderResults(false);
-    };
-    
-    catFilter.onchange = () => renderResults(false);
-
-    // 2. RENDER RESULTS
-    function renderResults(forceList = false) {
-        const q = forceList ? currentKeyword.toLowerCase() : input.value.trim().toLowerCase();
-        const selectedCat = catFilter.value;
+    function renderResults() {
+        detailContainer.style.display = "none";
+        listContainer.style.display = "block";
+        uiControls.style.display = "block";
         
-        if(!q && !selectedCat) { result.innerHTML = ""; countDisplay.innerHTML = ""; return; }
+        const q = input.value.trim().toLowerCase();
+        const selectedCat = catFilter.value;
+        if(!q && !selectedCat) { listContainer.innerHTML = ""; return; }
 
-        // Jika input barcode murni (bukan paksaan tampil list), tampilkan detail
-        // Namun, jika keyword terakhir adalah nama produk, jangan otomatis ke detail
-        if(barcodeIndex.has(q) && !forceList && q === currentKeyword.toLowerCase()) { 
-            showDetail(barcodeIndex.get(q), q); 
-            return; 
-        }
+        if(barcodeIndex.has(q)) { showDetail(barcodeIndex.get(q), q); return; }
 
         let filtered = allProducts;
         if(selectedCat) filtered = filtered.filter(p => p.c === selectedCat);
         if(q) filtered = filtered.filter(p => p.n && p.n.toLowerCase().includes(q));
 
         const displayItems = filtered.slice(0, 100);
-        countDisplay.innerHTML = `Ditemukan ${filtered.length} produk (tampil 100)`;
-
         let html = '<div class="search-results-list">';
         displayItems.forEach(p => {
             const b = p.b ? p.b.split("/")[0].trim() : "";
             html += `
-                <div class="search-item">
-                    <img class="thumb-img" src="${p.i}" onclick="openPopup('${p.i}')" onerror="this.src='https://via.placeholder.com/50'">
-                    <div class="item-info" onclick="selectItem('${b}')">
-                        <span class="item-cat">${p.c}</span>
-                        <span class="item-n">${p.n}</span>
+                <div class="search-item" onclick="selectItem('${b}')">
+                    <img class="thumb-img" src="${p.i}" onerror="this.src='https://via.placeholder.com/50'">
+                    <div style="flex:1; overflow:hidden;">
+                        <span style="font-size:10px; font-weight:800; color:var(--miniso-red);">${p.c}</span>
+                        <span style="font-size:13px; font-weight:700; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.n}</span>
                     </div>
-                    <div style="font-weight:800; font-size:13px;" onclick="selectItem('${b}')">Rp${p.r.toLocaleString('id-ID')}</div>
+                    <div style="font-weight:800; font-size:13px;">Rp${p.r.toLocaleString('id-ID')}</div>
                 </div>`;
         });
-        result.innerHTML = html + '</div>';
+        listContainer.innerHTML = html + '</div>';
     }
 
-    // Pilih item dari list
-    window.selectItem = (b) => { 
-        // Jangan ganti currentKeyword di sini agar tombol 'Kembali' tetap ingat pencarian nama sebelumnya
-        showDetail(barcodeIndex.get(b), b); 
-    };
-
-    // 3. BACK TO LIST (FIXED LOGIC)
-    window.backToList = () => {
-        input.value = currentKeyword; // Kembalikan teks di input ke kata kunci pencarian awal
-        renderResults(true); // Paksa tampilkan list
-        window.scrollTo(0,0);
+    window.selectItem = (b) => {
+        lastScrollPos = scrollContainer.scrollTop; // CATAT POSISI SCROLL SAAT INI
+        showDetail(barcodeIndex.get(b), b);
     };
 
     function showDetail(p, q) {
+        listContainer.style.display = "none";
+        uiControls.style.display = "none";
+        detailContainer.style.display = "block";
+        scrollContainer.scrollTop = 0;
+
         const barcodeApi = `https://bwipjs-api.metafloor.com/?bcid=ean13&text=${q}&scale=3&rotate=N&includetext`;
-        countDisplay.innerHTML = "";
-        result.innerHTML = `
-            <div class="product-card">
-                <div class="image-box" onclick="openPopup('${p.i}')">
-                    <img src="${p.i}" onerror="this.src='https://via.placeholder.com/300'">
-                    <div style="position:absolute; bottom:5px; right:5px; font-size:9px; background:rgba(0,0,0,0.5); color:white; padding:3px 6px; border-radius:4px;">🔍 Zoom</div>
+        detailContainer.innerHTML = `
+            <div class="image-box" onclick="openPopup('${p.i}')">
+                <img src="${p.i}" onerror="this.src='https://via.placeholder.com/300'">
+            </div>
+            <div class="p-info">
+                <span style="color:var(--miniso-red); font-weight:800; font-size:11px;">${p.c}</span>
+                <h3 style="margin:5px 0 15px 0;">${p.n}</h3>
+                <div class="price-grid">
+                    <div class="price-item is-regular"><span style="font-size:10px; color:#777;">REGULER</span><span class="price-val" style="color:var(--miniso-red)">Rp${p.r.toLocaleString('id-ID')}</span></div>
+                    <div class="price-item"><span style="font-size:10px; color:#777;">STREET</span><span class="price-val">Rp${p.s.toLocaleString('id-ID')}</span></div>
                 </div>
-                <div class="p-info">
-                    <span class="p-cat">${p.c}</span>
-                    <h3 class="p-title">${p.n}</h3>
-                    <div class="price-grid">
-                        <div class="price-item is-regular"><span class="price-label">Reguler</span><span class="price-val" style="color:var(--miniso-red)">Rp${p.r.toLocaleString('id-ID')}</span></div>
-                        <div class="price-item"><span class="price-label">Street</span><span class="price-val">Rp${p.s.toLocaleString('id-ID')}</span></div>
-                    </div>
-                    <div style="border-top:1px solid #eee; padding-top:10px; font-size:12px;">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span style="color:#888">Reg Promo</span><b style="color:var(--promo-blue)">${p.rp}</b></div>
-                        <div style="display:flex; justify-content:space-between;"><span style="color:#888">Street Promo</span><b style="color:var(--promo-green)">${p.sp}</b></div>
-                    </div>
-                    <div class="barcode-box">
-                        <img src="${barcodeApi}">
-                        <div style="font-weight:700; letter-spacing:3px;">${q}</div>
-                    </div>
-                    <button onclick="backToList()" style="width:100%; margin-top:20px; padding:15px; border:none; background:var(--miniso-red); border-radius:12px; font-weight:bold; cursor:pointer; color:white; font-size:14px; box-shadow: 0 4px 10px rgba(230,21,35,0.3);">← KEMBALI KE DAFTAR</button>
-                </div>
+                <div class="barcode-box"><img src="${barcodeApi}"><div style="font-weight:700; letter-spacing:3px; margin-top:5px;">${q}</div></div>
+                <button onclick="backToPrev()" style="width:100%; margin-top:20px; padding:16px; border:none; background:var(--miniso-red); border-radius:12px; font-weight:bold; color:white; cursor:pointer;">← KEMBALI KE DAFTAR</button>
             </div>`;
     }
 
-    // SCANNER LOGIC
-    const scanBtn = document.getElementById("scanBtn");
-    const reader = document.getElementById("reader");
-    let scanning = false;
-    scanBtn.onclick = () => {
-        if(scanning) { Quagga.stop(); scanning=false; reader.style.display="none"; }
-        else { scanning=true; reader.style.display="block"; Quagga.init({ inputStream: { type: "LiveStream", target: reader, constraints: { facingMode: "environment" } }, decoder: { readers: ["ean_reader"] } }, (err) => { if(!err) Quagga.start(); }); }
+    window.backToPrev = () => {
+        detailContainer.style.display = "none";
+        listContainer.style.display = "block";
+        uiControls.style.display = "block";
+        
+        // KEMBALIKAN POSISI SCROLL SECARA INSTAN
+        setTimeout(() => {
+            scrollContainer.scrollTo(0, lastScrollPos);
+        }, 10);
     };
-    Quagga.onDetected(res => {
-        const code = res.codeResult.code;
-        if(barcodeIndex.has(code)) { 
-            document.getElementById("beepOk").play(); 
-            Quagga.stop(); scanning=false; reader.style.display="none"; 
-            input.value = code; 
-            currentKeyword = code; // Jika scan, maka keyword adalah barcode tersebut
-            showDetail(barcodeIndex.get(code), code); 
-        }
-    });
 
+    function openPopup(src) { document.getElementById("popupImg").src = src; document.getElementById("imagePopup").style.display = "flex"; }
+    
     document.getElementById('menuToggle').onclick = () => document.getElementById('sidebar').classList.toggle('active');
     document.getElementById('overlay').onclick = () => document.getElementById('sidebar').classList.remove('active');
 </script>

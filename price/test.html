@@ -9,18 +9,12 @@
 <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 
 <style>
-/* ================= CSS RESET & LAYOUT UTAMA ================= */
+/* ================= LAYOUT & SIDEBAR ================= */
 * { box-sizing: border-box; }
-body { margin: 0; padding: 0; font-family: Arial, sans-serif; overflow: hidden; }
+body { margin: 0; padding: 0; font-family: Arial, sans-serif; overflow: hidden; background: #f8f9fa; }
 
-/* Wrapper untuk membagi layar jadi 2 (Sidebar & Konten) */
-.app-wrapper {
-  display: flex;
-  height: 100vh;
-  width: 100%;
-}
+.app-wrapper { display: flex; height: 100vh; width: 100%; }
 
-/* ================= SIDEBAR (MENU KIRI) ================= */
 .sidebar {
   width: 250px;
   background-color: #222;
@@ -28,171 +22,124 @@ body { margin: 0; padding: 0; font-family: Arial, sans-serif; overflow: hidden; 
   display: flex;
   flex-direction: column;
   padding: 20px;
-  transition: transform 0.3s ease; /* Animasi geser */
-  z-index: 1000;
-  flex-shrink: 0; /* Agar sidebar tidak mengecil */
+  transition: transform 0.3s ease;
+  z-index: 1001;
+  flex-shrink: 0;
 }
 
-.sidebar h2 {
-  text-align: center;
-  margin-bottom: 30px;
-  font-size: 1.5rem;
-  border-bottom: 1px solid #444;
-  padding-bottom: 10px;
+.sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 1.5rem; border-bottom: 1px solid #444; padding-bottom: 10px; }
+.sidebar a { text-decoration: none; color: #ccc; padding: 15px; margin-bottom: 5px; border-radius: 5px; display: block; }
+.sidebar a:hover, .sidebar a.active-link { background-color: #007bff; color: white; }
+
+.main-content { flex: 1; padding: 15px; overflow-y: auto; position: relative; width: 100%; }
+
+/* ================= HEADER COMPACT (SEJAJAR) ================= */
+.top-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  background: white;
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
-.sidebar a {
-  text-decoration: none;
-  color: #ccc;
-  padding: 15px;
-  margin-bottom: 5px;
-  border-radius: 5px;
-  font-size: 16px;
-  display: block;
-}
-
-.sidebar a:hover, .sidebar a.active-link {
-  background-color: #007bff;
-  color: white;
-}
-
-/* ================= KONTEN UTAMA (KANAN) ================= */
-.main-content {
-  flex: 1;
-  background-color: #f8f9fa;
-  padding: 15px;
-  overflow-y: auto; /* Bisa discroll */
-  position: relative;
-  width: 100%; /* Pastikan lebar penuh */
-}
-
-/* Tombol Menu (Hamburger) */
 .menu-toggle {
-  display: none;
-  position: absolute;
-  top: 15px;
-  left: 15px;
   background: #333;
   color: white;
   border: none;
-  padding: 8px 12px;
+  padding: 10px 14px;
   font-size: 20px;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
-  z-index: 999;
+  flex-shrink: 0;
 }
 
-/* ================= RESPONSIVE (TAMPILAN HP) ================= */
-@media (max-width: 768px) {
-  .sidebar {
-    position: fixed;
-    height: 100%;
-    left: 0;
-    top: 0;
-    transform: translateX(-100%); /* Sembunyikan ke kiri layar */
-    box-shadow: 2px 0 10px rgba(0,0,0,0.5);
-  }
-
-  .sidebar.active {
-    transform: translateX(0); /* Munculkan ke layar */
-  }
-
-  .menu-toggle {
-    display: block; /* Munculkan tombol hamburger */
-  }
-  
-  .main-content {
-    padding-top: 60px; /* Beri jarak atas agar tidak tertutup tombol menu */
-  }
+/* SEARCH BOX DENGAN ICON KAMERA DI DALAM */
+.search-container {
+  position: relative;
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
 }
 
-/* ================= CSS FITUR LAMA ANDA (SCANNER DLL) ================= */
+#searchInput {
+  width: 100%;
+  padding: 12px 85px 12px 15px; /* Spasi kanan untuk tombol X dan Kamera */
+  font-size: 16px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+#searchInput:focus { border-color: #007bff; }
+
+.input-actions {
+  position: absolute;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#clearBtn {
+  cursor: pointer;
+  font-weight: bold;
+  color: #999;
+  display: none;
+  font-size: 18px;
+}
+
+#scanBtn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#scanBtn:disabled { background: #ccc; }
+
+/* ================= CSS SCANNER & RESULT ================= */
 #reader {
   display:none;
   width:100%;
   max-width:360px;
-  aspect-ratio:1/1; /* Kotak Sempurna */
+  aspect-ratio:1/1;
   margin:10px auto;
   background:#000;
   border-radius:12px;
   overflow:hidden;
   position:relative;
 }
-#reader video {
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
-/* Kotak Hijau Penanda Area Scan */
+#reader video { width:100%; height:100%; object-fit:cover; }
 #reader::after {
-  content:"";
-  position:absolute;
-  inset:18%; 
-  border:2px dashed rgba(0,255,0,.7);
-  pointer-events:none;
+  content:""; position:absolute; inset:18%; 
+  border:2px dashed rgba(0,255,0,.7); pointer-events:none;
 }
-#history span {
-  margin:4px;
-  padding:4px 8px;
-  background:#eee;
-  border-radius:6px;
-  display:inline-block;
-  font-size:12px;
-}
-.search-box {
-    max-width: 400px;
-    margin: 0 auto 20px auto;
-    text-align: center;
-}
-.input-wrap {
-    position: relative;
-    margin-bottom: 10px;
-}
-#searchInput {
-    width: 100%;
-    padding: 12px;
-    font-size: 16px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-}
-#clearBtn {
-    position: absolute;
-    right: 10px;
-    top: 12px;
-    cursor: pointer;
-    display: none;
-    font-weight: bold;
-    color: #666;
-}
-#scanBtn {
-    padding: 12px 25px;
-    font-size: 16px;
-    background: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    width: 100%;
-}
-#scanBtn:disabled {
-    background: #ccc;
-}
+
 .card {
-    background: white;
-    padding: 10px;
-    margin-bottom: 10px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
+    background: white; padding: 12px; margin-bottom: 10px;
+    border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    display: flex; gap: 12px;
 }
-.card img {
-    width: 70px;
-    height: 70px;
-    object-fit: contain;
-    border: 1px solid #eee;
-    border-radius: 4px;
+.card img { width: 70px; height: 70px; object-fit: contain; }
+
+#history span {
+  margin:4px; padding:4px 10px; background: white;
+  border: 1px solid #ddd; border-radius: 20px;
+  display: inline-block; font-size: 12px; cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .sidebar { position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); }
+  .sidebar.active { transform: translateX(0); }
 }
 </style>
 </head>
@@ -200,37 +147,35 @@ body { margin: 0; padding: 0; font-family: Arial, sans-serif; overflow: hidden; 
 <body>
 
 <div class="app-wrapper">
-
     <nav class="sidebar" id="sidebar">
-        <h2>Menu Toko</h2>
+        <h2>MMS-X</h2>
         <a href="#" class="active-link" onclick="closeSidebarOnly()">📸 Price Check</a>
-        <a href="#" onclick="alert('Menu Stock Opname (Contoh)')">📦 Stock Opname</a>
-        <a href="#" onclick="alert('Menu List Barang (Contoh)')">📝 List Barang</a>
-        <a href="#" onclick="alert('Menu Pengaturan (Contoh)')">⚙️ Pengaturan</a>
+        <a href="#">📦 Stock Opname</a>
+        <a href="#">📝 List Barang</a>
+        <a href="#">⚙️ Pengaturan</a>
     </nav>
 
     <main class="main-content" id="mainContent">
-        <button class="menu-toggle" id="menuToggle">☰</button>
-
-        <center>
-          <h2 style="margin: 0;">Price Check</h2>
-          <h3 style="margin: 5px 0 20px 0; color: #666;">MMS-X (beta)</h3>
-        </center>
-
-        <div class="search-box">
-          <div class="input-wrap">
-            <input id="searchInput" placeholder="Loading database..." disabled>
-            <span id="clearBtn">✕</span>
-          </div>
-          <button id="scanBtn" disabled>📷 Buka Kamera</button>
+        
+        <div class="top-bar">
+            <button class="menu-toggle" id="menuToggle">☰</button>
+            <div class="search-container">
+                <input id="searchInput" placeholder="Loading..." disabled>
+                <div class="input-actions">
+                    <span id="clearBtn">✕</span>
+                    <button id="scanBtn" title="Scan Barcode" disabled>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div id="reader"></div>
 
-        <center><h3 style="margin-top:20px;">Scan History</h3></center>
-        <div id="history" style="text-align: center; margin-bottom: 15px; min-height: 20px;"></div>
+        <div style="margin-bottom: 10px; font-weight: bold; color: #555;">Scan History:</div>
+        <div id="history"></div>
         
-        <div id="result" class="grid"></div>
+        <div id="result" style="margin-top: 15px;"></div>
     </main>
 </div>
 
@@ -238,36 +183,28 @@ body { margin: 0; padding: 0; font-family: Arial, sans-serif; overflow: hidden; 
 <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
 <script>
-/* ================= 1. LOGIKA UI BARU (NAVBAR) ================= */
+/* ================= LOGIKA UI (NAVBAR & CLICK OUTSIDE) ================= */
 const sidebar = document.getElementById('sidebar');
 const menuToggle = document.getElementById('menuToggle');
-const mainContent = document.getElementById('mainContent');
 
-// Fungsi Buka/Tutup Menu
 menuToggle.onclick = (e) => {
-    e.stopPropagation(); // Mencegah click tembus ke document
+    e.stopPropagation();
     sidebar.classList.toggle('active');
 };
 
-// Fungsi Tutup Menu saat klik Link
 function closeSidebarOnly() {
-    if(window.innerWidth <= 768) {
-        sidebar.classList.remove('active');
-    }
+    if(window.innerWidth <= 768) sidebar.classList.remove('active');
 }
 
-// FITUR BARU: Klik Sembarang (di luar sidebar) untuk menutup menu
 document.addEventListener('click', (e) => {
-    // Jika layar kecil (Mobile) DAN sidebar sedang terbuka
     if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
-        // Jika yang diklik BUKAN bagian dari sidebar DAN BUKAN tombol menu
         if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
             sidebar.classList.remove('active');
         }
     }
 });
 
-/* ================= 2. INIT APLIKASI LAMA (TIDAK ADA YG DIHAPUS) ================= */
+/* ================= LOGIKA CORE (DATA & SEARCH) ================= */
 const input=document.getElementById("searchInput");
 const clearBtn=document.getElementById("clearBtn");
 const scanBtn=document.getElementById("scanBtn");
@@ -277,33 +214,24 @@ const historyDiv=document.getElementById("history");
 const beepOk=document.getElementById("beepOk");
 const beepErr=document.getElementById("beepErr");
 
-/* STATE */
 let barcodeIndex=new Map();
 let history=[];
 let dataReady=false;
 
-/* FETCH DATA */
 fetch("/product/products.json")
 .then(r=>r.json())
 .then(data=>{
   data.forEach(p=>{
     if(p.b){
-      p.b.split("/").forEach(code=>{
-        barcodeIndex.set(code.trim(),p);
-      });
+      p.b.split("/").forEach(code=>{ barcodeIndex.set(code.trim(),p); });
     }
   });
   dataReady=true;
   input.disabled=false;
   scanBtn.disabled=false;
-  input.placeholder="Scan barcode / ketik nama...";
-})
-.catch(err => {
-    console.log("Gagal load JSON, pastikan file products.json ada.", err);
-    input.placeholder = "Error loading database";
+  input.placeholder="Scan / Ketik Barcode...";
 });
 
-/* SEARCH LOGIC */
 input.oninput=e=>{
   clearBtn.style.display=e.target.value?"block":"none";
   search(e.target.value);
@@ -312,61 +240,45 @@ input.oninput=e=>{
 clearBtn.onclick=()=>{
   input.value="";
   result.innerHTML="";
-  clearBtn.style.display="none"; // Sembunyikan tombol X
+  clearBtn.style.display="none";
 };
 
 function search(q){
   if(!dataReady)return;
   q=q.trim();
   if(!q){ result.innerHTML=""; return; }
-
   if(barcodeIndex.has(q)){
-    beepOk.play().catch(e=>console.log("Audio error", e)); // Catch error jika user belum interaksi
+    beepOk.play().catch(e=>{});
     addHistory(q);
     render([barcodeIndex.get(q)]);
   }else{
-    // Jika tidak ketemu di map, mungkin mau search by name? (Opsional)
-    // beepErr.play(); 
-    // result.innerHTML="<p style='text-align:center; color:red;'>Produk tidak ditemukan</p>";
-    
-    // Logic asli Anda:
     beepErr.play().catch(e=>{});
     result.innerHTML="";
   }
 }
 
-/* RENDER CARD */
 function render(list){
   result.innerHTML = list.map(p => `
     <div class="card">
       <img src="${p.i}" alt="${p.n}" onerror="this.src='https://via.placeholder.com/70?text=No+Img'">
       <div class="info">
-        <b style="font-size:1.1em; display:block; margin-bottom:5px;">${p.n}</b>
-        <small style="background:#eee; padding:2px 5px; border-radius:4px;">${p.b}</small>
-        <div style="margin:4px 0; font-size:12px; color:#555;">
-          ${p.c} / ${p.d}
-        </div>
-        <div style="margin-top:5px; font-size:14px;">
-          Reg: <b>Rp${p.r.toLocaleString()}</b> ${p.rp ? `<span style="color:red; font-size:0.9em;">(${p.rp})</span>` : ""}
-        </div>
-        <div style="font-size:14px;">
-          Str: <b>Rp${p.s.toLocaleString()}</b> ${p.sp ? `<span style="color:red; font-size:0.9em;">(${p.sp})</span>` : ""}
-        </div>
-        ${p.e ? `<div style="margin-top:5px; color:#d9534f; font-weight:bold; font-size:13px;">Info: ${p.e}</div>` : ""}
+        <b style="display:block; margin-bottom:4px;">${p.n}</b>
+        <div style="font-size:12px; color:#777; margin-bottom:8px;">BC: ${p.b}</div>
+        <div style="font-size:14px;">Reg: <b>Rp${p.r.toLocaleString()}</b></div>
+        <div style="font-size:14px;">Str: <b>Rp${p.s.toLocaleString()}</b></div>
       </div>
     </div>
   `).join("");
 }
 
-/* HISTORY */
 function addHistory(code){
   if(history.includes(code))return;
   history.unshift(code);
   if(history.length>5)history.pop();
-  historyDiv.innerHTML=history.map(h=>`<span onclick="input.value='${h}'; search('${h}')" style="cursor:pointer;">${h}</span>`).join("");
+  historyDiv.innerHTML=history.map(h=>`<span onclick="input.value='${h}'; search('${h}')">${h}</span>`).join("");
 }
 
-/* ================= KAMERA & QUAGGA (LOGIKA LAMA DIJAGA KETAT) ================= */
+/* ================= KAMERA & QUAGGA (FITUR TETAP SAMA) ================= */
 let scanning=false,lastCode="",stableCount=0;
 let zoomLevel=2,zoomMin=1,zoomMax=3,lastZoomAdjust=0;
 
@@ -374,21 +286,17 @@ scanBtn.onclick=()=>{
   if(scanning||!dataReady)return;
   scanning=true;
   reader.style.display="block";
-  scanBtn.innerText = "Sedang Memindai..."; // Feedback Visual
 
   Quagga.init({
     inputStream:{
       type:"LiveStream",
       target:reader,
       constraints:{
-        facingMode:{ exact:"environment" }, // Pakai kamera belakang
-        width:{ ideal:1920 },
-        height:{ ideal:1080 },
+        facingMode:{ exact:"environment" },
+        width:{ ideal:1920 }, height:{ ideal:1080 },
         focusMode:"continuous"
       },
-      area:{
-        top:"18%", right:"18%", left:"18%", bottom:"18%"
-      }
+      area:{ top:"18%", right:"18%", left:"18%", bottom:"18%" }
     },
     decoder:{
       readers:[ "ean_reader", "code_128_reader", "code_39_reader", "upc_reader", "upc_e_reader" ]
@@ -396,25 +304,17 @@ scanBtn.onclick=()=>{
     locate:true
   },err=>{
     if(err){
-      console.error(err);
-      scanning=false;
-      reader.style.display="none";
-      scanBtn.innerText = "📷 Buka Kamera (Error)";
-      alert("Gagal membuka kamera. Pastikan izin kamera diberikan atau gunakan HTTPS.");
+      scanning=false; reader.style.display="none";
+      alert("Kamera error/tidak diizinkan");
       return;
     }
-
     Quagga.start();
-
-    /* INIT ZOOM Capability */
     setTimeout(()=>{
       const track=Quagga.CameraAccess.getActiveTrack();
-      if(!track)return;
-      const caps=track.getCapabilities();
-      if(caps.zoom){
-        zoomMin=caps.zoom.min||1;
-        zoomMax=caps.zoom.max||3;
-        zoomLevel=Math.min(2,zoomMax); // Default zoom agak maju
+      if(track && track.getCapabilities().zoom){
+        const caps=track.getCapabilities();
+        zoomMin=caps.zoom.min||1; zoomMax=caps.zoom.max||3;
+        zoomLevel=Math.min(2,zoomMax);
         track.applyConstraints({ advanced:[{ zoom:zoomLevel }] });
       }
     },500);
@@ -422,32 +322,18 @@ scanBtn.onclick=()=>{
     Quagga.onDetected(res=>{
       const code=res.codeResult.code;
       const decoded=res.codeResult.decodedCodes||[];
-
-      /* Validasi Error Rate */
-      let avgError = decoded.length
-        ? decoded.reduce((s,d)=>s+(d.error||1),0)/decoded.length
-        : 1;
-
+      let avgError = decoded.length ? decoded.reduce((s,d)=>s+(d.error||1),0)/decoded.length : 1;
       const valid = decoded.length>=3 && avgError<0.35;
 
-      // Auto Zoom Logic
       autoZoom(valid?"good":"bad");
 
-      /* Stability Logic (Mencegah salah baca cepat) */
-      if(code===lastCode){
-        if(valid) stableCount++;
-      }else{
-        lastCode=code;
-        stableCount= valid ? 1 : 0;
-      }
+      if(code===lastCode){ if(valid) stableCount++; }
+      else { lastCode=code; stableCount= valid ? 1 : 0; }
 
       if(stableCount>=2){
         Quagga.stop();
         scanning=false;
         reader.style.display="none";
-        scanBtn.innerText = "📷 Camera Scan"; // Reset text tombol
-        stableCount=0;
-        lastCode="";
         input.value=code;
         search(code);
       }
@@ -455,28 +341,15 @@ scanBtn.onclick=()=>{
   });
 };
 
-/* AUTO ZOOM FUNCTION */
 function autoZoom(mode){
   const now=Date.now();
-  if(now-lastZoomAdjust<1000)return; // Delay antar zoom 1 detik
-
+  if(now-lastZoomAdjust<1000)return;
   const track=Quagga.CameraAccess.getActiveTrack();
   if(!track)return;
-
-  if(mode==="bad" && zoomLevel<zoomMax){
-    zoomLevel+=0.2;
-  }
-  if(mode==="good" && zoomLevel>zoomMin+0.7){
-    zoomLevel-=0.1;
-  }
-  
-  // Clamp value
+  if(mode==="bad" && zoomLevel<zoomMax) zoomLevel+=0.2;
+  if(mode==="good" && zoomLevel>zoomMin+0.7) zoomLevel-=0.1;
   zoomLevel=Math.max(zoomMin,Math.min(zoomLevel,zoomMax));
-
-  track.applyConstraints({
-    advanced:[{ zoom:zoomLevel }]
-  });
-
+  track.applyConstraints({ advanced:[{ zoom:zoomLevel }] });
   lastZoomAdjust=now;
 }
 </script>

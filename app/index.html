@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <link rel="manifest" href="manifest.json">
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js');
+      }
+    </script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>MMS-X Miniso Edition</title>
+
+    <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
+
+    <style>
+        /* ================= PALET WARNA MINISO RED ================= */
+        :root {
+            --miniso-red: #e61523;
+            --miniso-soft: #fff1f2;
+            --text-dark: #333;
+        }
+
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; overflow: hidden; background: #fdfdfd; color: var(--text-dark); }
+
+        .app-wrapper { display: flex; height: 100vh; width: 100%; }
+
+        /* ================= SIDEBAR ================= */
+        .sidebar {
+            width: 250px;
+            background-color: var(--miniso-red);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            transition: transform 0.3s ease;
+            z-index: 1001;
+            flex-shrink: 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .sidebar h2 { 
+            text-align: center; margin-bottom: 30px; font-size: 1.4rem; font-weight: 800;
+            letter-spacing: 1px; border-bottom: 2px solid rgba(255,255,255,0.2); padding-bottom: 15px; 
+        }
+
+        .sidebar a { 
+            text-decoration: none; color: rgba(255,255,255,0.9); padding: 12px 15px; 
+            margin-bottom: 8px; border-radius: 8px; display: block; font-weight: 500; transition: 0.2s;
+        }
+
+        .sidebar a:hover, .sidebar a.active-link { 
+            background-color: rgba(255,255,255,0.2); color: #fff; 
+        }
+
+        .main-content { flex: 1; padding: 15px; overflow-y: auto; position: relative; width: 100%; }
+
+        /* ================= TOP BAR ================= */
+        .top-bar {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 15px;
+            background: white; padding: 10px; border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .menu-toggle {
+            background: var(--miniso-soft); color: var(--miniso-red); border: none;
+            width: 42px; height: 42px; font-size: 20px; border-radius: 10px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+
+        .search-container { position: relative; flex-grow: 1; display: flex; align-items: center; }
+
+        #searchInput {
+            width: 100%; height: 42px; padding: 0 80px 0 15px; font-size: 15px;
+            border: 2px solid #eee; border-radius: 10px; outline: none;
+            background: #f9f9f9; transition: 0.3s;
+        }
+
+        #searchInput:focus { border-color: var(--miniso-red); background: #fff; }
+
+        .input-actions { position: absolute; right: 6px; display: flex; align-items: center; gap: 8px; }
+
+        #clearBtn { cursor: pointer; color: #bbb; display: none; padding: 5px; font-size: 18px; }
+
+        #scanBtn {
+            background: var(--miniso-red); color: white; border: none;
+            width: 34px; height: 34px; border-radius: 8px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* ================= SCANNER & CAMERA SELECT ================= */
+        #reader {
+            display:none; width:100%; max-width:340px; aspect-ratio:1/1;
+            margin:15px auto; background:#000; border-radius:20px;
+            overflow:hidden; position:relative; border: 4px solid white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        #reader::after {
+            content:""; position:absolute; inset:20%; 
+            border:2.5px solid var(--miniso-red); border-radius:15px; pointer-events:none;
+        }
+
+        #cameraControl {
+            display:none; text-align:center; margin: 10px 0 20px 0;
+        }
+
+        #videoSource {
+            padding: 10px; border-radius: 8px; border: 2px solid var(--miniso-red);
+            width: 100%; max-width: 300px; background: white; font-weight: 600;
+        }
+
+        /* ================= RESULT CARD ================= */
+        .card {
+            background: white; padding: 15px; margin-bottom: 12px;
+            border-radius: 15px; border-left: 5px solid var(--miniso-red);
+            display: flex; gap: 15px; align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .card img { width: 70px; height: 70px; object-fit: contain; border-radius: 8px; }
+
+        #history span {
+            padding: 6px 14px; background: white; color: var(--miniso-red);
+            border: 1px solid var(--miniso-red); border-radius: 20px;
+            font-size: 12px; cursor: pointer; margin-right: 6px; margin-bottom: 8px;
+            display: inline-block; font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); }
+            .sidebar.active { transform: translateX(0); }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-wrapper">
+        <nav class="sidebar" id="sidebar">
+            <h2>MINISO</h2>
+            <a href="#" class="active-link" onclick="closeSidebarOnly()">📸 Price Check</a>
+            <a href="#">📦 Stock Opname</a>
+            <a href="#">📝 List Barang</a>
+            <a href="#">⚙️ Pengaturan</a>
+        </nav>
+
+        <main class="main-content" id="mainContent">
+            <div class="top-bar">
+                <button class="menu-toggle" id="menuToggle">☰</button>
+                <div class="search-container">
+                    <input id="searchInput" placeholder="Loading Data..." disabled>
+                    <div class="input-actions">
+                        <span id="clearBtn">✕</span>
+                        <button id="scanBtn" title="Scan Barcode" disabled>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="reader"></div>
+
+            <div id="cameraControl">
+                <p style="font-size: 12px; margin-bottom: 5px; color: #666;">Pilih Lensa Jika Blur:</p>
+                <select id="videoSource"></select>
+            </div>
+
+            <div id="history"></div>
+            <div id="result"></div>
+        </main>
+    </div>
+
+    <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
+    <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const menuToggle = document.getElementById('menuToggle');
+        const input = document.getElementById("searchInput");
+        const clearBtn = document.getElementById("clearBtn");
+        const scanBtn = document.getElementById("scanBtn");
+        const reader = document.getElementById("reader");
+        const result = document.getElementById("result");
+        const historyDiv = document.getElementById("history");
+        const videoSource = document.getElementById("videoSource");
+        const cameraControl = document.getElementById("cameraControl");
+
+        let barcodeIndex = new Map();
+        let history = [];
+        let dataReady = false;
+
+        // Load Data Produk
+        fetch("product/products.json")
+        .then(r => r.json())
+        .then(data => {
+            data.forEach(p => { 
+                if(p.b){ p.b.split("/").forEach(code => { barcodeIndex.set(code.trim(), p); }); } 
+            });
+            dataReady = true; input.disabled = false; scanBtn.disabled = false;
+            input.placeholder = "Ketik / Scan Barcode...";
+        });
+
+        // Sidebar & UI Logic
+        menuToggle.onclick = (e) => { e.stopPropagation(); sidebar.classList.toggle('active'); };
+        function closeSidebarOnly() { if(window.innerWidth <= 768) sidebar.classList.remove('active'); }
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+                if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) sidebar.classList.remove('active');
+            }
+        });
+
+        // Search Logic
+        input.oninput = e => { clearBtn.style.display = e.target.value ? "block" : "none"; search(e.target.value); };
+        clearBtn.onclick = () => { input.value = ""; result.innerHTML = ""; clearBtn.style.display = "none"; };
+
+        function search(q){
+            if(!dataReady) return; q = q.trim(); if(!q) { result.innerHTML = ""; return; }
+            if(barcodeIndex.has(q)){
+                document.getElementById("beepOk").play().catch(e=>{});
+                addHistory(q); render([barcodeIndex.get(q)]);
+            }
+        }
+
+        function render(list){
+            result.innerHTML = list.map(p => `
+                <div class="card">
+                    <img src="${p.i}" alt="${p.n}" onerror="this.src='https://via.placeholder.com/70?text=No+Img'">
+                    <div class="info">
+                        <b style="display:block; font-size:15px; margin-bottom:4px;">${p.n}</b>
+                        <div style="font-size:11px; color:#999; margin-bottom:6px;">BC: ${p.b}</div>
+                        <div style="font-size:15px; color:var(--miniso-red); font-weight:700;">Harga: Rp${p.r.toLocaleString('id-ID')}</div>
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        function addHistory(code){
+            if(history.includes(code)) return;
+            history.unshift(code); if(history.length > 6) history.pop();
+            historyDiv.innerHTML = history.map(h => `<span onclick="input.value='${h}'; search('${h}')">${h}</span>`).join("");
+        }
+
+        /* ================= SCANNER LOGIC ================= */
+        let scanning = false, lastCode = "", stableCount = 0;
+        let zoomLevel = 2, zoomMin = 1, zoomMax = 3, lastZoomAdjust = 0;
+
+        async function getCameras() {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(d => d.kind === 'videoinput');
+            videoSource.innerHTML = videoDevices.map((d, i) => 
+                `<option value="${d.deviceId}">${d.label || 'Kamera ' + (i+1)}</option>`
+            ).join("");
+        }
+
+        scanBtn.onclick = async () => {
+            if (scanning) { stopScan(); return; }
+            await getCameras();
+            cameraControl.style.display = "block";
+            startScan(videoSource.value);
+        };
+
+        videoSource.onchange = () => { if(scanning){ Quagga.stop(); startScan(videoSource.value); } };
+
+        function startScan(id) {
+            scanning = true; reader.style.display = "block";
+            Quagga.init({
+                inputStream: {
+                    type: "LiveStream", target: reader,
+                    constraints: { deviceId: id ? {exact: id} : undefined, facingMode: id ? undefined : "environment" }
+                },
+                decoder: { readers: ["ean_reader", "code_128_reader", "code_39_reader"] },
+                locate: true
+            }, err => {
+                if(err){ stopScan(); alert("Kamera error: " + err); return; }
+                Quagga.start();
+                initZoom();
+            });
+        }
+
+        function stopScan() {
+            Quagga.stop(); scanning = false;
+            reader.style.display = "none"; cameraControl.style.display = "none";
+        }
+
+        function initZoom() {
+            setTimeout(() => {
+                const track = Quagga.CameraAccess.getActiveTrack();
+                if (track && track.getCapabilities && track.getCapabilities().zoom) {
+                    const caps = track.getCapabilities();
+                    zoomMin = caps.zoom.min; zoomMax = caps.zoom.max;
+                    zoomLevel = Math.min(2.2, zoomMax);
+                    track.applyConstraints({ advanced: [{ zoom: zoomLevel }] });
+                }
+            }, 600);
+        }
+
+        Quagga.onDetected(res => {
+            const code = res.codeResult.code;
+            if (code === lastCode) { stableCount++; } else { lastCode = code; stableCount = 0; }
+            if (stableCount >= 3) {
+                stopScan(); input.value = code; search(code);
+                stableCount = 0; lastCode = "";
+            }
+        });
+    </script>
+</body>
+</html>

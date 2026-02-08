@@ -19,6 +19,7 @@
             --text-dark: #333;
             --promo-blue: #007bff;
             --promo-green: #28a745;
+            --bg-gray: #f8f9fa;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -61,7 +62,7 @@
             position: absolute; right: 2px; display: flex; align-items: center; justify-content: center;
         }
 
-        /* --- SCANNER VIEW --- */
+        /* --- SCANNER VIEW (HIGH RES) --- */
         #reader {
             display:none; width:100%; max-width:340px; aspect-ratio:1/1;
             margin:15px auto; background:#000; border-radius:20px;
@@ -75,22 +76,32 @@
         #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
         #videoSource { padding: 10px; border-radius: 8px; border: 2px solid var(--miniso-red); width: 100%; max-width: 300px; font-weight: 600; }
 
-        /* --- PRODUCT CARD --- */
+        /* --- PRODUCT CARD (UPDATED STRUCTURE) --- */
         .product-card {
             background: white; border-radius: 18px; overflow: hidden;
             box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px;
             animation: slideUp 0.3s ease-out;
         }
         @keyframes slideUp { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
         .image-box { background: #fff; text-align: center; padding: 15px; position: relative; border-bottom: 1px solid #f9f9f9; }
         .image-box img { max-width: 100%; height: 200px; object-fit: contain; }
         .promo-badge { position: absolute; top: 12px; left: 12px; background: #ff9800; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; }
+        
         .p-info { padding: 20px; }
-        .p-cat { font-size: 11px; font-weight: 700; color: var(--miniso-red); text-transform: uppercase; margin-bottom: 5px; display: block; }
-        .p-title { font-size: 18px; font-weight: 700; margin: 0 0 5px 0; color: #111; }
-        .p-price-box { display: flex; align-items: baseline; gap: 10px; margin-bottom: 18px; }
-        .p-curr { font-size: 26px; font-weight: 800; color: var(--miniso-red); }
-        .p-old { font-size: 16px; color: #bbb; text-decoration: line-through; }
+        .p-cat { font-size: 11px; font-weight: 800; color: var(--miniso-red); text-transform: uppercase; margin-bottom: 4px; display: block; letter-spacing: 0.5px; }
+        .p-title { font-size: 18px; font-weight: 700; margin: 0; color: #111; line-height: 1.3; }
+        .p-detail-cat { font-size: 13px; color: #666; font-weight: 500; margin-top: 4px; margin-bottom: 18px; display: block; }
+
+        /* Price Grid Styling */
+        .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .price-item { background: var(--bg-gray); padding: 12px 10px; border-radius: 12px; border-bottom: 3px solid #ddd; }
+        .price-item.is-regular { border-bottom-color: var(--miniso-red); }
+        .price-item.is-street { border-bottom-color: var(--promo-green); background: #f0fdf4; }
+        .price-label { font-size: 10px; color: #777; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 4px; }
+        .price-val { font-size: 16px; font-weight: 800; color: #111; }
+        .price-val.highlight { color: var(--miniso-red); }
+
         .p-meta { border-top: 1px solid #eee; padding-top: 15px; }
         .meta-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; align-items: center; }
         .meta-label { color: #888; display: flex; align-items: center; gap: 5px; }
@@ -167,10 +178,9 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
-    // --- iOS DETECTION LOGIC ---
+    // --- iOS STANDALONE DETECTION ---
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-
     if (isIOS && !isStandalone) {
         document.getElementById('ios-prompt').style.display = 'block';
     }
@@ -198,22 +208,22 @@
 
     input.oninput = (e) => search(e.target.value);
 
+    // --- AUTOFOCUS LOGIC ---
     reader.onclick = async () => {
         const track = Quagga.CameraAccess.getActiveTrack();
         if (track && track.applyConstraints) {
             try {
-                await track.applyConstraints({ advanced: [{ focusMode: "manual" }] });
-                await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+                await track.applyConstraints({ advanced: [{ focusMode: "manual" }, { focusMode: "continuous" }] });
             } catch (e) { console.warn("Focus failed"); }
         }
     };
 
     scanBtn.onclick = () => {
         if (scanning) { stopScan(); return; }
-        const lastId = localStorage.getItem('lastCameraId');
-        startScan(lastId);
+        startScan(localStorage.getItem('lastCameraId'));
     };
 
+    // --- 1080p CAMERA LOGIC ---
     async function startScan(deviceId = null) {
         scanning = true; reader.style.display = "block";
         Quagga.init({
@@ -242,7 +252,7 @@
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
         const backCams = videoDevices.filter(d => /back|rear|0/i.test(d.label));
         const final = backCams.length > 0 ? backCams : videoDevices;
-        const currentLabel = Quagga.CameraAccess.getActiveTrack().label;
+        const currentLabel = Quagga.CameraAccess.getActiveTrack()?.label;
         videoSource.innerHTML = final.map(d => `<option value="${d.deviceId}" ${currentLabel === d.label ? 'selected' : ''}>${d.label || 'Kamera Utama'}</option>`).join("");
     }
 
@@ -261,13 +271,15 @@
         }
     });
 
+    // --- RENDER FUNCTION (WITH CATEGORY & DUAL PRICE) ---
     function search(q) {
         q = q.trim();
         if(!q || !barcodeIndex.has(q)) { result.innerHTML = ""; return; }
         const p = barcodeIndex.get(q);
         addHistory(q);
-        const hasDiscount = p.s && p.s > p.r;
+        
         const discountLabel = (p.e && p.e !== "NORMAL PRICE") ? `<div class="promo-badge">${p.e}</div>` : "";
+
         result.innerHTML = `
             <div class="product-card">
                 <div class="image-box">
@@ -277,14 +289,29 @@
                 <div class="p-info">
                     <span class="p-cat">${p.c}</span>
                     <h3 class="p-title">${p.n}</h3>
-                    <div class="p-price-box">
-                        <span class="p-curr">Rp${p.r.toLocaleString('id-ID')}</span>
-                        ${hasDiscount ? `<span class="p-old">Rp${p.s.toLocaleString('id-ID')}</span>` : ''}
+                    <span class="p-detail-cat">${p.d}</span>
+                    
+                    <div class="price-grid">
+                        <div class="price-item is-regular">
+                            <span class="price-label">Reguler Price</span>
+                            <span class="price-val highlight">Rp${p.r.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div class="price-item is-street">
+                            <span class="price-label">Street Store Price</span>
+                            <span class="price-val">Rp${p.s.toLocaleString('id-ID')}</span>
+                        </div>
                     </div>
+
                     <div class="p-meta">
                         <div class="meta-row"><span class="meta-label">Barcode</span><span class="meta-val">${q}</span></div>
-                        <div class="meta-row"><span class="meta-label"><span class="dot" style="background:var(--promo-blue)"></span> Regular Promo</span><span class="meta-val" style="color:var(--promo-blue)">${p.rp}</span></div>
-                        <div class="meta-row"><span class="meta-label"><span class="dot" style="background:var(--promo-green)"></span> Street Store Promo</span><span class="meta-val" style="color:var(--promo-green)">${p.sp}</span></div>
+                        <div class="meta-row">
+                            <span class="meta-label"><span class="dot" style="background:var(--promo-blue)"></span> Reg. Promo</span>
+                            <span class="meta-val" style="color:var(--promo-blue)">${p.rp}</span>
+                        </div>
+                        <div class="meta-row">
+                            <span class="meta-label"><span class="dot" style="background:var(--promo-green)"></span> Street Promo</span>
+                            <span class="meta-val" style="color:var(--promo-green)">${p.sp}</span>
+                        </div>
                     </div>
                 </div>
             </div>`;

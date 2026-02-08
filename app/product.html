@@ -217,10 +217,9 @@
         document.getElementById("overlay").classList.toggle("active"); 
     }
 
-    // --- SMART SCANNER LOGIC ---
-    document.getElementById("scanBtn").onclick = () => { 
+    // --- LOGIKA SCANNER DENGAN PILIHAN KAMERA (SMART MEMORY) ---
+    document.getElementById("scanBtn").onclick = async () => { 
         if (scanning) { stopScan(); return; } 
-        // Mengingat kamera terakhir yang digunakan
         const lastCamera = localStorage.getItem("preferredCameraId");
         startScan(lastCamera); 
     };
@@ -228,29 +227,36 @@
     async function startScan(deviceId = null) {
         scanning = true; 
         reader.style.display = "block";
-        cameraSelector.style.display = "none";
+
+        // Minta izin kamera agar label daftar kamera muncul
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            stream.getTracks().forEach(track => track.stop()); // Stop stream sementara untuk init Quagga
+            await initCameraList(deviceId); 
+        } catch (e) {
+            console.error("Izin kamera diperlukan");
+        }
 
         Quagga.init({
             inputStream: { 
                 type: "LiveStream", 
                 target: reader, 
                 constraints: { 
-                    width: 1920, height: 1080, // Resolusi Full HD agar barcode kecil terbaca
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 },
                     deviceId: deviceId ? { exact: deviceId } : undefined,
                     facingMode: deviceId ? undefined : "environment" 
                 },
-                area: { top: "20%", right: "20%", left: "20%", bottom: "20%" } 
+                area: { top: "15%", right: "15%", left: "15%", bottom: "15%" } 
             },
             decoder: { readers: ["ean_reader", "code_128_reader"] },
             locate: true
         }, (err) => {
             if (err) { 
-                // Fallback jika ID kamera yang disimpan sudah tidak valid (misal kamera eksternal dilepas)
-                if(deviceId) { startScan(null); return; }
+                if(deviceId) { startScan(null); return; } // Fallback jika ID salah
                 stopScan(); return; 
             }
             Quagga.start();
-            initCameraList(deviceId); 
         });
     }
 
@@ -258,10 +264,10 @@
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
         
-        // Filter cerdas: Hanya tampilkan kamera belakang
+        // Filter cerdas untuk mencari kamera belakang saja
         const backCameras = videoDevices.filter(d => {
             const label = d.label.toLowerCase();
-            return !label.includes('front') && !label.includes('user') && !label.includes('depan');
+            return label.includes('back') || label.includes('rear') || label.includes('belakang') || label.includes('0');
         });
 
         const finalDevices = backCameras.length > 0 ? backCameras : videoDevices;
@@ -269,15 +275,18 @@
         if (finalDevices.length > 1) {
             cameraSelector.style.display = "block";
             videoSource.innerHTML = finalDevices.map((d, i) => 
-                `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>Kamera Belakang ${i + 1}</option>`
+                `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>
+                    ${d.label || 'Kamera Belakang ' + (i+1)}
+                </option>`
             ).join("");
+        } else {
+            cameraSelector.style.display = "none";
         }
     }
 
-    // Listener saat user mengganti kamera secara manual
     videoSource.onchange = () => {
         const newDeviceId = videoSource.value;
-        localStorage.setItem("preferredCameraId", newDeviceId); // Simpan pilihan secara permanen
+        localStorage.setItem("preferredCameraId", newDeviceId); // Simpan pilihan permanen
         Quagga.stop();
         startScan(newDeviceId);
     };
@@ -299,7 +308,7 @@
         }
     });
 
-    // --- SEARCH & UI LOGIC (TETAP SAMA) ---
+    // --- FITUR SEARCH & DETAIL (TIDAK BERUBAH) ---
     input.oninput = () => renderResults();
     catFilter.onchange = () => renderResults();
 

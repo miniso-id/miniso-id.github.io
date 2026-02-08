@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>MMS-X Miniso Edition - Ultra HD</title>
+    <title>MMS-X Miniso Pro Edition</title>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
     <style>
         :root {
@@ -14,7 +14,7 @@
         }
 
         * { box-sizing: border-box; }
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; overflow: hidden; background: #fdfdfd; color: var(--text-dark); }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #fdfdfd; color: var(--text-dark); }
 
         .app-wrapper { display: flex; height: 100vh; width: 100%; position: relative; }
 
@@ -29,15 +29,15 @@
         .sidebar a { text-decoration: none; color: #fff; padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; display: block; font-weight: 500; }
         .sidebar a:hover, .sidebar a.active-link { background-color: rgba(255,255,255,0.2); }
 
-        /* --- OVERLAY (Untuk menutup navbar saat klik area kosong) --- */
+        /* --- OVERLAY --- */
         #overlay {
             display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.3); z-index: 1500;
+            background: rgba(0,0,0,0.4); z-index: 1500;
         }
 
-        .main-content { flex: 1; padding: 15px; overflow-y: auto; position: relative; width: 100%; z-index: 100; }
+        .main-content { flex: 1; padding: 15px; overflow-y: auto; position: relative; z-index: 100; }
 
-        /* --- NAVBAR / TOP BAR --- */
+        /* --- TOP BAR --- */
         .top-bar {
             display: flex; align-items: center; gap: 10px; margin-bottom: 15px;
             background: white; padding: 10px; border-radius: 12px;
@@ -58,7 +58,7 @@
             position: absolute; right: 5px; display: flex; align-items: center; justify-content: center;
         }
 
-        /* --- SCANNER VIEW (ULTRA HD + CROP AREA) --- */
+        /* --- SCANNER VIEW (1080p + MULTI-ANGLE) --- */
         #reader {
             display:none; width:100%; max-width:340px; aspect-ratio:1/1;
             margin:15px auto; background:#000; border-radius:20px;
@@ -79,18 +79,37 @@
         #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
         #videoSource { padding: 10px; border-radius: 8px; border: 2px solid var(--miniso-red); width: 100%; max-width: 300px; font-weight: 600; }
 
-        /* --- CARDS & HISTORY --- */
-        .card {
-            background: white; padding: 15px; margin-bottom: 12px;
-            border-radius: 15px; border-left: 5px solid var(--miniso-red);
-            display: flex; gap: 15px; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        /* --- PRODUCT CARD FULL DETAIL --- */
+        .product-card {
+            background: white; border-radius: 18px; overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px;
+            animation: slideUp 0.3s ease-out;
         }
-        .card img { width: 70px; height: 70px; object-fit: contain; }
-        #history span {
-            padding: 6px 14px; background: white; color: var(--miniso-red);
-            border: 1px solid var(--miniso-red); border-radius: 20px;
-            font-size: 12px; cursor: pointer; margin: 0 5px 8px 0; display: inline-block; font-weight: 600;
+        @keyframes slideUp { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .image-box { background: #fff; text-align: center; padding: 15px; position: relative; }
+        .image-box img { max-width: 100%; height: 200px; object-fit: contain; }
+        .promo-badge {
+            position: absolute; top: 12px; left: 12px; background: #ff9800; color: white;
+            padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
+
+        .p-info { padding: 20px; }
+        .p-cat { font-size: 11px; font-weight: 700; color: var(--miniso-red); text-transform: uppercase; margin-bottom: 5px; display: block; }
+        .p-title { font-size: 18px; font-weight: 700; margin: 0 0 5px 0; color: #111; }
+        .p-desc { font-size: 13px; color: #666; margin-bottom: 15px; }
+        
+        .p-price-box { display: flex; align-items: baseline; gap: 10px; margin-bottom: 18px; }
+        .p-curr { font-size: 26px; font-weight: 800; color: var(--miniso-red); }
+        .p-old { font-size: 16px; color: #bbb; text-decoration: line-through; }
+        
+        .p-meta { border-top: 1px solid #eee; padding-top: 15px; }
+        .meta-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+        .meta-label { color: #999; }
+        .meta-val { font-weight: 600; color: #444; }
+
+        #history { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
+        #history span { padding: 6px 12px; background: #fff; border: 1px solid #eee; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: 600; color: #666; }
 
         @media (max-width: 768px) {
             .sidebar { position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); }
@@ -109,27 +128,24 @@
         <a href="#">📝 List Barang</a>
         <a href="#">⚙️ Pengaturan</a>
     </nav>
-
     <div id="overlay"></div>
 
-    <main class="main-content" id="main-content">
+    <main class="main-content">
         <div class="top-bar">
             <button class="menu-toggle" id="menuToggle">☰</button>
             <div class="search-container">
-                <input id="searchInput" placeholder="Syncing Data..." disabled>
-                <button id="scanBtn" disabled>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                </button>
+                <input id="searchInput" placeholder="Syncing Database..." disabled>
+                <button id="scanBtn" disabled>🔍</button>
             </div>
         </div>
 
         <div id="reader">
             <div class="focus-guide"></div>
-            <div class="tap-hint">FOKUSKAN BARCODE KE TENAK • TAP UNTUK AF</div>
+            <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK FOKUS</div>
         </div>
 
         <div id="cameraControl">
-            <p style="font-size: 12px; margin-bottom: 5px; color: #666;">Lensa Aktif:</p>
+            <p style="font-size: 11px; margin-bottom: 5px; color: #888;">Lensa Aktif:</p>
             <select id="videoSource"></select>
         </div>
 
@@ -143,41 +159,29 @@
 <script>
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('overlay');
-    const menuToggle = document.getElementById('menuToggle');
     const input = document.getElementById("searchInput");
     const scanBtn = document.getElementById("scanBtn");
     const reader = document.getElementById("reader");
-    const videoSource = document.getElementById("videoSource");
     const result = document.getElementById("result");
     const historyDiv = document.getElementById("history");
+    const videoSource = document.getElementById("videoSource");
     
     let barcodeIndex = new Map();
     let history = [];
     let scanning = false;
 
-    // --- 1. DATA LOADING ---
+    // --- 1. LOAD DATA ---
     fetch("https://miniso-id.github.io/product/products.json").then(r => r.json()).then(data => {
         data.forEach(p => { if(p.b) p.b.split("/").forEach(c => barcodeIndex.set(c.trim(), p)); });
         input.disabled = false; scanBtn.disabled = false; input.placeholder = "Ketik / Scan Barcode...";
     });
 
-    // --- 2. NAV LOGIC (CLOSE ON CLICK OUTSIDE) ---
-    menuToggle.onclick = (e) => {
-        e.stopPropagation();
-        sidebar.classList.toggle('active');
-    };
+    // --- 2. SIDEBAR LOGIC (CLOSE ON OVERLAY CLICK) ---
+    document.getElementById('menuToggle').onclick = () => sidebar.classList.toggle('active');
+    overlay.onclick = () => sidebar.classList.remove('active');
+    sidebar.querySelectorAll('a').forEach(a => a.onclick = () => sidebar.classList.remove('active'));
 
-    // Menutup navbar jika area overlay (bagian kosong) diklik
-    overlay.onclick = () => {
-        sidebar.classList.remove('active');
-    };
-
-    // Juga tutup jika salah satu menu di klik
-    sidebar.querySelectorAll('a').forEach(link => {
-        link.onclick = () => sidebar.classList.remove('active');
-    });
-
-    // --- 3. SCANNER LOGIC (ULTRA HD) ---
+    // --- 3. SCANNER LOGIC (ULTRA HD + MEMORY) ---
     input.oninput = (e) => search(e.target.value);
 
     reader.onclick = async () => {
@@ -186,7 +190,7 @@
             try {
                 await track.applyConstraints({ advanced: [{ focusMode: "manual" }] });
                 await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
-            } catch (e) { console.warn("AF Reset Failed"); }
+            } catch (e) { console.warn("Focus failed"); }
         }
     };
 
@@ -197,31 +201,22 @@
     };
 
     async function startScan(deviceId = null) {
-        scanning = true;
-        reader.style.display = "block";
-        
+        scanning = true; reader.style.display = "block";
         Quagga.init({
             inputStream: {
-                type: "LiveStream",
-                target: reader,
+                type: "LiveStream", target: reader,
                 constraints: {
-                    width: { min: 1280, ideal: 1920 },
-                    height: { min: 720, ideal: 1080 },
+                    width: { ideal: 1920 }, height: { ideal: 1080 },
                     deviceId: deviceId ? { exact: deviceId } : undefined,
-                    facingMode: deviceId ? undefined : "environment",
+                    facingMode: deviceId ? undefined : "environment"
                 },
-                // Fokus hanya di area 60% tengah untuk performa 1080p
                 area: { top: "20%", right: "20%", left: "20%", bottom: "20%" }
             },
             locator: { patchSize: "small", halfSample: false },
             decoder: { readers: ["ean_reader", "code_128_reader"] },
             locate: true
         }, (err) => {
-            if (err) { 
-                if(deviceId) { localStorage.removeItem('lastCameraId'); startScan(null); }
-                else { alert("Kamera Error: " + err); stopScan(); }
-                return; 
-            }
+            if (err) { stopScan(); return; }
             Quagga.start();
             document.getElementById("cameraControl").style.display = "block";
             updateCameraList();
@@ -236,61 +231,67 @@
     async function updateCameraList() {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
-        const backCams = videoDevices.filter(d => /back|rear|facing 0|0/i.test(d.label));
+        const backCams = videoDevices.filter(d => /back|rear|0/i.test(d.label));
         const final = backCams.length > 0 ? backCams : videoDevices;
         const currentLabel = Quagga.CameraAccess.getActiveTrack().label;
 
-        videoSource.innerHTML = final.map(d => 
-            `<option value="${d.deviceId}" ${currentLabel === d.label ? 'selected' : ''}>${d.label || 'Kamera Utama'}</option>`
-        ).join("");
+        videoSource.innerHTML = final.map(d => `<option value="${d.deviceId}" ${currentLabel === d.label ? 'selected' : ''}>${d.label || 'Kamera Utama'}</option>`).join("");
     }
 
     videoSource.onchange = () => {
-        const newId = videoSource.value;
-        localStorage.setItem('lastCameraId', newId);
-        Quagga.stop();
-        startScan(newId);
+        localStorage.setItem('lastCameraId', videoSource.value);
+        Quagga.stop(); startScan(videoSource.value);
     };
 
-    function stopScan() {
-        Quagga.stop();
-        scanning = false;
-        reader.style.display = "none";
-        document.getElementById("cameraControl").style.display = "none";
-    }
+    function stopScan() { Quagga.stop(); scanning = false; reader.style.display = "none"; document.getElementById("cameraControl").style.display = "none"; }
 
     Quagga.onDetected(res => {
         const code = res.codeResult.code;
         if(barcodeIndex.has(code)) {
             document.getElementById("beepOk").play().catch(()=>{});
-            stopScan();
-            input.value = code;
-            search(code);
+            stopScan(); input.value = code; search(code);
         }
     });
 
-    // --- 4. DATA RENDER ---
+    // --- 4. RENDER LENGKAP (SESUAI STRUKTUR JSON BARU) ---
     function search(q) {
         q = q.trim();
-        if(!q) { result.innerHTML = ""; return; }
-        if(barcodeIndex.has(q)) {
-            const p = barcodeIndex.get(q);
-            addHistory(q);
-            result.innerHTML = `
-                <div class="card">
-                    <img src="${p.i}" onerror="this.src='https://via.placeholder.com/70?text=No+Img'">
-                    <div class="info">
-                        <b style="display:block; font-size:15px; margin-bottom:4px;">${p.n}</b>
-                        <div style="font-size:11px; color:#999; margin-bottom:6px;">BC: ${p.b}</div>
-                        <div style="font-size:16px; color:var(--miniso-red); font-weight:700;">Rp${p.r.toLocaleString('id-ID')}</div>
+        if(!q || !barcodeIndex.has(q)) { result.innerHTML = ""; return; }
+        const p = barcodeIndex.get(q);
+        addHistory(q);
+
+        const hasDiscount = p.s && p.s > p.r;
+        const discountLabel = (p.e && p.e !== "NORMAL PRICE") ? `<div class="promo-badge">${p.e}</div>` : "";
+
+        result.innerHTML = `
+            <div class="product-card">
+                <div class="image-box">
+                    ${discountLabel}
+                    <img src="${p.i}" onerror="this.src='https://via.placeholder.com/300x300?text=Miniso+Product'">
+                </div>
+                <div class="p-info">
+                    <span class="p-cat">${p.c}</span>
+                    <h3 class="p-title">${p.n}</h3>
+                    <p class="p-desc">${p.d}</p>
+                    
+                    <div class="p-price-box">
+                        <span class="p-curr">Rp${p.r.toLocaleString('id-ID')}</span>
+                        ${hasDiscount ? `<span class="p-old">Rp${p.s.toLocaleString('id-ID')}</span>` : ''}
                     </div>
-                </div>`;
-        }
+
+                    <div class="p-meta">
+                        <div class="meta-row"><span class="meta-label">Barcode</span><span class="meta-val">${q}</span></div>
+                        <div class="meta-row"><span class="meta-label">Pricing Status</span><span class="meta-val">${p.rp}</span></div>
+                        <div class="meta-row"><span class="meta-label">Event</span><span class="meta-val">${p.sp}</span></div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     function addHistory(code) {
         if(history.includes(code)) return;
-        history.unshift(code); if(history.length > 6) history.pop();
+        history.unshift(code); if(history.length > 5) history.pop();
         historyDiv.innerHTML = history.map(h => `<span onclick="input.value='${h}'; search('${h}')">${h}</span>`).join("");
     }
 </script>

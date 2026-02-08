@@ -195,6 +195,7 @@
     const result = document.getElementById("result");
     const historyDiv = document.getElementById("history");
     const videoSource = document.getElementById("videoSource");
+    const cameraControl = document.getElementById("cameraControl");
     
     let barcodeIndex = new Map();
     let history = [];
@@ -205,7 +206,6 @@
         input.disabled = false; scanBtn.disabled = false; input.placeholder = "Ketik / Scan Barcode...";
     });
 
-    // Perbaikan Logika Sidebar dan Overlay
     const toggleSidebar = () => {
         const isActive = sidebar.classList.toggle('active');
         if (isActive) {
@@ -218,7 +218,6 @@
     document.getElementById('menuToggle').onclick = toggleSidebar;
     overlay.onclick = toggleSidebar;
 
-    // --- SCANNER LOGIC ---
     scanBtn.onclick = () => { if (scanning) { stopScan(); } else { startScan(); } };
     
     async function startScan(deviceId = null) {
@@ -238,7 +237,6 @@
         }, (err) => {
             if (err) return;
             Quagga.start();
-            document.getElementById("cameraControl").style.display = "block";
             updateCameraList();
         });
     }
@@ -254,11 +252,17 @@
         });
 
         const finalDevices = videoDevices.length > 0 ? videoDevices : devices.filter(d => d.kind === 'videoinput');
-        videoSource.innerHTML = finalDevices.map(d => `<option value="${d.deviceId}">${d.label || 'Back Camera'}</option>`).join("");
+        
+        if (finalDevices.length <= 1) {
+            cameraControl.style.display = "none";
+        } else {
+            cameraControl.style.display = "block";
+            videoSource.innerHTML = finalDevices.map(d => `<option value="${d.deviceId}">${d.label || 'Back Camera'}</option>`).join("");
+        }
     }
 
     videoSource.onchange = () => { Quagga.stop(); startScan(videoSource.value); };
-    function stopScan() { Quagga.stop(); scanning = false; reader.style.display = "none"; document.getElementById("cameraControl").style.display = "none"; }
+    function stopScan() { Quagga.stop(); scanning = false; reader.style.display = "none"; cameraControl.style.display = "none"; }
 
     Quagga.onDetected(res => {
         const code = res.codeResult.code;
@@ -270,7 +274,6 @@
 
     input.oninput = (e) => search(e.target.value);
 
-    // --- RENDER LOGIC ---
     function search(q) {
         q = q.trim();
         if(!q || !barcodeIndex.has(q)) { result.innerHTML = ""; return; }

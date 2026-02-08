@@ -27,7 +27,6 @@
 
         .app-wrapper { display: flex; height: 100vh; width: 100%; position: relative; }
 
-        /* --- SIDEBAR --- */
         .sidebar {
             width: 250px; background-color: var(--miniso-red); color: #fff;
             display: flex; flex-direction: column; padding: 20px;
@@ -36,12 +35,10 @@
         }
         .sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 1.4rem; font-weight: 800; border-bottom: 2px solid rgba(255,255,255,0.2); padding-bottom: 15px; }
         .sidebar a { text-decoration: none; color: #fff; padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; display: block; font-weight: 500; }
-        .sidebar a.active-link { background-color: rgba(255,255,255,0.2); }
-
+        
         #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1500; }
         .main-content { flex: 1; padding: 15px; overflow-y: auto; position: relative; z-index: 100; }
 
-        /* --- TOP BAR (STAY ORIGINAL) --- */
         .top-bar-container { background: white; padding: 10px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 15px; position: sticky; top: 0; z-index: 1100; }
         .top-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
         .filter-row { display: flex; gap: 8px; }
@@ -52,20 +49,16 @@
         #searchInput { width: 100%; height: 42px; padding: 0 50px 0 15px; font-size: 14px; border: 2px solid #eee; border-radius: 10px; outline: none; background: #f9f9f9; }
         #scanBtn { background: var(--miniso-red); color: white; border: none; width: 38px; height: 38px; border-radius: 10px; position: absolute; right: 2px; display: flex; align-items: center; justify-content: center; }
 
-        /* --- LIGHTBOX POPUP --- */
         #imagePopup { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 3000; align-items: center; justify-content: center; }
         #imagePopup img { max-width: 90%; max-height: 80vh; border-radius: 10px; }
 
-        /* --- RESULTS LIST --- */
         .search-results-list { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 15px; }
         .search-item { padding: 10px 15px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; align-items: center; gap: 12px; }
-        .search-item:active { background: #f0f0f0; }
         .thumb-img { width: 45px; height: 45px; object-fit: contain; border-radius: 6px; border: 1px solid #eee; background: white; }
         .item-info { flex: 1; overflow: hidden; }
         .item-n { font-size: 13px; font-weight: 700; color: #111; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .item-cat { font-size: 10px; font-weight: 800; color: var(--miniso-red); text-transform: uppercase; }
 
-        /* --- PRODUCT CARD (ORIGINAL DESIGN) --- */
         .product-card { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; animation: slideUp 0.3s ease-out; }
         .image-box { background: #fff; text-align: center; padding: 15px; position: relative; border-bottom: 1px solid #f9f9f9; }
         .image-box img { max-width: 100%; height: 200px; object-fit: contain; }
@@ -85,8 +78,8 @@
         #reader { display:none; width:100%; max-width:340px; aspect-ratio:1/1; margin:15px auto; background:#000; border-radius:20px; overflow:hidden; position:relative; border: 4px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
 
         @media (max-width: 768px) {
-            .sidebar { position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); }
-            .sidebar.active { transform: translateX(0); }
+            .sidebar { position: fixed; height: 100%; left: -250px; top: 0; }
+            .sidebar.active { left: 0; }
             .sidebar.active ~ #overlay { display: block; }
         }
     </style>
@@ -140,6 +133,7 @@
     let allProducts = [];
     let barcodeIndex = new Map();
 
+    // 1. DATA LOADING
     fetch("https://miniso-id.github.io/product/products.json").then(r => r.json()).then(data => {
         allProducts = data;
         const categories = new Set();
@@ -161,15 +155,21 @@
         document.getElementById("imagePopup").style.display = "flex";
     }
 
-    input.oninput = () => renderResults();
-    catFilter.onchange = () => renderResults();
+    input.oninput = () => renderResults(false);
+    catFilter.onchange = () => renderResults(false);
 
-    function renderResults() {
+    // 2. RENDER RESULTS (FIXED)
+    function renderResults(forceList = false) {
         const q = input.value.trim().toLowerCase();
         const selectedCat = catFilter.value;
+        
         if(!q && !selectedCat) { result.innerHTML = ""; countDisplay.innerHTML = ""; return; }
 
-        if(barcodeIndex.has(q)) { showDetail(barcodeIndex.get(q), q); return; }
+        // Jika input barcode murni dan BUKAN paksaan tampil list, tampilkan detail
+        if(barcodeIndex.has(q) && !forceList) { 
+            showDetail(barcodeIndex.get(q), q); 
+            return; 
+        }
 
         let filtered = allProducts;
         if(selectedCat) filtered = filtered.filter(p => p.c === selectedCat);
@@ -194,7 +194,18 @@
         result.innerHTML = html + '</div>';
     }
 
-    window.selectItem = (b) => { input.value = b; renderResults(); };
+    window.selectItem = (b) => { 
+        input.value = b; 
+        showDetail(barcodeIndex.get(b), b); 
+    };
+
+    // 3. BACK TO LIST FUNCTION
+    window.backToList = () => {
+        // Jika input adalah barcode, kita hapus sedikit agar tidak mentrigger detail otomatis
+        // atau kita panggil renderResults dengan paksaan (forceList)
+        renderResults(true);
+        window.scrollTo(0,0);
+    };
 
     function showDetail(p, q) {
         const barcodeApi = `https://bwipjs-api.metafloor.com/?bcid=ean13&text=${q}&scale=3&rotate=N&includetext`;
@@ -212,20 +223,20 @@
                         <div class="price-item is-regular"><span class="price-label">Reguler</span><span class="price-val" style="color:var(--miniso-red)">Rp${p.r.toLocaleString('id-ID')}</span></div>
                         <div class="price-item"><span class="price-label">Street</span><span class="price-val">Rp${p.s.toLocaleString('id-ID')}</span></div>
                     </div>
-                    <div style="border-top:1px solid #eee; padding-top:15px; font-size:12px;">
+                    <div style="border-top:1px solid #eee; padding-top:10px; font-size:12px;">
                         <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span style="color:#888">Reg Promo</span><b style="color:var(--promo-blue)">${p.rp}</b></div>
-                        <div style="display:flex; justify-content:space-between;"><span style="color:#888">Street Promo</span><b style="color:var(--promo-green)">${p.sp}</b></div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span style="color:#888">Street Promo</span><b style="color:var(--promo-green)">${p.sp}</b></div>
                     </div>
                     <div class="barcode-box">
                         <img src="${barcodeApi}">
                         <div style="font-weight:700; letter-spacing:3px;">${q}</div>
                     </div>
-                    <button onclick="renderResults()" style="width:100%; margin-top:15px; padding:12px; border:none; background:#f0f0f0; border-radius:10px; font-weight:bold;">← Kembali</button>
+                    <button onclick="backToList()" style="width:100%; margin-top:20px; padding:15px; border:none; background:#f0f0f0; border-radius:12px; font-weight:bold; cursor:pointer; color:#333; font-size:14px;">← Kembali ke Daftar</button>
                 </div>
             </div>`;
     }
 
-    // Scanner (Tetap Sama)
+    // SCANNER LOGIC
     const scanBtn = document.getElementById("scanBtn");
     const reader = document.getElementById("reader");
     let scanning = false;
@@ -234,7 +245,13 @@
         else { scanning=true; reader.style.display="block"; Quagga.init({ inputStream: { type: "LiveStream", target: reader, constraints: { facingMode: "environment" } }, decoder: { readers: ["ean_reader"] } }, (err) => { if(!err) Quagga.start(); }); }
     };
     Quagga.onDetected(res => {
-        if(barcodeIndex.has(res.codeResult.code)) { document.getElementById("beepOk").play(); Quagga.stop(); scanning=false; reader.style.display="none"; input.value = res.codeResult.code; renderResults(); }
+        const code = res.codeResult.code;
+        if(barcodeIndex.has(code)) { 
+            document.getElementById("beepOk").play(); 
+            Quagga.stop(); scanning=false; reader.style.display="none"; 
+            input.value = code; 
+            showDetail(barcodeIndex.get(code), code); 
+        }
     });
 
     document.getElementById('menuToggle').onclick = () => document.getElementById('sidebar').classList.toggle('active');

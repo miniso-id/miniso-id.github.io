@@ -3,6 +3,6 @@
       "target": {
         "namespace": "android_app",
         "package_name": "io.github.miniso_id.twa",
-        "sha256_cert_fingerprints": ["12:36:DB:57:EB:C9:3D:B1:74:AF:8E:A3:F9:12:AD:A4:AF:3F:DF:5A:F6:BA:B6:66:2A:07:57:4C:AA:94:1C:8F"]
+        "sha256_cert_fingerprints": ["FA:B4:E5:36:9E:59:BF:B6:6A:56:AF:9E:28:58:AC:CB:3A:35:F0:8D:B7:11:9A:5A:C0:C1:C0:7A:93:CF:E8:AF"]
       }
     }]

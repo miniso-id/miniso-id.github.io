@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -15,6 +14,7 @@
             --promo-blue: #007bff;
             --promo-green: #28a745;
             --bg-gray: #f4f4f4;
+            --sidebar-width: 250px;
         }
 
         * { box-sizing: border-box; }
@@ -22,18 +22,35 @@
 
         .app-wrapper { display: flex; height: 100vh; width: 100%; position: relative; }
 
-        /* --- SIDEBAR --- */
+        /* --- SIDEBAR PERBAIKAN TRANSISI --- */
         .sidebar {
-            width: 250px; background-color: var(--miniso-red); color: #fff;
+            width: var(--sidebar-width); background-color: var(--miniso-red); color: #fff;
             display: flex; flex-direction: column; padding: 20px;
-            transition: transform 0.3s ease; z-index: 2000; flex-shrink: 0;
+            z-index: 2000; flex-shrink: 0;
             box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            
+            /* Gunakan transform untuk performa 60fps */
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
         }
         .sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 1.4rem; font-weight: 800; border-bottom: 2px solid rgba(255,255,255,0.2); padding-bottom: 15px; }
-        .sidebar a { text-decoration: none; color: #fff; padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; display: block; font-weight: 500; }
+        .sidebar a { text-decoration: none; color: #fff; padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; display: block; font-weight: 500; transition: background 0.2s; }
         .sidebar a:hover, .sidebar a.active-link { background-color: rgba(255,255,255,0.2); }
 
-        #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1500; }
+        /* --- OVERLAY PERBAIKAN FADE --- */
+        #overlay { 
+            position: fixed; 
+            inset: 0; 
+            background: rgba(0,0,0,0.5); 
+            z-index: 1500;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s;
+        }
+        #overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
 
         .main-content { flex: 1; padding: 15px; overflow-y: auto; position: relative; z-index: 100; }
 
@@ -99,7 +116,6 @@
         .p-title { font-size: 18px; font-weight: 700; margin: 0 0 5px 0; color: #111; }
         .p-desc { font-size: 13px; color: #666; margin-bottom: 15px; }
 
-        /* --- HARGA SIDE BY SIDE --- */
         .price-comparison-grid {
             display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px;
         }
@@ -122,10 +138,16 @@
         #history { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
         #history span { padding: 6px 12px; background: #fff; border: 1px solid #eee; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: 600; color: #666; }
 
+        /* Media Query Responsive Sidebar */
         @media (max-width: 768px) {
-            .sidebar { position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); }
-            .sidebar.active { transform: translateX(0); }
-            .sidebar.active ~ #overlay { display: block; }
+            .sidebar { 
+                position: fixed; 
+                height: 100%; 
+                left: 0; 
+                top: 0; 
+                transform: translateX(-100%); /* Awalnya tersembunyi */
+            }
+            .sidebar.active { transform: translateX(0); } /* Muncul dengan transisi halus */
         }
     </style>
 </head>
@@ -183,8 +205,18 @@
         input.disabled = false; scanBtn.disabled = false; input.placeholder = "Ketik / Scan Barcode...";
     });
 
-    document.getElementById('menuToggle').onclick = () => sidebar.classList.toggle('active');
-    overlay.onclick = () => sidebar.classList.remove('active');
+    // Perbaikan Logika Sidebar dan Overlay
+    const toggleSidebar = () => {
+        const isActive = sidebar.classList.toggle('active');
+        if (isActive) {
+            overlay.classList.add('show');
+        } else {
+            overlay.classList.remove('show');
+        }
+    };
+
+    document.getElementById('menuToggle').onclick = toggleSidebar;
+    overlay.onclick = toggleSidebar;
 
     // --- SCANNER LOGIC ---
     scanBtn.onclick = () => { if (scanning) { stopScan(); } else { startScan(); } };
@@ -194,7 +226,12 @@
         Quagga.init({
             inputStream: {
                 type: "LiveStream", target: reader,
-                constraints: { width: { ideal: 1920 }, height: { ideal: 1080 }, deviceId: deviceId, facingMode: "environment" },
+                constraints: { 
+                    width: { ideal: 1920 }, 
+                    height: { ideal: 1080 }, 
+                    deviceId: deviceId, 
+                    facingMode: "environment"
+                },
                 area: { top: "20%", right: "20%", left: "20%", bottom: "20%" }
             },
             decoder: { readers: ["ean_reader", "code_128_reader"] }
@@ -208,8 +245,16 @@
 
     async function updateCameraList() {
         const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(d => d.kind === 'videoinput');
-        videoSource.innerHTML = videoDevices.map(d => `<option value="${d.deviceId}">${d.label || 'Kamera'}</option>`).join("");
+        const videoDevices = devices.filter(d => {
+            const label = d.label.toLowerCase();
+            return d.kind === 'videoinput' && 
+                   !label.includes('front') && 
+                   !label.includes('user') && 
+                   !label.includes('depan');
+        });
+
+        const finalDevices = videoDevices.length > 0 ? videoDevices : devices.filter(d => d.kind === 'videoinput');
+        videoSource.innerHTML = finalDevices.map(d => `<option value="${d.deviceId}">${d.label || 'Back Camera'}</option>`).join("");
     }
 
     videoSource.onchange = () => { Quagga.stop(); startScan(videoSource.value); };
@@ -225,14 +270,13 @@
 
     input.oninput = (e) => search(e.target.value);
 
-    // --- RENDER LOGIC (Dual Price + Extra Promo) ---
+    // --- RENDER LOGIC ---
     function search(q) {
         q = q.trim();
         if(!q || !barcodeIndex.has(q)) { result.innerHTML = ""; return; }
         const p = barcodeIndex.get(q);
         addHistory(q);
 
-        // EXTRA PROMO (e)
         const discountLabel = (p.e && p.e !== "NORMAL PRICE") ? `<div class="promo-badge">${p.e}</div>` : "";
 
         result.innerHTML = `
@@ -244,7 +288,7 @@
                 <div class="p-info">
                     <span class="p-cat">${p.c}</span>
                     <h3 class="p-title">${p.n}</h3>
-                    <p class="p-desc">${p.d}</p>
+                    <p class="p-desc">${p.d || ''}</p>
                     
                     <div class="price-comparison-grid">
                         <div class="price-item reg">

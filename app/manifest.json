@@ -2,7 +2,7 @@
   "name": "MMS-X Miniso",
   "short_name": "MMS-X",
   "start_url": "index.html",
-  "display": "minimal-ui",
+  "display": "fullscreen",
   "background_color": "#ffffff",
   "theme_color": "#e61523",
   "icons": [

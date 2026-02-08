@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.miniso_id.twa",
+        "sha256_cert_fingerprints": ["12:36:DB:57:EB:C9:3D:B1:74:AF:8E:A3:F9:12:AD:A4:AF:3F:DF:5A:F6:BA:B6:66:2A:07:57:4C:AA:94:1C:8F"]
+      }
+    }]

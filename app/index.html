@@ -76,7 +76,7 @@
         #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
         #videoSource { padding: 10px; border-radius: 8px; border: 2px solid var(--miniso-red); width: 100%; max-width: 300px; font-weight: 600; }
 
-        /* --- PRODUCT CARD (SPLIT PRICE IMPROVEMENT) --- */
+        /* --- PRODUCT CARD --- */
         .product-card {
             background: white; border-radius: 18px; overflow: hidden;
             box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px;
@@ -89,10 +89,11 @@
         .promo-badge { position: absolute; top: 12px; left: 12px; background: #ff9800; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; }
         
         .p-info { padding: 20px; }
-        .p-cat { font-size: 11px; font-weight: 700; color: var(--miniso-red); text-transform: uppercase; margin-bottom: 5px; display: block; }
-        .p-title { font-size: 18px; font-weight: 700; margin: 0 0 15px 0; color: #111; line-height: 1.3; }
+        .p-cat { font-size: 11px; font-weight: 800; color: var(--miniso-red); text-transform: uppercase; margin-bottom: 4px; display: block; letter-spacing: 0.5px; }
+        .p-title { font-size: 18px; font-weight: 700; margin: 0; color: #111; line-height: 1.3; }
+        .p-detail-cat { font-size: 13px; color: #666; font-weight: 500; margin-top: 4px; margin-bottom: 18px; display: block; }
 
-        /* Price Grid Styling */
+        /* Price Grid */
         .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .price-item { background: var(--bg-gray); padding: 12px 10px; border-radius: 12px; border-bottom: 3px solid #ddd; }
         .price-item.is-regular { border-bottom-color: var(--miniso-red); }
@@ -110,17 +111,6 @@
         #history { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
         #history span { padding: 6px 12px; background: #fff; border: 1px solid #eee; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: 600; color: #666; }
 
-        /* --- iOS SHORTCUT PROMPT --- */
-        #ios-prompt {
-            display: none; position: fixed; bottom: 30px; left: 10px; right: 10px;
-            background: white; padding: 15px; border-radius: 15px;
-            box-shadow: 0 5px 25px rgba(0,0,0,0.3); z-index: 9999;
-            border: 2px solid var(--miniso-red); animation: bounceIn 0.6s ease;
-        }
-        @keyframes bounceIn { from { transform: translateY(100px); opacity:0; } to { transform: translateY(0); opacity:1; } }
-        .prompt-text { font-size: 13px; line-height: 1.5; color: #444; text-align: center; }
-        .ios-icon { height: 20px; vertical-align: middle; margin: 0 5px; }
-
         @media (max-width: 768px) {
             .sidebar { position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); }
             .sidebar.active { transform: translateX(0); }
@@ -129,13 +119,6 @@
     </style>
 </head>
 <body>
-
-<div id="ios-prompt">
-    <div class="prompt-text">
-        Install <b>MMS-X</b> di iPhone kamu:<br>
-        Tap <img src="https://miniso-id.github.io/ios/share.png" class="ios-icon"> kemudian pilih <b>"Add to Home Screen"</b>
-    </div>
-</div>
 
 <div class="app-wrapper">
     <nav class="sidebar" id="sidebar">
@@ -177,11 +160,6 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
-    // iOS Logic
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-    if (isIOS && !isStandalone) { document.getElementById('ios-prompt').style.display = 'block'; }
-
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('overlay');
     const input = document.getElementById("searchInput");
@@ -209,7 +187,7 @@
         const track = Quagga.CameraAccess.getActiveTrack();
         if (track && track.applyConstraints) {
             try {
-                await track.applyConstraints({ advanced: [{ focusMode: "manual" }, { focusMode: "continuous" }] });
+                await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
             } catch (e) {}
         }
     };
@@ -278,7 +256,10 @@
                 </div>
                 <div class="p-info">
                     <span class="p-cat">${p.c}</span>
+                    
                     <h3 class="p-title">${p.n}</h3>
+                    
+                    <span class="p-detail-cat">${p.d}</span>
                     
                     <div class="price-grid">
                         <div class="price-item is-regular">

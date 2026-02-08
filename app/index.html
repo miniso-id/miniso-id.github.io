@@ -4,13 +4,15 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>MMS-X Miniso Pro Edition</title>
+    <title>MMS-X Miniso Pro - Promo Split</title>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
     <style>
         :root {
             --miniso-red: #e61523;
             --miniso-soft: #fff1f2;
             --text-dark: #333;
+            --promo-blue: #007bff;
+            --promo-green: #28a745;
         }
 
         * { box-sizing: border-box; }
@@ -18,7 +20,7 @@
 
         .app-wrapper { display: flex; height: 100vh; width: 100%; position: relative; }
 
-        /* --- SIDEBAR --- */
+        /* --- SIDEBAR & OVERLAY --- */
         .sidebar {
             width: 250px; background-color: var(--miniso-red); color: #fff;
             display: flex; flex-direction: column; padding: 20px;
@@ -29,7 +31,6 @@
         .sidebar a { text-decoration: none; color: #fff; padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; display: block; font-weight: 500; }
         .sidebar a:hover, .sidebar a.active-link { background-color: rgba(255,255,255,0.2); }
 
-        /* --- OVERLAY --- */
         #overlay {
             display: none; position: fixed; inset: 0;
             background: rgba(0,0,0,0.4); z-index: 1500;
@@ -58,7 +59,7 @@
             position: absolute; right: 5px; display: flex; align-items: center; justify-content: center;
         }
 
-        /* --- SCANNER VIEW (1080p + MULTI-ANGLE) --- */
+        /* --- SCANNER VIEW (1080p) --- */
         #reader {
             display:none; width:100%; max-width:340px; aspect-ratio:1/1;
             margin:15px auto; background:#000; border-radius:20px;
@@ -79,7 +80,7 @@
         #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
         #videoSource { padding: 10px; border-radius: 8px; border: 2px solid var(--miniso-red); width: 100%; max-width: 300px; font-weight: 600; }
 
-        /* --- PRODUCT CARD FULL DETAIL --- */
+        /* --- PRODUCT CARD --- */
         .product-card {
             background: white; border-radius: 18px; overflow: hidden;
             box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px;
@@ -87,11 +88,11 @@
         }
         @keyframes slideUp { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         
-        .image-box { background: #fff; text-align: center; padding: 15px; position: relative; }
+        .image-box { background: #fff; text-align: center; padding: 15px; position: relative; border-bottom: 1px solid #f9f9f9; }
         .image-box img { max-width: 100%; height: 200px; object-fit: contain; }
         .promo-badge {
             position: absolute; top: 12px; left: 12px; background: #ff9800; color: white;
-            padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold;
         }
 
         .p-info { padding: 20px; }
@@ -103,10 +104,12 @@
         .p-curr { font-size: 26px; font-weight: 800; color: var(--miniso-red); }
         .p-old { font-size: 16px; color: #bbb; text-decoration: line-through; }
         
+        /* --- META TABLE SPLIT --- */
         .p-meta { border-top: 1px solid #eee; padding-top: 15px; }
-        .meta-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
-        .meta-label { color: #999; }
-        .meta-val { font-weight: 600; color: #444; }
+        .meta-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; align-items: center; }
+        .meta-label { color: #888; display: flex; align-items: center; gap: 5px; }
+        .meta-val { font-weight: 700; color: #333; }
+        .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; }
 
         #history { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
         #history span { padding: 6px 12px; background: #fff; border: 1px solid #eee; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: 600; color: #666; }
@@ -145,7 +148,6 @@
         </div>
 
         <div id="cameraControl">
-            <p style="font-size: 11px; margin-bottom: 5px; color: #888;">Lensa Aktif:</p>
             <select id="videoSource"></select>
         </div>
 
@@ -170,18 +172,18 @@
     let history = [];
     let scanning = false;
 
-    // --- 1. LOAD DATA ---
+    // --- 1. DATA LOAD ---
     fetch("https://miniso-id.github.io/product/products.json").then(r => r.json()).then(data => {
         data.forEach(p => { if(p.b) p.b.split("/").forEach(c => barcodeIndex.set(c.trim(), p)); });
         input.disabled = false; scanBtn.disabled = false; input.placeholder = "Ketik / Scan Barcode...";
     });
 
-    // --- 2. SIDEBAR LOGIC (CLOSE ON OVERLAY CLICK) ---
+    // --- 2. SIDEBAR LOGIC ---
     document.getElementById('menuToggle').onclick = () => sidebar.classList.toggle('active');
     overlay.onclick = () => sidebar.classList.remove('active');
     sidebar.querySelectorAll('a').forEach(a => a.onclick = () => sidebar.classList.remove('active'));
 
-    // --- 3. SCANNER LOGIC (ULTRA HD + MEMORY) ---
+    // --- 3. SCANNER LOGIC ---
     input.oninput = (e) => search(e.target.value);
 
     reader.onclick = async () => {
@@ -220,11 +222,6 @@
             Quagga.start();
             document.getElementById("cameraControl").style.display = "block";
             updateCameraList();
-            
-            const track = Quagga.CameraAccess.getActiveTrack();
-            if (track && track.applyConstraints) {
-                track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
-            }
         });
     }
 
@@ -234,7 +231,6 @@
         const backCams = videoDevices.filter(d => /back|rear|0/i.test(d.label));
         const final = backCams.length > 0 ? backCams : videoDevices;
         const currentLabel = Quagga.CameraAccess.getActiveTrack().label;
-
         videoSource.innerHTML = final.map(d => `<option value="${d.deviceId}" ${currentLabel === d.label ? 'selected' : ''}>${d.label || 'Kamera Utama'}</option>`).join("");
     }
 
@@ -253,7 +249,7 @@
         }
     });
 
-    // --- 4. RENDER LENGKAP (SESUAI STRUKTUR JSON BARU) ---
+    // --- 4. RENDER LENGKAP DENGAN SPLIT PROMO ---
     function search(q) {
         q = q.trim();
         if(!q || !barcodeIndex.has(q)) { result.innerHTML = ""; return; }
@@ -280,9 +276,18 @@
                     </div>
 
                     <div class="p-meta">
-                        <div class="meta-row"><span class="meta-label">Barcode</span><span class="meta-val">${q}</span></div>
-                        <div class="meta-row"><span class="meta-label">Pricing Status</span><span class="meta-val">${p.rp}</span></div>
-                        <div class="meta-row"><span class="meta-label">Event</span><span class="meta-val">${p.sp}</span></div>
+                        <div class="meta-row">
+                            <span class="meta-label">Barcode Utama</span>
+                            <span class="meta-val">${q}</span>
+                        </div>
+                        <div class="meta-row">
+                            <span class="meta-label"><span class="dot" style="background:var(--promo-blue)"></span> Regular Promo</span>
+                            <span class="meta-val" style="color:var(--promo-blue)">${p.rp}</span>
+                        </div>
+                        <div class="meta-row">
+                            <span class="meta-label"><span class="dot" style="background:var(--promo-green)"></span> Street Store Promo</span>
+                            <span class="meta-val" style="color:var(--promo-green)">${p.sp}</span>
+                        </div>
                     </div>
                 </div>
             </div>

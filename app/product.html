@@ -87,7 +87,7 @@
         
         /* Camera Selector Style */
         #cameraSelector { display: none; width: 100%; max-width: 350px; margin: 0 auto 15px; }
-        #videoSource { width: 100%; padding: 12px; border-radius: 12px; border: 2px solid var(--miniso-red); background: white; font-weight: bold; color: var(--miniso-red); outline: none; }
+        #videoSource { width: 100%; padding: 12px; border-radius: 12px; border: 2px solid var(--miniso-red); background: white; font-weight: bold; color: var(--miniso-red); outline: none; font-size: 14px; }
 
         /* --- LIST & ITEMS --- */
         .search-item { padding: 12px; border-radius: 16px; background: white; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #f0f0f0; }
@@ -217,8 +217,13 @@
         document.getElementById("overlay").classList.toggle("active"); 
     }
 
-    // --- SCANNER LOGIC ---
-    document.getElementById("scanBtn").onclick = () => { if (scanning) { stopScan(); return; } startScan(); };
+    // --- SCANNER LOGIC WITH PREFERENCE ---
+    document.getElementById("scanBtn").onclick = () => { 
+        if (scanning) { stopScan(); return; } 
+        // Load kamera terakhir yang disimpan
+        const lastCamera = localStorage.getItem("preferredCameraId");
+        startScan(lastCamera); 
+    };
 
     async function startScan(deviceId = null) {
         scanning = true; 
@@ -240,27 +245,33 @@
             decoder: { readers: ["ean_reader", "code_128_reader"] },
             locate: true
         }, (err) => {
-            if (err) { stopScan(); return; }
+            if (err) { 
+                // Jika error (mungkin kamera lama tidak ada), reset ke kamera default
+                if(deviceId) { startScan(null); return; }
+                stopScan(); return; 
+            }
             Quagga.start();
-            initCameraList(); // Load daftar kamera setelah Quagga aktif
+            initCameraList(deviceId); 
         });
     }
 
-    async function initCameraList() {
+    async function initCameraList(currentId) {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const backCameras = devices.filter(d => d.kind === 'videoinput');
         
         if (backCameras.length > 1) {
             cameraSelector.style.display = "block";
             videoSource.innerHTML = backCameras.map((d, i) => 
-                `<option value="${d.deviceId}" ${i === 0 ? 'selected' : ''}>Kamera Belakang ${i + 1}</option>`
+                `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>Kamera Belakang ${i + 1}</option>`
             ).join("");
         }
     }
 
     videoSource.onchange = () => {
+        const newDeviceId = videoSource.value;
+        localStorage.setItem("preferredCameraId", newDeviceId); // Simpan pilihan terbaik
         Quagga.stop();
-        startScan(videoSource.value);
+        startScan(newDeviceId);
     };
 
     function stopScan() { Quagga.stop(); scanning = false; reader.style.display = "none"; cameraSelector.style.display = "none"; }

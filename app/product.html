@@ -66,31 +66,32 @@
             width: 38px; height: 38px; border-radius: 10px; position: absolute; right: 2px;
         }
 
-        /* --- RESULTS LIST --- */
+        /* --- RESULTS LIST WITH IMAGES --- */
         .search-results-list { background: white; border-radius: 12px; border: 1px solid #eee; margin-bottom: 15px; }
         .search-item { 
-            padding: 12px 15px; border-bottom: 1px solid #f1f1f1; cursor: pointer; 
-            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px; border-bottom: 1px solid #f1f1f1; cursor: pointer; 
+            display: flex; align-items: center; gap: 12px;
         }
         .search-item:last-child { border-bottom: none; }
         .search-item:active { background: #f9f9f9; }
-        .item-info { display: flex; flex-direction: column; gap: 2px; }
-        .item-n { font-size: 14px; font-weight: 700; color: #111; }
-        .item-cat { font-size: 11px; color: var(--miniso-red); font-weight: 800; text-transform: uppercase; }
+        
+        .thumb-img { width: 50px; height: 50px; object-fit: contain; background: #fff; border-radius: 6px; border: 1px solid #eee; flex-shrink: 0; }
+        
+        .item-info { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .item-n { font-size: 13px; font-weight: 700; color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .item-cat { font-size: 10px; color: var(--miniso-red); font-weight: 800; text-transform: uppercase; }
+        
+        .item-price-tag { text-align: right; flex-shrink: 0; }
         .item-price { font-size: 13px; font-weight: 800; color: #333; }
 
         /* --- PRODUCT DETAIL CARD --- */
         .product-card { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 8px 25px rgba(0,0,0,0.1); margin-bottom: 20px; animation: slideUp 0.3s ease; }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .image-box { background: #fff; text-align: center; padding: 15px; position: relative; border-bottom: 1px solid #f9f9f9; }
-        .image-box img { max-width: 100%; height: 200px; object-fit: contain; }
+        .image-box img { max-width: 100%; height: 220px; object-fit: contain; }
         .p-info { padding: 20px; }
-        .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
-        .price-item { background: var(--bg-gray); padding: 10px; border-radius: 10px; border-bottom: 3px solid #ddd; }
-        .price-item.is-regular { border-bottom-color: var(--miniso-red); }
-        .price-val { font-size: 16px; font-weight: 800; display: block; }
         
-        .result-count { font-size: 12px; color: #888; margin-bottom: 10px; padding-left: 5px; }
+        .result-count { font-size: 11px; color: #888; margin-bottom: 8px; padding-left: 5px; font-weight: 600; }
 
         @media (max-width: 768px) {
             .sidebar { position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); transition: 0.3s; }
@@ -130,7 +131,6 @@
 
         <div id="reader" style="display:none; width:100%; max-width:340px; aspect-ratio:1/1; margin:10px auto; background:#000; border-radius:20px; overflow:hidden;"></div>
         
-        <div id="history"></div>
         <div id="countDisplay" class="result-count"></div>
         <div id="result"></div>
     </main>
@@ -146,7 +146,6 @@
     
     let allProducts = [];
     let barcodeIndex = new Map();
-    let history = [];
 
     // 1. DATA LOADING
     fetch("https://miniso-id.github.io/product/products.json").then(r => r.json()).then(data => {
@@ -165,7 +164,7 @@
         input.placeholder = "Cari Nama atau Barcode...";
     });
 
-    // 2. SEARCH LOGIC (UNLIMITED RESULTS)
+    // 2. SEARCH & RENDER (LIMIT 100 WITH IMAGES)
     input.oninput = () => renderResults();
     catFilter.onchange = () => renderResults();
 
@@ -179,31 +178,35 @@
             return; 
         }
 
-        // Jika input adalah barcode murni & cocok, langsung tampilkan kartu
         if(barcodeIndex.has(q)) {
             showDetail(barcodeIndex.get(q), q);
             countDisplay.innerHTML = "Ditemukan 1 produk (Barcode Match)";
             return;
         }
 
-        // Filter berdasarkan kategori dan nama
         let filtered = allProducts;
         if(selectedCat) filtered = filtered.filter(p => p.c === selectedCat);
         if(q) filtered = filtered.filter(p => p.n && p.n.toLowerCase().includes(q));
 
-        countDisplay.innerHTML = `Menampilkan ${filtered.length} produk`;
+        const totalFound = filtered.length;
+        const displayList = filtered.slice(0, 100); // AMBIL HANYA 100 PRODUK PERTAMA
 
-        if(filtered.length > 0) {
+        countDisplay.innerHTML = `Menampilkan ${displayList.length} dari ${totalFound} produk ditemukan`;
+
+        if(displayList.length > 0) {
             let listHtml = '<div class="search-results-list">';
-            filtered.forEach(p => {
+            displayList.forEach(p => {
                 const b = p.b ? p.b.split("/")[0].trim() : "N/A";
                 listHtml += `
                     <div class="search-item" onclick="openProduct('${b}')">
+                        <img class="thumb-img" src="${p.i}" onerror="this.src='https://via.placeholder.com/50?text=NO+IMG'">
                         <div class="item-info">
                             <span class="item-cat">${p.c}</span>
                             <span class="item-n">${p.n}</span>
                         </div>
-                        <div class="item-price">Rp${p.r.toLocaleString('id-ID')}</div>
+                        <div class="item-price-tag">
+                            <span class="item-price">Rp${p.r.toLocaleString('id-ID')}</span>
+                        </div>
                     </div>`;
             });
             result.innerHTML = listHtml + '</div>';
@@ -226,26 +229,25 @@
                 <div class="p-info">
                     <span style="font-size:11px; color:var(--miniso-red); font-weight:800; text-transform:uppercase;">${p.c}</span>
                     <h3 style="margin:5px 0 10px 0; font-size:18px;">${p.n}</h3>
-                    <div class="price-grid">
-                        <div class="price-item is-regular"><span style="font-size:10px; color:#777;">REGULER</span><span class="price-val" style="color:var(--miniso-red)">Rp${p.r.toLocaleString('id-ID')}</span></div>
-                        <div class="price-item"><span style="font-size:10px; color:#777;">STREET</span><span class="price-val">Rp${p.s.toLocaleString('id-ID')}</span></div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0;">
+                        <div style="background:var(--bg-gray); padding:10px; border-radius:10px; border-bottom:3px solid var(--miniso-red);"><span style="font-size:10px; color:#777;">REGULER</span><span style="font-size:16px; font-weight:800; display:block; color:var(--miniso-red)">Rp${p.r.toLocaleString('id-ID')}</span></div>
+                        <div style="background:var(--bg-gray); padding:10px; border-radius:10px; border-bottom:3px solid #ddd;"><span style="font-size:10px; color:#777;">STREET</span><span style="font-size:16px; font-weight:800; display:block;">Rp${p.s.toLocaleString('id-ID')}</span></div>
                     </div>
                     <div style="border-top:1px solid #eee; padding-top:10px; font-size:12px;">
                         <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span style="color:#888">Barcode</span><b>${q}</b></div>
                         <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span style="color:#888">Reg Promo</span><b style="color:var(--promo-blue)">${p.rp}</b></div>
                         <div style="display:flex; justify-content:space-between;"><span style="color:#888">Street Promo</span><b style="color:var(--promo-green)">${p.sp}</b></div>
                     </div>
-                    <button onclick="renderResults()" style="width:100%; margin-top:15px; padding:10px; border:none; background:#eee; border-radius:8px; font-weight:bold; cursor:pointer;">← Kembali ke List</button>
+                    <button onclick="renderResults()" style="width:100%; margin-top:15px; padding:12px; border:none; background:#eee; border-radius:10px; font-weight:bold; cursor:pointer;">← Kembali ke List</button>
                 </div>
             </div>`;
-        window.scrollTo(0,0);
+        document.querySelector('.main-content').scrollTo(0,0);
     }
 
-    // --- SIDEBAR & SCANNER (TETAP SAMA) ---
+    // --- SIDEBAR & SCANNER ---
     document.getElementById('menuToggle').onclick = () => document.getElementById('sidebar').classList.toggle('active');
     document.getElementById('overlay').onclick = () => document.getElementById('sidebar').classList.remove('active');
     
-    // Scanner Logic (Singkat)
     const scanBtn = document.getElementById("scanBtn");
     const reader = document.getElementById("reader");
     let scanning = false;
@@ -253,7 +255,7 @@
         if(scanning) { Quagga.stop(); scanning=false; reader.style.display="none"; }
         else { 
             scanning=true; reader.style.display="block";
-            Quagga.init({ inputStream: { type: "LiveStream", target: reader, constraints: { facingMode: "environment" } }, decoder: { readers: ["ean_reader"] } }, (err) => { if(!err) Quagga.start(); });
+            Quagga.init({ inputStream: { type: "LiveStream", target: reader, constraints: { facingMode: "environment", width: 1280, height: 720 } }, decoder: { readers: ["ean_reader"] } }, (err) => { if(!err) Quagga.start(); });
         }
     };
     Quagga.onDetected(res => {

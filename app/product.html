@@ -17,6 +17,8 @@
             --miniso-soft: #fff1f2;
             --text-dark: #333;
             --bg-gray: #f8f9fa;
+            --promo-blue: #007bff;
+            --promo-green: #28a745;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -85,31 +87,36 @@
             color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3;
         }
 
-        /* FIX GLITCH IMAGE & LIST */
+        /* LIST & ITEMS */
         .search-results-list { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .search-item { padding: 10px 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 12px; }
-        
-        .thumb-img { 
-            width: 50px; height: 50px; object-fit: contain; border-radius: 6px; 
-            border: 1px solid #eee; cursor: zoom-in; background: #f9f9f9; 
-            flex-shrink: 0;
-        }
-
+        .thumb-img { width: 50px; height: 50px; object-fit: contain; border-radius: 6px; border: 1px solid #eee; cursor: zoom-in; background: #f9f9f9; flex-shrink: 0;}
         .item-clickable-area { flex: 1; overflow: hidden; cursor: pointer; display: flex; align-items: center; gap: 12px; }
 
-        /* PRODUCT DETAIL CARD FIX */
+        /* PRODUCT DETAIL CARD (FIXED GLITCH) */
         .product-card { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); display: none; margin-bottom: 20px; }
-        
         .image-box { 
             text-align: center; padding: 15px; position: relative; cursor: zoom-in;
             min-height: 220px; display: flex; align-items: center; justify-content: center;
             background: #fff;
         }
         .image-box img { max-width: 100%; max-height: 220px; object-fit: contain; }
-        
+
+        /* PROMO STYLES */
+        .promo-badge {
+            position: absolute; top: 12px; left: 12px; background: #ff9800; color: white;
+            padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; z-index: 10;
+        }
         .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
         .price-item { background: var(--bg-gray); padding: 12px 10px; border-radius: 12px; border-bottom: 3px solid #ddd; }
-        .barcode-box { background: #fff; padding: 15px; border-radius: 12px; border: 1px dashed #ccc; text-align: center; margin-top: 10px; }
+        
+        .promo-section { margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; }
+        .promo-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; align-items: center; }
+        .promo-label { color: #888; display: flex; align-items: center; gap: 6px; }
+        .promo-val { font-weight: 700; color: #333; }
+        .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; }
+
+        .barcode-box { background: #fff; padding: 15px; border-radius: 12px; border: 1px dashed #ccc; text-align: center; margin-top: 15px; }
 
         #imagePopup { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 6000; align-items: center; justify-content: center; }
         #imagePopup img { max-width: 95%; max-height: 85vh; border-radius: 10px; }
@@ -126,7 +133,7 @@
 <div id="loginScreen">
     <div class="login-card">
         <h1>MINISO</h1>
-        <p style="color:#888; margin-bottom:25px; font-size:14px;">MMS-X Product Checker v2.2</p>
+        <p style="color:#888; margin-bottom:25px; font-size:14px;">MMS-X Product Checker v2.3</p>
         <input type="text" id="username" class="login-input" placeholder="Username" autocomplete="off">
         <input type="password" id="password" class="login-input" placeholder="Password">
         <button class="btn-login" onclick="handleLogin()">LOGIN</button>
@@ -218,7 +225,6 @@
 
     function initApp() {
         if(sessionStorage.getItem("isLoggedIn") !== "true") return;
-        
         document.getElementById("loginScreen").style.display = "none";
         document.getElementById("appContent").style.display = "flex";
         document.getElementById("userDisplay").textContent = "Hi, " + sessionStorage.getItem("activeUserName");
@@ -237,7 +243,7 @@
         });
     }
 
-    // --- SCANNER ---
+    // --- SCANNER LOGIC (NO FEATURES DELETED) ---
     reader.onclick = async () => {
         const track = Quagga.CameraAccess.getActiveTrack();
         if (track && track.applyConstraints) {
@@ -265,7 +271,8 @@
                 },
                 area: { top: "20%", right: "20%", left: "20%", bottom: "20%" }
             },
-            decoder: { readers: ["ean_reader", "code_128_reader"] }
+            decoder: { readers: ["ean_reader", "code_128_reader"] },
+            locate: true
         }, (err) => {
             if (err) { stopScan(); return; }
             Quagga.start();
@@ -277,7 +284,7 @@
     async function updateCameraList() {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
-        const currentLabel = Quagga.CameraAccess.getActiveTrack().label;
+        const currentLabel = Quagga.CameraAccess.getActiveTrack()?.label;
         videoSource.innerHTML = videoDevices.map(d => `<option value="${d.deviceId}" ${currentLabel === d.label ? 'selected' : ''}>${d.label || 'Kamera Utama'}</option>`).join("");
     }
 
@@ -287,8 +294,7 @@
     };
 
     function stopScan() { 
-        Quagga.stop(); scanning = false; 
-        reader.style.display = "none"; 
+        Quagga.stop(); scanning = false; reader.style.display = "none"; 
         document.getElementById("cameraControl").style.display = "none"; 
     }
 
@@ -296,8 +302,7 @@
         const code = res.codeResult.code;
         if(barcodeIndex.has(code)) { 
             document.getElementById("beepOk").play().catch(()=>{}); 
-            stopScan(); 
-            input.value = code; showDetail(barcodeIndex.get(code), code); 
+            stopScan(); input.value = code; showDetail(barcodeIndex.get(code), code); 
         }
     });
 
@@ -323,7 +328,7 @@
         let html = '<div class="search-results-list">';
         filtered.slice(0, 50).forEach(p => {
             const b = p.b ? p.b.split("/")[0].trim() : "";
-            const imgSrc = p.i ? p.i : 'https://via.placeholder.com/150?text=No+Image';
+            const imgSrc = p.i || 'https://via.placeholder.com/150?text=No+Image';
             html += `
                 <div class="search-item">
                     <img class="thumb-img" src="${imgSrc}" onclick="openPopup('${imgSrc}')" onerror="this.onerror=null;this.src='https://via.placeholder.com/50?text=?';">
@@ -351,10 +356,12 @@
         scrollContainer.scrollTop = 0;
 
         const barcodeApi = `https://bwipjs-api.metafloor.com/?bcid=ean13&text=${q}&scale=3&rotate=N&includetext`;
-        const imgSrc = p.i ? p.i : 'https://via.placeholder.com/300?text=No+Image';
+        const imgSrc = p.i || 'https://via.placeholder.com/300?text=No+Image';
+        const extraPromo = (p.e && p.e !== "NORMAL PRICE") ? `<div class="promo-badge">${p.e}</div>` : "";
 
         detailContainer.innerHTML = `
             <div class="image-box" onclick="openPopup('${imgSrc}')">
+                ${extraPromo}
                 <img src="${imgSrc}" onerror="this.onerror=null;this.src='https://via.placeholder.com/300?text=No+Image';">
             </div>
             <div style="padding:15px;">
@@ -364,6 +371,18 @@
                     <div class="price-item"><small>REGULER</small><b style="color:var(--miniso-red); display:block;">Rp${(p.r || 0).toLocaleString('id-ID')}</b></div>
                     <div class="price-item"><small>STREET</small><b style="display:block;">Rp${(p.s || 0).toLocaleString('id-ID')}</b></div>
                 </div>
+
+                <div class="promo-section">
+                    <div class="promo-row">
+                        <span class="promo-label"><span class="dot" style="background:var(--promo-blue)"></span> Reg Promo</span>
+                        <span class="promo-val" style="color:var(--promo-blue)">${p.rp || '-'}</span>
+                    </div>
+                    <div class="promo-row">
+                        <span class="promo-label"><span class="dot" style="background:var(--promo-green)"></span> Street Promo</span>
+                        <span class="promo-val" style="color:var(--promo-green)">${p.sp || '-'}</span>
+                    </div>
+                </div>
+
                 <div class="barcode-box"><img src="${barcodeApi}" style="max-width:100%"><div style="font-weight:700; margin-top:5px;">${q}</div></div>
                 <button onclick="backToPrev()" style="width:100%; margin-top:20px; padding:16px; border:none; background:var(--miniso-red); border-radius:12px; font-weight:bold; color:white;">KEMBALI</button>
             </div>`;

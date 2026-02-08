@@ -1,7 +1,7 @@
 {
   "name": "MMS-X Miniso",
   "short_name": "MMS-X",
-  "start_url": "index.html",
+  "start_url": "/app/index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#e61523",
@@ -9,12 +9,14 @@
     {
       "src": "https://miniso-id.github.io/app/user192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "https://miniso-id.github.io/app/user512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "dir": "auto",

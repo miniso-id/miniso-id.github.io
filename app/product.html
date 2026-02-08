@@ -80,43 +80,31 @@
         #searchInput { width: 100%; height: 44px; padding: 0 45px 0 15px; border: 1.5px solid #eee; border-radius: 12px; outline: none; background: #f5f5f7; }
         #scanBtn { background: var(--miniso-red); color: white; border: none; width: 36px; height: 36px; border-radius: 9px; position: absolute; right: 4px; top: 4px; display: flex; align-items: center; justify-content: center; }
 
-        /* --- SCANNER --- */
+        /* --- SCANNER (REFINED CONFIG) --- */
         #reader { display:none; width:100%; max-width:350px; aspect-ratio:1/1; margin:10px auto 20px; border-radius:24px; overflow:hidden; position:relative; border: 4px solid white; box-shadow: var(--shadow-soft); }
+        #reader video { width: 100%; height: 100%; object-fit: cover; }
         .focus-guide { position: absolute; inset: 20%; border: 2px solid rgba(255,255,255,0.5); border-radius: 20px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.5); }
 
         /* --- LIST & ITEMS --- */
         .search-item { padding: 12px; border-radius: 16px; background: white; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #f0f0f0; }
         .thumb-img { width: 55px; height: 55px; object-fit: contain; border-radius: 10px; background: #f9f9f9; cursor: zoom-in; }
 
-        /* --- IMAGE POPUP (REFINED) --- */
-        #imagePopup { 
-            display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); 
-            z-index:6000; align-items:center; justify-content:center; 
-            backdrop-filter: blur(8px); animation: fadeIn 0.2s ease-out;
-        }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        #popupImg { max-width: 90%; max-height: 80%; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); transform: scale(1); animation: zoomIn 0.3s cubic-bezier(0.17, 0.89, 0.32, 1.28); }
-        @keyframes zoomIn { from { transform: scale(0.8); } to { transform: scale(1); } }
+        /* --- IMAGE POPUP --- */
+        #imagePopup { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:6000; align-items:center; justify-content:center; backdrop-filter: blur(8px); animation: fadeIn 0.2s ease-out; }
+        #popupImg { max-width: 90%; max-height: 80%; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); animation: zoomIn 0.3s cubic-bezier(0.17, 0.89, 0.32, 1.28); }
 
-        /* --- PRODUCT DETAIL & BARCODE CENTERED --- */
+        /* --- DETAIL & BARCODE CENTERED --- */
         .product-card { background: white; border-radius: 24px; overflow: hidden; display: none; animation: slideUp 0.4s ease-out; }
-        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        
         .price-item { background: var(--bg-gray); padding: 15px; border-radius: 16px; text-align: center; border: 1px solid #e5e5ea; }
-        .price-item b { font-size: 18px; display: block; margin-top: 4px; }
-
-        .barcode-box { 
-            background: #fff; padding: 20px; border-radius: 20px; 
-            border: 1px dashed #ccc; margin-top: 20px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; /* Rata Tengah */
-            text-align: center;
-        }
-        .barcode-box img { max-width: 100%; height: auto; }
+        .barcode-box { background: #fff; padding: 20px; border-radius: 20px; border: 1px dashed #ccc; margin-top: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 
         @media (max-width: 768px) {
             .sidebar { position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); }
             .sidebar.active { transform: translateX(0); }
         }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes zoomIn { from { transform: scale(0.8); } to { transform: scale(1); } }
+        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
@@ -163,9 +151,6 @@
                 </div>
 
                 <div id="reader"><div class="focus-guide"></div></div>
-                <div id="cameraControl" style="display:none; margin-bottom:15px;">
-                    <select id="videoSource" style="width:100%; padding:12px; border-radius:10px; border: 1.5px solid var(--miniso-red); font-weight:600;"></select>
-                </div>
                 <div id="countDisplay" style="font-size:12px; color:#8e8e93; margin-bottom:10px; font-weight:600;"></div>
             </div>
 
@@ -178,7 +163,6 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
-    // --- FITUR ASLI: AUTH & DATA ---
     const USERS = { "admin": { pass: "miniso123", name: "Administrator" }, "staff1": { pass: "mms001", name: "Rizky Ramadhan" } };
 
     function handleLogin() {
@@ -195,7 +179,7 @@
     let allProducts = [], barcodeIndex = new Map(), lastScrollPos = 0, scanning = false;
     const input = document.getElementById("searchInput"), catFilter = document.getElementById("catFilter");
     const listContainer = document.getElementById("listContainer"), detailContainer = document.getElementById("detailContainer");
-    const scrollContainer = document.getElementById("scrollContainer"), reader = document.getElementById("reader"), videoSource = document.getElementById("videoSource");
+    const scrollContainer = document.getElementById("scrollContainer"), reader = document.getElementById("reader");
 
     function initApp() {
         if(sessionStorage.getItem("isLoggedIn") !== "true") return;
@@ -222,33 +206,38 @@
         document.getElementById("overlay").classList.toggle("active"); 
     }
 
-    // --- FITUR ASLI: SCANNER ---
-    document.getElementById("scanBtn").onclick = () => { if (scanning) { stopScan(); return; } startScan(localStorage.getItem('lastCameraId')); };
+    // --- SCANNER: REFINED SETTINGS ---
+    document.getElementById("scanBtn").onclick = () => { if (scanning) { stopScan(); return; } startScan(); };
 
-    async function startScan(deviceId = null) {
+    async function startScan() {
         scanning = true; reader.style.display = "block";
         Quagga.init({
-            inputStream: { type: "LiveStream", target: reader, constraints: { width: { ideal: 1280 }, height: { ideal: 720 }, deviceId: deviceId ? { exact: deviceId } : undefined, facingMode: deviceId ? undefined : "environment" }, area: { top: "20%", right: "20%", left: "20%", bottom: "20%" } },
-            decoder: { readers: ["ean_reader", "code_128_reader"] }, locate: true
+            inputStream: { 
+                type: "LiveStream", 
+                target: reader, 
+                constraints: { 
+                    width: 1920, 
+                    height: 1080, 
+                    facingMode: "environment" // Paksa kamera belakang
+                },
+                area: { top: "20%", right: "20%", left: "20%", bottom: "20%" } 
+            },
+            decoder: { readers: ["ean_reader", "code_128_reader"] },
+            locate: true
         }, (err) => {
             if (err) { stopScan(); return; }
-            Quagga.start(); document.getElementById("cameraControl").style.display = "block"; updateCameraList();
+            Quagga.start();
         });
     }
 
-    async function updateCameraList() {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        videoSource.innerHTML = devices.filter(d => d.kind === 'videoinput').map(d => `<option value="${d.deviceId}">${d.label || 'Kamera'}</option>`).join("");
-    }
-    videoSource.onchange = () => { localStorage.setItem('lastCameraId', videoSource.value); Quagga.stop(); startScan(videoSource.value); };
-    function stopScan() { Quagga.stop(); scanning = false; reader.style.display = "none"; document.getElementById("cameraControl").style.display = "none"; }
+    function stopScan() { Quagga.stop(); scanning = false; reader.style.display = "none"; }
 
     Quagga.onDetected(res => {
         const code = res.codeResult.code;
         if(barcodeIndex.has(code)) { document.getElementById("beepOk").play().catch(()=>{}); stopScan(); input.value = code; showDetail(barcodeIndex.get(code), code); }
     });
 
-    // --- FITUR ASLI: SEARCH & DETAIL ---
+    // --- SEARCH & LOGIC ---
     input.oninput = () => renderResults();
     catFilter.onchange = () => renderResults();
 
@@ -301,8 +290,8 @@
                     <div class="price-item"><small style="color:#8e8e93;">STREET</small><b>Rp${(p.s || 0).toLocaleString('id-ID')}</b></div>
                 </div>
                 <div style="background:#fff; border:1px solid #eee; border-radius:16px; padding:15px; margin-top:15px;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:13px;"><span style="color:#666;">Regular Store Promo:</span> <b style="color:#007aff;">${p.rp || '-'}</b></div>
-                    <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:#666;">Street Store Promo:</span> <b style="color:#34c759;">${p.sp || '-'}</b></div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:13px;"><span style="color:#666;">Reg Promo:</span> <b style="color:#007aff;">${p.rp || '-'}</b></div>
+                    <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:#666;">Street Promo:</span> <b style="color:#34c759;">${p.sp || '-'}</b></div>
                 </div>
                 <div class="barcode-box">
                     <img src="${barcodeApi}" onerror="this.style.display='none'">
@@ -314,7 +303,6 @@
 
     window.backToPrev = () => { detailContainer.style.display = "none"; listContainer.style.display = "block"; document.getElementById("ui-controls").style.display = "block"; setTimeout(() => { scrollContainer.scrollTo(0, lastScrollPos); }, 10); }
 
-    // --- POPUP FUNCTION ---
     function openPopup(src) { 
         if(!src || src === 'undefined') return;
         document.getElementById("popupImg").src = src; 

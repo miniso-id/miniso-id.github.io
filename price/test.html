@@ -9,26 +9,18 @@
 <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 
 <style>
-/* ================= LAYOUT BARU (SIDEBAR) ================= */
-* {
-  box-sizing: border-box;
-}
+/* ================= CSS RESET & LAYOUT UTAMA ================= */
+* { box-sizing: border-box; }
+body { margin: 0; padding: 0; font-family: Arial, sans-serif; overflow: hidden; }
 
-body {
-  margin: 0;
-  padding: 0;
-  font-family: Arial, sans-serif;
-  overflow: hidden; /* Mencegah scroll pada body utama */
-}
-
-/* Wrapper Utama */
+/* Wrapper untuk membagi layar jadi 2 (Sidebar & Konten) */
 .app-wrapper {
   display: flex;
-  height: 100vh; /* Tinggi penuh layar */
+  height: 100vh;
   width: 100%;
 }
 
-/* Sidebar Styling */
+/* ================= SIDEBAR (MENU KIRI) ================= */
 .sidebar {
   width: 250px;
   background-color: #222;
@@ -36,8 +28,9 @@ body {
   display: flex;
   flex-direction: column;
   padding: 20px;
-  transition: all 0.3s ease;
+  transition: transform 0.3s ease; /* Animasi geser */
   z-index: 1000;
+  flex-shrink: 0; /* Agar sidebar tidak mengecil */
 }
 
 .sidebar h2 {
@@ -55,87 +48,90 @@ body {
   margin-bottom: 5px;
   border-radius: 5px;
   font-size: 16px;
-  transition: 0.2s;
+  display: block;
 }
 
-.sidebar a:hover, .sidebar a.active {
+.sidebar a:hover, .sidebar a.active-link {
   background-color: #007bff;
   color: white;
 }
 
-/* Area Konten Utama (Scanner) */
+/* ================= KONTEN UTAMA (KANAN) ================= */
 .main-content {
   flex: 1;
   background-color: #f8f9fa;
-  padding: 20px;
-  overflow-y: auto; /* Agar area ini bisa discroll */
+  padding: 15px;
+  overflow-y: auto; /* Bisa discroll */
   position: relative;
+  width: 100%; /* Pastikan lebar penuh */
 }
 
-/* Tombol Menu (Hamburger) untuk HP */
+/* Tombol Menu (Hamburger) */
 .menu-toggle {
-  display: none; /* Sembunyi di desktop */
+  display: none;
   position: absolute;
   top: 15px;
   left: 15px;
   background: #333;
   color: white;
   border: none;
-  padding: 10px 15px;
+  padding: 8px 12px;
   font-size: 20px;
-  border-radius: 5px;
+  border-radius: 4px;
   cursor: pointer;
   z-index: 999;
 }
 
-/* ================= RESPONSIVE (Tampilan HP) ================= */
+/* ================= RESPONSIVE (TAMPILAN HP) ================= */
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
     height: 100%;
-    left: -250px; /* Sembunyikan sidebar ke kiri */
-  }
-
-  .sidebar.active {
-    left: 0; /* Munculkan sidebar */
+    left: 0;
+    top: 0;
+    transform: translateX(-100%); /* Sembunyikan ke kiri layar */
     box-shadow: 2px 0 10px rgba(0,0,0,0.5);
   }
 
+  .sidebar.active {
+    transform: translateX(0); /* Munculkan ke layar */
+  }
+
   .menu-toggle {
-    display: block; /* Munculkan tombol menu */
+    display: block; /* Munculkan tombol hamburger */
   }
   
-  /* Geser konten sedikit ke bawah agar tidak tertutup tombol menu */
   .main-content {
-    padding-top: 60px; 
+    padding-top: 60px; /* Beri jarak atas agar tidak tertutup tombol menu */
   }
 }
 
-/* ================= CSS ASLI ANDA (Sedikit disesuaikan) ================= */
-#reader{
+/* ================= CSS FITUR LAMA ANDA (SCANNER DLL) ================= */
+#reader {
   display:none;
   width:100%;
   max-width:360px;
-  aspect-ratio:1/1;
+  aspect-ratio:1/1; /* Kotak Sempurna */
   margin:10px auto;
   background:#000;
   border-radius:12px;
   overflow:hidden;
   position:relative;
 }
-#reader video{
+#reader video {
   width:100%;
   height:100%;
   object-fit:cover;
 }
-#reader::after{
+/* Kotak Hijau Penanda Area Scan */
+#reader::after {
   content:"";
   position:absolute;
   inset:18%; 
   border:2px dashed rgba(0,255,0,.7);
   pointer-events:none;
 }
-#history span{
+#history span {
   margin:4px;
   padding:4px 8px;
   background:#eee;
@@ -154,24 +150,29 @@ body {
 }
 #searchInput {
     width: 100%;
-    padding: 10px;
+    padding: 12px;
     font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
 }
 #clearBtn {
     position: absolute;
     right: 10px;
-    top: 10px;
+    top: 12px;
     cursor: pointer;
     display: none;
+    font-weight: bold;
+    color: #666;
 }
 #scanBtn {
-    padding: 10px 20px;
+    padding: 12px 25px;
     font-size: 16px;
     background: #007bff;
     color: white;
     border: none;
     border-radius: 5px;
     cursor: pointer;
+    width: 100%;
 }
 #scanBtn:disabled {
     background: #ccc;
@@ -184,11 +185,14 @@ body {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     display: flex;
     gap: 10px;
+    align-items: flex-start;
 }
 .card img {
-    width: 60px;
-    height: 60px;
+    width: 70px;
+    height: 70px;
     object-fit: contain;
+    border: 1px solid #eee;
+    border-radius: 4px;
 }
 </style>
 </head>
@@ -199,35 +203,34 @@ body {
 
     <nav class="sidebar" id="sidebar">
         <h2>Menu Toko</h2>
-        <a href="#" class="active" onclick="toggleMenu()">📸 Price Check</a>
-        <a href="#">📦 Stock Opname</a>
-        <a href="#">📝 List Barang</a>
-        <a href="#">⚙️ Pengaturan</a>
-        <a href="#">🚪 Logout</a>
+        <a href="#" class="active-link" onclick="closeSidebarOnly()">📸 Price Check</a>
+        <a href="#" onclick="alert('Menu Stock Opname (Contoh)')">📦 Stock Opname</a>
+        <a href="#" onclick="alert('Menu List Barang (Contoh)')">📝 List Barang</a>
+        <a href="#" onclick="alert('Menu Pengaturan (Contoh)')">⚙️ Pengaturan</a>
     </nav>
 
-    <main class="main-content">
-        <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+    <main class="main-content" id="mainContent">
+        <button class="menu-toggle" id="menuToggle">☰</button>
 
         <center>
-          <h2>Price Check</h2>
-          <h3>MMS-X (beta)</h3>
+          <h2 style="margin: 0;">Price Check</h2>
+          <h3 style="margin: 5px 0 20px 0; color: #666;">MMS-X (beta)</h3>
         </center>
 
         <div class="search-box">
           <div class="input-wrap">
-            <input id="searchInput" placeholder="Loading product data..." disabled>
+            <input id="searchInput" placeholder="Loading database..." disabled>
             <span id="clearBtn">✕</span>
           </div>
-          <button id="scanBtn" disabled>📷 Camera Scan</button>
+          <button id="scanBtn" disabled>📷 Buka Kamera</button>
         </div>
 
         <div id="reader"></div>
 
-        <center><h3>Scan History</h3></center>
-        <div id="history"></div>
+        <center><h3 style="margin-top:20px;">Scan History</h3></center>
+        <div id="history" style="text-align: center; margin-bottom: 15px; min-height: 20px;"></div>
+        
         <div id="result" class="grid"></div>
-
     </main>
 </div>
 
@@ -235,14 +238,36 @@ body {
 <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
 <script>
-/* ================= LOGIC MENU SIDEBAR ================= */
-function toggleMenu() {
-    const sidebar = document.getElementById('sidebar');
-    // Toggle class 'active' untuk menampilkan/menyembunyikan sidebar di mobile
+/* ================= 1. LOGIKA UI BARU (NAVBAR) ================= */
+const sidebar = document.getElementById('sidebar');
+const menuToggle = document.getElementById('menuToggle');
+const mainContent = document.getElementById('mainContent');
+
+// Fungsi Buka/Tutup Menu
+menuToggle.onclick = (e) => {
+    e.stopPropagation(); // Mencegah click tembus ke document
     sidebar.classList.toggle('active');
+};
+
+// Fungsi Tutup Menu saat klik Link
+function closeSidebarOnly() {
+    if(window.innerWidth <= 768) {
+        sidebar.classList.remove('active');
+    }
 }
 
-/* ================= INIT SCANNER (KODE LAMA ANDA) ================= */
+// FITUR BARU: Klik Sembarang (di luar sidebar) untuk menutup menu
+document.addEventListener('click', (e) => {
+    // Jika layar kecil (Mobile) DAN sidebar sedang terbuka
+    if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+        // Jika yang diklik BUKAN bagian dari sidebar DAN BUKAN tombol menu
+        if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
+            sidebar.classList.remove('active');
+        }
+    }
+});
+
+/* ================= 2. INIT APLIKASI LAMA (TIDAK ADA YG DIHAPUS) ================= */
 const input=document.getElementById("searchInput");
 const clearBtn=document.getElementById("clearBtn");
 const scanBtn=document.getElementById("scanBtn");
@@ -252,12 +277,12 @@ const historyDiv=document.getElementById("history");
 const beepOk=document.getElementById("beepOk");
 const beepErr=document.getElementById("beepErr");
 
-/* ================= STATE ================= */
+/* STATE */
 let barcodeIndex=new Map();
 let history=[];
 let dataReady=false;
 
-/* ================= FETCH DATA ================= */
+/* FETCH DATA */
 fetch("/product/products.json")
 .then(r=>r.json())
 .then(data=>{
@@ -271,10 +296,14 @@ fetch("/product/products.json")
   dataReady=true;
   input.disabled=false;
   scanBtn.disabled=false;
-  input.placeholder="Scan barcode / type here";
+  input.placeholder="Scan barcode / ketik nama...";
+})
+.catch(err => {
+    console.log("Gagal load JSON, pastikan file products.json ada.", err);
+    input.placeholder = "Error loading database";
 });
 
-/* ================= SEARCH ================= */
+/* SEARCH LOGIC */
 input.oninput=e=>{
   clearBtn.style.display=e.target.value?"block":"none";
   search(e.target.value);
@@ -283,6 +312,7 @@ input.oninput=e=>{
 clearBtn.onclick=()=>{
   input.value="";
   result.innerHTML="";
+  clearBtn.style.display="none"; // Sembunyikan tombol X
 };
 
 function search(q){
@@ -291,47 +321,52 @@ function search(q){
   if(!q){ result.innerHTML=""; return; }
 
   if(barcodeIndex.has(q)){
-    beepOk.play();
+    beepOk.play().catch(e=>console.log("Audio error", e)); // Catch error jika user belum interaksi
     addHistory(q);
     render([barcodeIndex.get(q)]);
   }else{
-    beepErr.play();
+    // Jika tidak ketemu di map, mungkin mau search by name? (Opsional)
+    // beepErr.play(); 
+    // result.innerHTML="<p style='text-align:center; color:red;'>Produk tidak ditemukan</p>";
+    
+    // Logic asli Anda:
+    beepErr.play().catch(e=>{});
     result.innerHTML="";
   }
 }
 
-/* ================= RENDER ================= */
+/* RENDER CARD */
 function render(list){
   result.innerHTML = list.map(p => `
     <div class="card">
-      <img src="${p.i}" alt="${p.n}">
+      <img src="${p.i}" alt="${p.n}" onerror="this.src='https://via.placeholder.com/70?text=No+Img'">
       <div class="info">
-        <b>${p.n}</b>
-        <small>Barcode: ${p.b}</small>
+        <b style="font-size:1.1em; display:block; margin-bottom:5px;">${p.n}</b>
+        <small style="background:#eee; padding:2px 5px; border-radius:4px;">${p.b}</small>
         <div style="margin:4px 0; font-size:12px; color:#555;">
-          Category: ${p.c} / ${p.d}
+          ${p.c} / ${p.d}
         </div>
-        <div style="margin:2px 0;">
-          Regular: Rp${p.r.toLocaleString()} ${p.rp ? `<span style="color:red;">(${p.rp})</span>` : ""}
+        <div style="margin-top:5px; font-size:14px;">
+          Reg: <b>Rp${p.r.toLocaleString()}</b> ${p.rp ? `<span style="color:red; font-size:0.9em;">(${p.rp})</span>` : ""}
         </div>
-        <div style="margin:2px 0;">
-          Street: Rp${p.s.toLocaleString()} ${p.sp ? `<span style="color:red;">(${p.sp})</span>` : ""}
+        <div style="font-size:14px;">
+          Str: <b>Rp${p.s.toLocaleString()}</b> ${p.sp ? `<span style="color:red; font-size:0.9em;">(${p.sp})</span>` : ""}
         </div>
-        ${p.e ? `<div style="margin:2px 0; color:#d9534f;">Extra: ${p.e}</div>` : ""}
+        ${p.e ? `<div style="margin-top:5px; color:#d9534f; font-weight:bold; font-size:13px;">Info: ${p.e}</div>` : ""}
       </div>
     </div>
   `).join("");
 }
 
-/* ================= HISTORY ================= */
+/* HISTORY */
 function addHistory(code){
   if(history.includes(code))return;
   history.unshift(code);
   if(history.length>5)history.pop();
-  historyDiv.innerHTML=history.map(h=>`<span>${h}</span>`).join("");
+  historyDiv.innerHTML=history.map(h=>`<span onclick="input.value='${h}'; search('${h}')" style="cursor:pointer;">${h}</span>`).join("");
 }
 
-/* ================= CAMERA (FIXED) ================= */
+/* ================= KAMERA & QUAGGA (LOGIKA LAMA DIJAGA KETAT) ================= */
 let scanning=false,lastCode="",stableCount=0;
 let zoomLevel=2,zoomMin=1,zoomMax=3,lastZoomAdjust=0;
 
@@ -339,44 +374,39 @@ scanBtn.onclick=()=>{
   if(scanning||!dataReady)return;
   scanning=true;
   reader.style.display="block";
+  scanBtn.innerText = "Sedang Memindai..."; // Feedback Visual
 
   Quagga.init({
     inputStream:{
       type:"LiveStream",
       target:reader,
       constraints:{
-        facingMode:{ exact:"environment" },
+        facingMode:{ exact:"environment" }, // Pakai kamera belakang
         width:{ ideal:1920 },
         height:{ ideal:1080 },
         focusMode:"continuous"
       },
       area:{
-        top:"18%",
-        right:"18%",
-        left:"18%",
-        bottom:"18%"
+        top:"18%", right:"18%", left:"18%", bottom:"18%"
       }
     },
     decoder:{
-      readers:[
-        "ean_reader",
-        "code_128_reader",
-        "code_39_reader",
-        "upc_reader",
-        "upc_e_reader"
-      ]
+      readers:[ "ean_reader", "code_128_reader", "code_39_reader", "upc_reader", "upc_e_reader" ]
     },
     locate:true
   },err=>{
     if(err){
+      console.error(err);
       scanning=false;
       reader.style.display="none";
+      scanBtn.innerText = "📷 Buka Kamera (Error)";
+      alert("Gagal membuka kamera. Pastikan izin kamera diberikan atau gunakan HTTPS.");
       return;
     }
 
     Quagga.start();
 
-    /* INIT ZOOM */
+    /* INIT ZOOM Capability */
     setTimeout(()=>{
       const track=Quagga.CameraAccess.getActiveTrack();
       if(!track)return;
@@ -384,7 +414,7 @@ scanBtn.onclick=()=>{
       if(caps.zoom){
         zoomMin=caps.zoom.min||1;
         zoomMax=caps.zoom.max||3;
-        zoomLevel=Math.min(2,zoomMax);
+        zoomLevel=Math.min(2,zoomMax); // Default zoom agak maju
         track.applyConstraints({ advanced:[{ zoom:zoomLevel }] });
       }
     },500);
@@ -393,16 +423,17 @@ scanBtn.onclick=()=>{
       const code=res.codeResult.code;
       const decoded=res.codeResult.decodedCodes||[];
 
-      /* FIX: validasi lebih realistis */
+      /* Validasi Error Rate */
       let avgError = decoded.length
         ? decoded.reduce((s,d)=>s+(d.error||1),0)/decoded.length
         : 1;
 
       const valid = decoded.length>=3 && avgError<0.35;
 
+      // Auto Zoom Logic
       autoZoom(valid?"good":"bad");
 
-      /* FIX: stability logic */
+      /* Stability Logic (Mencegah salah baca cepat) */
       if(code===lastCode){
         if(valid) stableCount++;
       }else{
@@ -414,6 +445,7 @@ scanBtn.onclick=()=>{
         Quagga.stop();
         scanning=false;
         reader.style.display="none";
+        scanBtn.innerText = "📷 Camera Scan"; // Reset text tombol
         stableCount=0;
         lastCode="";
         input.value=code;
@@ -423,10 +455,10 @@ scanBtn.onclick=()=>{
   });
 };
 
-/* ================= AUTO ZOOM (FIXED) ================= */
+/* AUTO ZOOM FUNCTION */
 function autoZoom(mode){
   const now=Date.now();
-  if(now-lastZoomAdjust<1000)return;
+  if(now-lastZoomAdjust<1000)return; // Delay antar zoom 1 detik
 
   const track=Quagga.CameraAccess.getActiveTrack();
   if(!track)return;
@@ -437,7 +469,8 @@ function autoZoom(mode){
   if(mode==="good" && zoomLevel>zoomMin+0.7){
     zoomLevel-=0.1;
   }
-
+  
+  // Clamp value
   zoomLevel=Math.max(zoomMin,Math.min(zoomLevel,zoomMax));
 
   track.applyConstraints({

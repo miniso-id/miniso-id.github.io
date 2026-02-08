@@ -3,8 +3,14 @@
 <head>
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>MMS-X</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MMS-X (beta)</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MMS-X">
+    <link rel="apple-touch-icon" href="https://miniso-id.github.io/app/icon.png">
+
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
     <style>
         :root {
@@ -13,9 +19,10 @@
             --text-dark: #333;
             --promo-blue: #007bff;
             --promo-green: #28a745;
+            --bg-gray: #f8f9fa;
         }
 
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #fdfdfd; color: var(--text-dark); }
 
         .app-wrapper { display: flex; height: 100vh; width: 100%; position: relative; }
@@ -31,11 +38,7 @@
         .sidebar a { text-decoration: none; color: #fff; padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; display: block; font-weight: 500; }
         .sidebar a:hover, .sidebar a.active-link { background-color: rgba(255,255,255,0.2); }
 
-        #overlay {
-            display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.4); z-index: 1500;
-        }
-
+        #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1500; }
         .main-content { flex: 1; padding: 15px; overflow-y: auto; position: relative; z-index: 100; }
 
         /* --- TOP BAR --- */
@@ -59,7 +62,7 @@
             position: absolute; right: 2px; display: flex; align-items: center; justify-content: center;
         }
 
-        /* --- SCANNER VIEW (1080p) --- */
+        /* --- SCANNER VIEW --- */
         #reader {
             display:none; width:100%; max-width:340px; aspect-ratio:1/1;
             margin:15px auto; background:#000; border-radius:20px;
@@ -67,20 +70,13 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.15); cursor: pointer;
         }
         #reader video { width: 100%; height: 100%; object-fit: cover; }
-        .focus-guide {
-            position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red);
-            border-radius: 15px; pointer-events: none; z-index: 2;
-            box-shadow: 0 0 0 1000px rgba(0,0,0,0.4);
-        }
-        .tap-hint {
-            position: absolute; bottom: 10px; width: 100%; text-align: center;
-            color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3;
-        }
+        .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
+        .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; }
 
         #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
         #videoSource { padding: 10px; border-radius: 8px; border: 2px solid var(--miniso-red); width: 100%; max-width: 300px; font-weight: 600; }
 
-        /* --- PRODUCT CARD --- */
+        /* --- PRODUCT CARD (SPLIT PRICE IMPROVEMENT) --- */
         .product-card {
             background: white; border-radius: 18px; overflow: hidden;
             box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px;
@@ -90,20 +86,21 @@
         
         .image-box { background: #fff; text-align: center; padding: 15px; position: relative; border-bottom: 1px solid #f9f9f9; }
         .image-box img { max-width: 100%; height: 200px; object-fit: contain; }
-        .promo-badge {
-            position: absolute; top: 12px; left: 12px; background: #ff9800; color: white;
-            padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold;
-        }
-
+        .promo-badge { position: absolute; top: 12px; left: 12px; background: #ff9800; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; }
+        
         .p-info { padding: 20px; }
         .p-cat { font-size: 11px; font-weight: 700; color: var(--miniso-red); text-transform: uppercase; margin-bottom: 5px; display: block; }
-        .p-title { font-size: 18px; font-weight: 700; margin: 0 0 5px 0; color: #111; }
-        .p-desc { font-size: 13px; color: #666; margin-bottom: 15px; }
-        
-        .p-price-box { display: flex; align-items: baseline; gap: 10px; margin-bottom: 18px; }
-        .p-curr { font-size: 26px; font-weight: 800; color: var(--miniso-red); }
-        .p-old { font-size: 16px; color: #bbb; text-decoration: line-through; }
-        
+        .p-title { font-size: 18px; font-weight: 700; margin: 0 0 15px 0; color: #111; line-height: 1.3; }
+
+        /* Price Grid Styling */
+        .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .price-item { background: var(--bg-gray); padding: 12px 10px; border-radius: 12px; border-bottom: 3px solid #ddd; }
+        .price-item.is-regular { border-bottom-color: var(--miniso-red); }
+        .price-item.is-street { border-bottom-color: var(--promo-green); background: #f0fdf4; }
+        .price-label { font-size: 10px; color: #777; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 4px; }
+        .price-val { font-size: 16px; font-weight: 800; color: #111; }
+        .price-val.highlight { color: var(--miniso-red); }
+
         .p-meta { border-top: 1px solid #eee; padding-top: 15px; }
         .meta-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; align-items: center; }
         .meta-label { color: #888; display: flex; align-items: center; gap: 5px; }
@@ -112,6 +109,17 @@
 
         #history { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
         #history span { padding: 6px 12px; background: #fff; border: 1px solid #eee; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: 600; color: #666; }
+
+        /* --- iOS SHORTCUT PROMPT --- */
+        #ios-prompt {
+            display: none; position: fixed; bottom: 30px; left: 10px; right: 10px;
+            background: white; padding: 15px; border-radius: 15px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.3); z-index: 9999;
+            border: 2px solid var(--miniso-red); animation: bounceIn 0.6s ease;
+        }
+        @keyframes bounceIn { from { transform: translateY(100px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+        .prompt-text { font-size: 13px; line-height: 1.5; color: #444; text-align: center; }
+        .ios-icon { height: 20px; vertical-align: middle; margin: 0 5px; }
 
         @media (max-width: 768px) {
             .sidebar { position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); }
@@ -122,10 +130,17 @@
 </head>
 <body>
 
+<div id="ios-prompt">
+    <div class="prompt-text">
+        Install <b>MMS-X</b> di iPhone kamu:<br>
+        Tap <img src="https://miniso-id.github.io/ios/share.png" class="ios-icon"> kemudian pilih <b>"Add to Home Screen"</b>
+    </div>
+</div>
+
 <div class="app-wrapper">
     <nav class="sidebar" id="sidebar">
         <h2>MMS-X (beta)</h2>
-        <a href="https://miniso-id.github.io/app/" class="active-link">📸 Price Check</a>
+        <a href="#" class="active-link">📸 Price Check</a>
         <a href="#">📦 Stock Opname ID12</a>
         <a href="#">📝 List Barang</a>
         <a href="#">⚙️ Pengaturan</a>
@@ -153,11 +168,7 @@
             <div class="focus-guide"></div>
             <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK FOKUS</div>
         </div>
-
-        <div id="cameraControl">
-            <select id="videoSource"></select>
-        </div>
-
+        <div id="cameraControl"><select id="videoSource"></select></div>
         <div id="history"></div>
         <div id="result"></div>
     </main>
@@ -166,6 +177,11 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
+    // iOS Logic
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+    if (isIOS && !isStandalone) { document.getElementById('ios-prompt').style.display = 'block'; }
+
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('overlay');
     const input = document.getElementById("searchInput");
@@ -179,34 +195,28 @@
     let history = [];
     let scanning = false;
 
-    // --- 1. DATA LOAD (No Changes) ---
     fetch("https://miniso-id.github.io/product/products.json").then(r => r.json()).then(data => {
         data.forEach(p => { if(p.b) p.b.split("/").forEach(c => barcodeIndex.set(c.trim(), p)); });
         input.disabled = false; scanBtn.disabled = false; input.placeholder = "Ketik / Scan Barcode...";
     });
 
-    // --- 2. SIDEBAR LOGIC (No Changes) ---
     document.getElementById('menuToggle').onclick = () => sidebar.classList.toggle('active');
     overlay.onclick = () => sidebar.classList.remove('active');
-    sidebar.querySelectorAll('a').forEach(a => a.onclick = () => sidebar.classList.remove('active'));
 
-    // --- 3. SCANNER LOGIC (Fixed High-Res Settings) ---
     input.oninput = (e) => search(e.target.value);
 
     reader.onclick = async () => {
         const track = Quagga.CameraAccess.getActiveTrack();
         if (track && track.applyConstraints) {
             try {
-                await track.applyConstraints({ advanced: [{ focusMode: "manual" }] });
-                await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
-            } catch (e) { console.warn("Focus failed"); }
+                await track.applyConstraints({ advanced: [{ focusMode: "manual" }, { focusMode: "continuous" }] });
+            } catch (e) {}
         }
     };
 
     scanBtn.onclick = () => {
         if (scanning) { stopScan(); return; }
-        const lastId = localStorage.getItem('lastCameraId');
-        startScan(lastId);
+        startScan(localStorage.getItem('lastCameraId'));
     };
 
     async function startScan(deviceId = null) {
@@ -214,11 +224,7 @@
         Quagga.init({
             inputStream: {
                 type: "LiveStream", target: reader,
-                constraints: {
-                    width: { ideal: 1920 }, height: { ideal: 1080 },
-                    deviceId: deviceId ? { exact: deviceId } : undefined,
-                    facingMode: deviceId ? undefined : "environment"
-                },
+                constraints: { width: { ideal: 1920 }, height: { ideal: 1080 }, deviceId: deviceId ? { exact: deviceId } : undefined, facingMode: deviceId ? undefined : "environment" },
                 area: { top: "20%", right: "20%", left: "20%", bottom: "20%" }
             },
             locator: { patchSize: "small", halfSample: false },
@@ -229,11 +235,6 @@
             Quagga.start();
             document.getElementById("cameraControl").style.display = "block";
             updateCameraList();
-            
-            const track = Quagga.CameraAccess.getActiveTrack();
-            if (track && track.applyConstraints) {
-                track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
-            }
         });
     }
 
@@ -242,7 +243,7 @@
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
         const backCams = videoDevices.filter(d => /back|rear|0/i.test(d.label));
         const final = backCams.length > 0 ? backCams : videoDevices;
-        const currentLabel = Quagga.CameraAccess.getActiveTrack().label;
+        const currentLabel = Quagga.CameraAccess.getActiveTrack()?.label;
         videoSource.innerHTML = final.map(d => `<option value="${d.deviceId}" ${currentLabel === d.label ? 'selected' : ''}>${d.label || 'Kamera Utama'}</option>`).join("");
     }
 
@@ -261,14 +262,12 @@
         }
     });
 
-    // --- 4. RENDER WITH SPLIT PROMO (No Changes) ---
     function search(q) {
         q = q.trim();
         if(!q || !barcodeIndex.has(q)) { result.innerHTML = ""; return; }
         const p = barcodeIndex.get(q);
         addHistory(q);
-
-        const hasDiscount = p.s && p.s > p.r;
+        
         const discountLabel = (p.e && p.e !== "NORMAL PRICE") ? `<div class="promo-badge">${p.e}</div>` : "";
 
         result.innerHTML = `
@@ -280,27 +279,31 @@
                 <div class="p-info">
                     <span class="p-cat">${p.c}</span>
                     <h3 class="p-title">${p.n}</h3>
-                    <p class="p-desc">${p.d}</p>
                     
-                    <div class="p-price-box">
-                        <span class="p-curr">Rp${p.r.toLocaleString('id-ID')}</span>
-                        ${hasDiscount ? `<span class="p-old">Rp${p.s.toLocaleString('id-ID')}</span>` : ''}
+                    <div class="price-grid">
+                        <div class="price-item is-regular">
+                            <span class="price-label">Reguler Price</span>
+                            <span class="price-val highlight">Rp${p.r.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div class="price-item is-street">
+                            <span class="price-label">Street Store Price</span>
+                            <span class="price-val">Rp${p.s.toLocaleString('id-ID')}</span>
+                        </div>
                     </div>
 
                     <div class="p-meta">
                         <div class="meta-row"><span class="meta-label">Barcode</span><span class="meta-val">${q}</span></div>
                         <div class="meta-row">
-                            <span class="meta-label"><span class="dot" style="background:var(--promo-blue)"></span> Regular Promo</span>
+                            <span class="meta-label"><span class="dot" style="background:var(--promo-blue)"></span> Reg. Promo</span>
                             <span class="meta-val" style="color:var(--promo-blue)">${p.rp}</span>
                         </div>
                         <div class="meta-row">
-                            <span class="meta-label"><span class="dot" style="background:var(--promo-green)"></span> Street Store Promo</span>
+                            <span class="meta-label"><span class="dot" style="background:var(--promo-green)"></span> Street Promo</span>
                             <span class="meta-val" style="color:var(--promo-green)">${p.sp}</span>
                         </div>
                     </div>
                 </div>
-            </div>
-        `;
+            </div>`;
     }
 
     function addHistory(code) {

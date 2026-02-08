@@ -11,13 +11,13 @@
 <style>
 /* ================= LAYOUT & SIDEBAR ================= */
 * { box-sizing: border-box; }
-body { margin: 0; padding: 0; font-family: Arial, sans-serif; overflow: hidden; background: #f8f9fa; }
+body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; background: #f4f7f6; }
 
 .app-wrapper { display: flex; height: 100vh; width: 100%; }
 
 .sidebar {
   width: 250px;
-  background-color: #222;
+  background-color: #1a1a1a;
   color: #fff;
   display: flex;
   flex-direction: column;
@@ -27,36 +27,40 @@ body { margin: 0; padding: 0; font-family: Arial, sans-serif; overflow: hidden; 
   flex-shrink: 0;
 }
 
-.sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 1.5rem; border-bottom: 1px solid #444; padding-bottom: 10px; }
-.sidebar a { text-decoration: none; color: #ccc; padding: 15px; margin-bottom: 5px; border-radius: 5px; display: block; }
+.sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 1.2rem; letter-spacing: 2px; border-bottom: 1px solid #333; padding-bottom: 15px; }
+.sidebar a { text-decoration: none; color: #bbb; padding: 12px 15px; margin-bottom: 5px; border-radius: 6px; display: block; transition: 0.2s; }
 .sidebar a:hover, .sidebar a.active-link { background-color: #007bff; color: white; }
 
 .main-content { flex: 1; padding: 15px; overflow-y: auto; position: relative; width: 100%; }
 
-/* ================= HEADER COMPACT (SEJAJAR) ================= */
+/* ================= HEADER COMPACT (FIXED) ================= */
 .top-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 8px;
+  margin-bottom: 15px;
   background: white;
-  padding: 10px;
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  padding: 8px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
 
 .menu-toggle {
-  background: #333;
-  color: white;
+  background: #f0f0f0;
+  color: #333;
   border: none;
-  padding: 10px 14px;
-  font-size: 20px;
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
   border-radius: 8px;
   cursor: pointer;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* SEARCH BOX DENGAN ICON KAMERA DI DALAM */
+/* SEARCH BOX DENGAN ICON DI DALAM */
 .search-container {
   position: relative;
   flex-grow: 1;
@@ -66,75 +70,80 @@ body { margin: 0; padding: 0; font-family: Arial, sans-serif; overflow: hidden; 
 
 #searchInput {
   width: 100%;
-  padding: 12px 85px 12px 15px; /* Spasi kanan untuk tombol X dan Kamera */
-  font-size: 16px;
-  border: 2px solid #ddd;
+  height: 40px;
+  padding: 0 75px 0 12px; /* Ruang kanan untuk X dan Scanner */
+  font-size: 14px;
+  border: 1.5px solid #e0e0e0;
   border-radius: 8px;
   outline: none;
-  transition: border-color 0.3s;
+  background: #fafafa;
 }
 
-#searchInput:focus { border-color: #007bff; }
+#searchInput:focus { border-color: #007bff; background: #fff; }
 
 .input-actions {
   position: absolute;
-  right: 8px;
+  right: 5px; /* Jarak dari garis tepi kanan */
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 #clearBtn {
   cursor: pointer;
-  font-weight: bold;
-  color: #999;
+  font-size: 16px;
+  color: #ccc;
   display: none;
-  font-size: 18px;
+  padding: 5px;
 }
 
 #scanBtn {
   background: #007bff;
   color: white;
   border: none;
-  padding: 7px 10px;
+  width: 32px; /* Ukuran tombol lebih kecil */
+  height: 32px;
   border-radius: 6px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: 0.2s;
 }
 
-#scanBtn:disabled { background: #ccc; }
+#scanBtn:active { transform: scale(0.9); }
+#scanBtn:disabled { background: #eee; color: #bbb; }
 
-/* ================= CSS SCANNER & RESULT ================= */
+/* ================= SCANNER & RESULT ================= */
 #reader {
   display:none;
   width:100%;
-  max-width:360px;
+  max-width:320px;
   aspect-ratio:1/1;
   margin:10px auto;
   background:#000;
-  border-radius:12px;
+  border-radius:15px;
   overflow:hidden;
   position:relative;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
 }
 #reader video { width:100%; height:100%; object-fit:cover; }
 #reader::after {
-  content:""; position:absolute; inset:18%; 
-  border:2px dashed rgba(0,255,0,.7); pointer-events:none;
+  content:""; position:absolute; inset:20%; 
+  border:2px solid rgba(0,255,0,0.5); border-radius:10px; pointer-events:none;
 }
 
 .card {
     background: white; padding: 12px; margin-bottom: 10px;
-    border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    display: flex; gap: 12px;
+    border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    display: flex; gap: 12px; align-items: center;
 }
-.card img { width: 70px; height: 70px; object-fit: contain; }
+.card img { width: 60px; height: 60px; object-fit: contain; border-radius: 8px; }
 
+#history { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px; }
 #history span {
-  margin:4px; padding:4px 10px; background: white;
-  border: 1px solid #ddd; border-radius: 20px;
-  display: inline-block; font-size: 12px; cursor: pointer;
+  padding: 5px 12px; background: #eee; color: #666;
+  border-radius: 20px; font-size: 11px; cursor: pointer;
 }
 
 @media (max-width: 768px) {
@@ -160,11 +169,11 @@ body { margin: 0; padding: 0; font-family: Arial, sans-serif; overflow: hidden; 
         <div class="top-bar">
             <button class="menu-toggle" id="menuToggle">☰</button>
             <div class="search-container">
-                <input id="searchInput" placeholder="Loading..." disabled>
+                <input id="searchInput" placeholder="Loading data..." disabled>
                 <div class="input-actions">
                     <span id="clearBtn">✕</span>
                     <button id="scanBtn" title="Scan Barcode" disabled>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                     </button>
                 </div>
             </div>
@@ -172,10 +181,9 @@ body { margin: 0; padding: 0; font-family: Arial, sans-serif; overflow: hidden; 
 
         <div id="reader"></div>
 
-        <div style="margin-bottom: 10px; font-weight: bold; color: #555;">Scan History:</div>
         <div id="history"></div>
         
-        <div id="result" style="margin-top: 15px;"></div>
+        <div id="result"></div>
     </main>
 </div>
 
@@ -183,7 +191,7 @@ body { margin: 0; padding: 0; font-family: Arial, sans-serif; overflow: hidden; 
 <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
 <script>
-/* ================= LOGIKA UI (NAVBAR & CLICK OUTSIDE) ================= */
+/* ================= LOGIKA UI & SIDEBAR ================= */
 const sidebar = document.getElementById('sidebar');
 const menuToggle = document.getElementById('menuToggle');
 
@@ -196,6 +204,7 @@ function closeSidebarOnly() {
     if(window.innerWidth <= 768) sidebar.classList.remove('active');
 }
 
+// Klik luar sidebar untuk menutup
 document.addEventListener('click', (e) => {
     if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
         if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
@@ -218,6 +227,7 @@ let barcodeIndex=new Map();
 let history=[];
 let dataReady=false;
 
+// Fetch JSON Anda
 fetch("/product/products.json")
 .then(r=>r.json())
 .then(data=>{
@@ -229,7 +239,7 @@ fetch("/product/products.json")
   dataReady=true;
   input.disabled=false;
   scanBtn.disabled=false;
-  input.placeholder="Scan / Ketik Barcode...";
+  input.placeholder="Ketik / Scan Barcode...";
 });
 
 input.oninput=e=>{
@@ -260,12 +270,11 @@ function search(q){
 function render(list){
   result.innerHTML = list.map(p => `
     <div class="card">
-      <img src="${p.i}" alt="${p.n}" onerror="this.src='https://via.placeholder.com/70?text=No+Img'">
+      <img src="${p.i}" alt="${p.n}" onerror="this.src='https://via.placeholder.com/60?text=No+Img'">
       <div class="info">
-        <b style="display:block; margin-bottom:4px;">${p.n}</b>
-        <div style="font-size:12px; color:#777; margin-bottom:8px;">BC: ${p.b}</div>
-        <div style="font-size:14px;">Reg: <b>Rp${p.r.toLocaleString()}</b></div>
-        <div style="font-size:14px;">Str: <b>Rp${p.s.toLocaleString()}</b></div>
+        <b style="display:block; font-size:14px; margin-bottom:2px;">${p.n}</b>
+        <div style="font-size:11px; color:#999; margin-bottom:5px;">BC: ${p.b}</div>
+        <div style="font-size:13px; color:#333;">Harga: <b>Rp${p.r.toLocaleString()}</b></div>
       </div>
     </div>
   `).join("");
@@ -274,11 +283,11 @@ function render(list){
 function addHistory(code){
   if(history.includes(code))return;
   history.unshift(code);
-  if(history.length>5)history.pop();
+  if(history.length>8)history.pop();
   historyDiv.innerHTML=history.map(h=>`<span onclick="input.value='${h}'; search('${h}')">${h}</span>`).join("");
 }
 
-/* ================= KAMERA & QUAGGA (FITUR TETAP SAMA) ================= */
+/* ================= KAMERA & QUAGGA (FITUR ASLI) ================= */
 let scanning=false,lastCode="",stableCount=0;
 let zoomLevel=2,zoomMin=1,zoomMax=3,lastZoomAdjust=0;
 
@@ -293,10 +302,10 @@ scanBtn.onclick=()=>{
       target:reader,
       constraints:{
         facingMode:{ exact:"environment" },
-        width:{ ideal:1920 }, height:{ ideal:1080 },
+        width:{ ideal:1280 }, height:{ ideal:720 },
         focusMode:"continuous"
       },
-      area:{ top:"18%", right:"18%", left:"18%", bottom:"18%" }
+      area:{ top:"20%", right:"20%", left:"20%", bottom:"20%" }
     },
     decoder:{
       readers:[ "ean_reader", "code_128_reader", "code_39_reader", "upc_reader", "upc_e_reader" ]
@@ -305,7 +314,7 @@ scanBtn.onclick=()=>{
   },err=>{
     if(err){
       scanning=false; reader.style.display="none";
-      alert("Kamera error/tidak diizinkan");
+      alert("Izin kamera diperlukan");
       return;
     }
     Quagga.start();

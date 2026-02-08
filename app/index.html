@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>MMS-X Miniso Edition - Final</title>
+    <title>MMS-X Miniso Edition - Ultra HD</title>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
     <style>
         :root {
@@ -16,22 +16,28 @@
         * { box-sizing: border-box; }
         body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; overflow: hidden; background: #fdfdfd; color: var(--text-dark); }
 
-        .app-wrapper { display: flex; height: 100vh; width: 100%; }
+        .app-wrapper { display: flex; height: 100vh; width: 100%; position: relative; }
 
         /* --- SIDEBAR --- */
         .sidebar {
             width: 250px; background-color: var(--miniso-red); color: #fff;
             display: flex; flex-direction: column; padding: 20px;
-            transition: transform 0.3s ease; z-index: 1001; flex-shrink: 0;
+            transition: transform 0.3s ease; z-index: 2000; flex-shrink: 0;
             box-shadow: 2px 0 10px rgba(0,0,0,0.1);
         }
         .sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 1.4rem; font-weight: 800; border-bottom: 2px solid rgba(255,255,255,0.2); padding-bottom: 15px; }
         .sidebar a { text-decoration: none; color: #fff; padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; display: block; font-weight: 500; }
         .sidebar a:hover, .sidebar a.active-link { background-color: rgba(255,255,255,0.2); }
 
-        .main-content { flex: 1; padding: 15px; overflow-y: auto; position: relative; width: 100%; }
+        /* --- OVERLAY (Untuk menutup navbar saat klik area kosong) --- */
+        #overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.3); z-index: 1500;
+        }
 
-        /* --- TOP BAR --- */
+        .main-content { flex: 1; padding: 15px; overflow-y: auto; position: relative; width: 100%; z-index: 100; }
+
+        /* --- NAVBAR / TOP BAR --- */
         .top-bar {
             display: flex; align-items: center; gap: 10px; margin-bottom: 15px;
             background: white; padding: 10px; border-radius: 12px;
@@ -52,7 +58,7 @@
             position: absolute; right: 5px; display: flex; align-items: center; justify-content: center;
         }
 
-        /* --- SCANNER VIEW (MULTI-ANGLE) --- */
+        /* --- SCANNER VIEW (ULTRA HD + CROP AREA) --- */
         #reader {
             display:none; width:100%; max-width:340px; aspect-ratio:1/1;
             margin:15px auto; background:#000; border-radius:20px;
@@ -61,9 +67,9 @@
         }
         #reader video { width: 100%; height: 100%; object-fit: cover; }
         .focus-guide {
-            position: absolute; inset: 15%; border: 2.5px solid var(--miniso-red);
+            position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red);
             border-radius: 15px; pointer-events: none; z-index: 2;
-            box-shadow: 0 0 0 1000px rgba(0,0,0,0.3); /* Dim area outside focus */
+            box-shadow: 0 0 0 1000px rgba(0,0,0,0.4);
         }
         .tap-hint {
             position: absolute; bottom: 10px; width: 100%; text-align: center;
@@ -89,6 +95,7 @@
         @media (max-width: 768px) {
             .sidebar { position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); }
             .sidebar.active { transform: translateX(0); }
+            .sidebar.active ~ #overlay { display: block; }
         }
     </style>
 </head>
@@ -103,7 +110,9 @@
         <a href="#">⚙️ Pengaturan</a>
     </nav>
 
-    <main class="main-content">
+    <div id="overlay"></div>
+
+    <main class="main-content" id="main-content">
         <div class="top-bar">
             <button class="menu-toggle" id="menuToggle">☰</button>
             <div class="search-container">
@@ -116,11 +125,11 @@
 
         <div id="reader">
             <div class="focus-guide"></div>
-            <div class="tap-hint">BARCODE DI DALAM KOTAK • TAP UNTUK FOKUS</div>
+            <div class="tap-hint">FOKUSKAN BARCODE KE TENAK • TAP UNTUK AF</div>
         </div>
 
         <div id="cameraControl">
-            <p style="font-size: 12px; margin-bottom: 5px; color: #666;">Lensa Terpilih:</p>
+            <p style="font-size: 12px; margin-bottom: 5px; color: #666;">Lensa Aktif:</p>
             <select id="videoSource"></select>
         </div>
 
@@ -133,6 +142,8 @@
 
 <script>
     const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+    const menuToggle = document.getElementById('menuToggle');
     const input = document.getElementById("searchInput");
     const scanBtn = document.getElementById("scanBtn");
     const reader = document.getElementById("reader");
@@ -144,28 +155,41 @@
     let history = [];
     let scanning = false;
 
-    // --- 1. LOAD DATA ---
+    // --- 1. DATA LOADING ---
     fetch("https://miniso-id.github.io/product/products.json").then(r => r.json()).then(data => {
         data.forEach(p => { if(p.b) p.b.split("/").forEach(c => barcodeIndex.set(c.trim(), p)); });
         input.disabled = false; scanBtn.disabled = false; input.placeholder = "Ketik / Scan Barcode...";
     });
 
-    // --- 2. UI HANDLERS ---
-    document.getElementById('menuToggle').onclick = () => sidebar.classList.toggle('active');
+    // --- 2. NAV LOGIC (CLOSE ON CLICK OUTSIDE) ---
+    menuToggle.onclick = (e) => {
+        e.stopPropagation();
+        sidebar.classList.toggle('active');
+    };
+
+    // Menutup navbar jika area overlay (bagian kosong) diklik
+    overlay.onclick = () => {
+        sidebar.classList.remove('active');
+    };
+
+    // Juga tutup jika salah satu menu di klik
+    sidebar.querySelectorAll('a').forEach(link => {
+        link.onclick = () => sidebar.classList.remove('active');
+    });
+
+    // --- 3. SCANNER LOGIC (ULTRA HD) ---
     input.oninput = (e) => search(e.target.value);
 
-    // --- 3. TAP TO FOCUS (MANUAL TRIGGER) ---
     reader.onclick = async () => {
         const track = Quagga.CameraAccess.getActiveTrack();
         if (track && track.applyConstraints) {
             try {
                 await track.applyConstraints({ advanced: [{ focusMode: "manual" }] });
                 await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
-            } catch (e) { console.warn("Autofocus reset not supported"); }
+            } catch (e) { console.warn("AF Reset Failed"); }
         }
     };
 
-    // --- 4. SCANNER CORE (MULTI-ANGLE & MEMORY) ---
     scanBtn.onclick = () => {
         if (scanning) { stopScan(); return; }
         const lastId = localStorage.getItem('lastCameraId');
@@ -181,17 +205,16 @@
                 type: "LiveStream",
                 target: reader,
                 constraints: {
+                    width: { min: 1280, ideal: 1920 },
+                    height: { min: 720, ideal: 1080 },
                     deviceId: deviceId ? { exact: deviceId } : undefined,
                     facingMode: deviceId ? undefined : "environment",
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
-                }
+                },
+                // Fokus hanya di area 60% tengah untuk performa 1080p
+                area: { top: "20%", right: "20%", left: "20%", bottom: "20%" }
             },
-            locator: { patchSize: "medium", halfSample: true },
-            decoder: { 
-                readers: ["ean_reader", "code_128_reader"],
-                multiple: false 
-            },
+            locator: { patchSize: "small", halfSample: false },
+            decoder: { readers: ["ean_reader", "code_128_reader"] },
             locate: true
         }, (err) => {
             if (err) { 
@@ -203,7 +226,6 @@
             document.getElementById("cameraControl").style.display = "block";
             updateCameraList();
             
-            // Continuous Focus
             const track = Quagga.CameraAccess.getActiveTrack();
             if (track && track.applyConstraints) {
                 track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
@@ -214,10 +236,7 @@
     async function updateCameraList() {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
-        const backCams = videoDevices.filter(d => 
-            /back|rear|facing 0|0/i.test(d.label)
-        );
-
+        const backCams = videoDevices.filter(d => /back|rear|facing 0|0/i.test(d.label));
         const final = backCams.length > 0 ? backCams : videoDevices;
         const currentLabel = Quagga.CameraAccess.getActiveTrack().label;
 
@@ -250,7 +269,7 @@
         }
     });
 
-    // --- 5. SEARCH & RENDER ---
+    // --- 4. DATA RENDER ---
     function search(q) {
         q = q.trim();
         if(!q) { result.innerHTML = ""; return; }

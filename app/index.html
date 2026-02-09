@@ -206,16 +206,16 @@
     async function startScan(deviceId = null) {
         scanning = true; reader.style.display = "block";
         
-        // Perbaikan logis: Jika hanya ada satu kamera, jangan paksa pakai ID
+        // PERBAIKAN: Selalu prioritaskan kamera belakang (environment) 
+        // namun gunakan deviceId spesifik jika user sudah memilih manual.
         const constraints = {
             width: { ideal: 1920 },
-            height: { ideal: 1080 }
+            height: { ideal: 1080 },
+            facingMode: "environment" // Paksa ke arah belakang
         };
 
         if (deviceId) {
-            constraints.deviceId = { ideal: deviceId }; // Gunakan 'ideal' bukan 'exact' agar tidak error di HP 1 kamera
-        } else {
-            constraints.facingMode = "environment";
+            constraints.deviceId = { exact: deviceId };
         }
 
         Quagga.init({
@@ -229,7 +229,7 @@
         }, (err) => {
             if (err) {
                 console.error(err);
-                // Jika error karena deviceId tidak valid, coba lagi tanpa deviceId
+                // Jika error (misal ID tidak valid), coba tanpa deviceId tapi tetap facingMode environment
                 if(deviceId) startScan(null);
                 return;
             }
@@ -242,7 +242,7 @@
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
 
-        // Filter kamera belakang jika ada banyak opsi
+        // Filter hanya kamera belakang
         const backCameras = videoDevices.filter(d => {
             const label = d.label.toLowerCase();
             return !label.includes('front') && !label.includes('user') && !label.includes('depan');
@@ -250,13 +250,12 @@
 
         const finalDevices = backCameras.length > 0 ? backCameras : videoDevices;
         
-        // Hanya tampilkan pilihan jika kamera lebih dari satu
         if (finalDevices.length <= 1) {
             cameraControl.style.display = "none";
         } else {
             cameraControl.style.display = "block";
             videoSource.innerHTML = finalDevices.map(d => 
-                `<option value="${d.deviceId}" ${d.deviceId === lastSelectedDeviceId ? 'selected' : ''}>${d.label || 'Kamera ' + (videoSource.length + 1)}</option>`
+                `<option value="${d.deviceId}" ${d.deviceId === lastSelectedDeviceId ? 'selected' : ''}>${d.label || 'Kamera Belakang'}</option>`
             ).join("");
         }
     }

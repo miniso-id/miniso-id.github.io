@@ -199,6 +199,9 @@
     let barcodeIndex = new Map();
     let history = [];
     let scanning = false;
+    
+    // PERBAIKAN: Ambil ID kamera yang tersimpan dari memori browser (localStorage)
+    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
 
     fetch("https://miniso-id.github.io/product/products.json").then(r => r.json()).then(data => {
         data.forEach(p => { if(p.b) p.b.split("/").forEach(c => barcodeIndex.set(c.trim(), p)); });
@@ -217,18 +220,22 @@
     document.getElementById('menuToggle').onclick = toggleSidebar;
     overlay.onclick = toggleSidebar;
 
-    scanBtn.onclick = () => { if (scanning) { stopScan(); } else { startScan(); } };
+    // PERBAIKAN: Selalu gunakan ID kamera terakhir saat tombol scan ditekan
+    scanBtn.onclick = () => { if (scanning) { stopScan(); } else { startScan(lastSelectedDeviceId); } };
     
     async function startScan(deviceId = null) {
         scanning = true; reader.style.display = "block";
+        
+        // Atur constraint: Jika ada deviceId gunakan ID tersebut, jika tidak gunakan kamera belakang default
+        const videoConstraints = deviceId ? { deviceId: { exact: deviceId } } : { facingMode: "environment" };
+
         Quagga.init({
             inputStream: {
                 type: "LiveStream", target: reader,
                 constraints: { 
                     width: { ideal: 1920 }, 
                     height: { ideal: 1080 }, 
-                    deviceId: deviceId, 
-                    facingMode: "environment"
+                    ...videoConstraints
                 },
                 area: { top: "20%", right: "20%", left: "20%", bottom: "20%" }
             },
@@ -256,11 +263,20 @@
             cameraControl.style.display = "none";
         } else {
             cameraControl.style.display = "block";
-            videoSource.innerHTML = finalDevices.map(d => `<option value="${d.deviceId}">${d.label || 'Back Camera'}</option>`).join("");
+            videoSource.innerHTML = finalDevices.map(d => 
+                `<option value="${d.deviceId}" ${d.deviceId === lastSelectedDeviceId ? 'selected' : ''}>${d.label || 'Back Camera'}</option>`
+            ).join("");
         }
     }
 
-    videoSource.onchange = () => { Quagga.stop(); startScan(videoSource.value); };
+    // PERBAIKAN: Simpan ID kamera terpilih ke localStorage saat diganti
+    videoSource.onchange = () => { 
+        lastSelectedDeviceId = videoSource.value;
+        localStorage.setItem('preferredCameraId', lastSelectedDeviceId);
+        Quagga.stop(); 
+        startScan(lastSelectedDeviceId); 
+    };
+
     function stopScan() { Quagga.stop(); scanning = false; reader.style.display = "none"; cameraControl.style.display = "none"; }
 
     Quagga.onDetected(res => {

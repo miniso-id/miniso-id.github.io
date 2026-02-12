@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X Deluxe v4.8</title>
+    <title>MMS-X Deluxe v4.9</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
@@ -12,9 +12,8 @@
     <style>
         :root {
             --miniso-red: #e61523;
-            --miniso-green: #00b14f;
             --text-dark: #1a1a1a;
-            --bg-gray: #f8f8f8;
+            --bg-gray: #f2f2f7;
             --promo-blue: #007aff;
             --promo-green: #34c759;
             --sidebar-width: 280px;
@@ -22,162 +21,136 @@
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
-            margin: 0; font-family: -apple-system, sans-serif; 
-            background: #ffffff; color: var(--text-dark); overflow: hidden;
+            margin: 0; padding: 0; 
+            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto; 
+            background: #ffffff; color: var(--text-dark); 
+            height: 100vh; display: flex; flex-direction: column; overflow: hidden;
         }
 
-        /* --- UI COMPONENTS --- */
-        #ui-header { padding: 16px; border-bottom: 1px solid #eee; position: sticky; top: 0; background: white; z-index: 1000; }
-        .top-bar { display: flex; gap: 10px; align-items: center; }
+        /* --- STICKY HEADER --- */
+        #ui-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            padding: 16px 16px 8px 16px;
+            border-bottom: 1px solid #eee;
+            z-index: 1000;
+            position: sticky; top: 0;
+            transition: opacity 0.2s ease;
+        }
+        .top-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
         .search-container { position: relative; flex: 1; }
-        #searchInput { width: 100%; height: 44px; padding: 0 40px 0 15px; border-radius: 12px; border: 1.5px solid #eee; background: #f2f2f7; font-size: 15px; outline: none; }
-        #scanBtn { position: absolute; right: 5px; top: 5px; width: 34px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; }
+        #searchInput { 
+            width: 100%; height: 46px; padding: 0 45px 0 15px; 
+            border-radius: 14px; border: 1.5px solid #eee; 
+            background: #f2f2f7; outline: none; font-size: 15px;
+        }
+        #scanBtn { 
+            position: absolute; right: 6px; top: 6px; width: 34px; height: 34px; 
+            background: var(--miniso-red); color: white; border: none; border-radius: 10px; 
+            display: flex; align-items: center; justify-content: center;
+        }
 
-        .main-content { height: calc(100vh - 120px); overflow-y: auto; padding: 0 16px; }
+        /* --- SCANNER --- */
+        #reader {
+            display: none; width: 100%; max-width: 340px; aspect-ratio: 1/1;
+            margin: 10px auto; background: #000; border-radius: 24px;
+            overflow: hidden; position: relative; border: 4px solid white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        #reader video { width: 100%; height: 100%; object-fit: cover; }
 
-        /* --- DESAIN KARTU (SESUAI GAMBAR) --- */
-        .price-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 15px 0; }
+        /* --- CONTENT AREA --- */
+        .main-content { flex: 1; overflow-y: auto; padding: 0 16px; position: relative; -webkit-overflow-scrolling: touch; }
+        #listContainer { transition: opacity 0.2s ease; }
+        .search-item { display: flex; align-items: center; gap: 12px; padding: 15px 0; border-bottom: 1px solid #f0f0f0; }
+        .thumb-img { width: 65px; height: 65px; border-radius: 10px; object-fit: contain; background: #f9f9f9; }
+
+        /* --- DETAIL DESIGN (REVERTED & IMPROVED) --- */
+        .product-detail-card { display: none; padding-bottom: 50px; will-change: transform, opacity; }
+        .product-detail-card.active { display: block; animation: slideUp 0.3s ease both; }
+
+        .price-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
         
-        .card-price { 
-            padding: 12px 15px; border-radius: 15px; 
-            background: #fff5f5; border-bottom: 4px solid var(--miniso-red);
+        /* Gaya Kartu Sesuai Gambar */
+        .price-item { 
+            padding: 15px; border-radius: 18px; text-align: center; background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
-        .card-price.street { 
-            background: #f6f6f6; border-bottom: 4px solid var(--miniso-green);
+        .price-item.reg { border-bottom: 5px solid var(--promo-blue); background: #f0f7ff; }
+        .price-item.str { border-bottom: 5px solid var(--promo-green); background: #f1fdf5; }
+        
+        .price-val { font-size: 20px; font-weight: 900; margin-top: 4px; color: var(--text-dark); }
+        .promo-label { color: #888; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+
+        /* Banner Promo */
+        .promo-banner { padding: 20px; border-radius: 24px; background: #fff; border: 1.5px solid #eee; margin-top: 10px; }
+        .promo-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
+        .txt-blue { color: var(--promo-blue); font-weight: 800; }
+        .txt-green { color: var(--promo-green); font-weight: 800; }
+
+        /* Barcode container */
+        .barcode-footer { 
+            background: white; padding: 20px; border-radius: 20px; 
+            border: 1px dashed #ccc; text-align: center; margin-top: 25px; 
         }
 
-        .label-card { font-size: 10px; font-weight: 800; color: #8e8e93; text-transform: uppercase; margin-bottom: 4px; }
-        .val-card { font-size: 20px; font-weight: 900; color: var(--miniso-red); }
-        .street .val-card { color: var(--text-dark); }
+        .floating-back {
+            position: fixed; top: 20px; left: 20px; width: 45px; height: 45px; 
+            background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
+            border-radius: 50%; display: none; align-items: center; justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 8000;
+        }
 
-        /* --- PROMO LIST --- */
-        .promo-section { border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px; }
-        .promo-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px; }
-        .promo-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; }
-        .dot-blue { background: var(--promo-blue); }
-        .dot-green { background: var(--promo-green); }
-        .promo-val { font-weight: 800; }
-        .blue-text { color: var(--promo-blue); }
-        .green-text { color: var(--promo-green); }
-
-        /* --- BARCODE IMAGE --- */
-        .barcode-footer { margin-top: 25px; text-align: center; padding: 20px; border-top: 1px solid #f0f0f0; }
-        .barcode-img { max-width: 80%; height: auto; display: block; margin: 0 auto; }
-        .barcode-meta { display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; margin-bottom: 10px; color: #444; }
-
-        .floating-back { position: fixed; top: 20px; left: 20px; width: 42px; height: 42px; background: white; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 2000; }
-
-        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .product-detail-card.active { display: block; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
 
-<div id="btnBackFloating" class="floating-back" onclick="back()"><b>←</b></div>
+<div id="btnBackFloating" class="floating-back" onclick="back()">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+</div>
 
 <div id="appContent">
     <header id="ui-header">
         <div class="top-bar">
-            <div class="search-container">
-                <input id="searchInput" placeholder="Cari nama atau barcode...">
-                <button id="scanBtn">📷</button>
+            <h2 style="margin:0; color:var(--miniso-red); font-weight:900; letter-spacing:-1px;">MMS-X</h2>
+            <div class="search-container" style="margin-left:10px;">
+                <input id="searchInput" placeholder="Cari nama / barcode...">
+                <button id="scanBtn">🔍</button>
             </div>
         </div>
-        <div id="reader" style="display:none; width:100%; height:250px; margin-top:10px; border-radius:15px; overflow:hidden;"></div>
+        <div id="reader"></div>
     </header>
 
     <main class="main-content" id="scrollContainer">
         <div id="listContainer"></div>
-        <div id="detailContainer" class="product-detail-card" style="display:none;"></div>
+        <div id="detailContainer" class="product-detail-card"></div>
     </main>
 </div>
+
+<audio id="beep" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    let lastScroll = 0, timer;
+
     function cleanPrice(val) {
-        if(!val || val === "Rp0") return "Rp0";
+        if(!val) return "Rp0";
         let num = parseInt(String(val).replace(/[^0-9]/g, "")) || 0;
         return "Rp" + num.toLocaleString('id-ID');
     }
 
-    async function showDetail(barcode) {
-        const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${barcode}%`).maybeSingle();
-        if(!data) return;
-
-        document.getElementById("ui-header").style.display = "none";
-        document.getElementById("listContainer").style.display = "none";
-        const det = document.getElementById("detailContainer");
-        
-        // Perbaikan Barcode Image: Encode teks & handle tipe barcode
-        const rawBC = String(data.Barcode).trim();
-        const bcType = rawBC.length >= 12 ? 'ean13' : 'code128';
-        const bcUrl = `https://bwipjs-api.metafloor.com/?bcid=${bcType}&text=${encodeURIComponent(rawBC)}&scale=3&rotate=N`;
-
-        det.innerHTML = `
-            <div style="text-align:center; padding: 20px 0;">
-                <img src="${data.Image || ''}" style="width:100%; max-height:300px; object-fit:contain;" onerror="this.src='https://placehold.co/400x300?text=No+Image'">
-            </div>
-            
-            <div style="padding: 0 10px;">
-                <div style="color:var(--miniso-red); font-size:11px; font-weight:800; text-transform:uppercase;">${data.Category || 'MINISO'}</div>
-                <h2 style="margin:5px 0; font-size:22px; line-height:1.2; font-weight:800;">${data.Name}</h2>
-                <div style="color:#888; font-size:13px; margin-bottom:15px;">${data.Category || 'General'}</div>
-
-                <div class="price-row">
-                    <div class="card-price">
-                        <div class="label-card">Regular Price</div>
-                        <div class="val-card">${cleanPrice(data["Regular Store Price"])}</div>
-                    </div>
-                    <div class="card-price street">
-                        <div class="label-card">Street Store</div>
-                        <div class="val-card">${cleanPrice(data["Street Store Price"])}</div>
-                    </div>
-                </div>
-
-                <div class="promo-section">
-                    <div class="barcode-meta">
-                        <span>Barcode</span>
-                        <span>${rawBC}</span>
-                    </div>
-                    
-                    <div class="promo-item">
-                        <span><span class="promo-dot dot-blue"></span>Regular Promo</span>
-                        <span class="promo-val blue-text">${data["Regular Store Promo"] || "NORMAL PRICE"}</span>
-                    </div>
-                    <div class="promo-item">
-                        <span><span class="promo-dot dot-green"></span>Street Promo</span>
-                        <span class="promo-val green-text">${data["Street Store Promo"] || "NORMAL PRICE"}</span>
-                    </div>
-                    ${data["Extra Promo"] && data["Extra Promo"] !== "NORMAL PRICE" ? `
-                        <div class="promo-item" style="margin-top:10px; padding:10px; background:#f2f2f7; border-radius:10px; justify-content:center;">
-                            <span style="font-weight:900; color:var(--miniso-red);">${data["Extra Promo"]}</span>
-                        </div>
-                    ` : ''}
-                </div>
-
-                <div class="barcode-footer">
-                    <img class="barcode-img" src="${bcUrl}" onerror="this.src='https://placehold.co/300x100?text=Error+Loading+Barcode'">
-                </div>
-            </div>
-        `;
-        
-        det.style.display = "block";
-        det.classList.add("active");
-        document.getElementById("btnBackFloating").style.display = "flex";
-    }
-
-    // --- Search & Logic Dasar ---
-    let timer;
+    // --- SEARCH LOGIC ---
     document.getElementById("searchInput").oninput = (e) => {
         clearTimeout(timer);
         timer = setTimeout(async () => {
-            const q = e.target.value;
-            if(q.length < 3) return;
-            const { data } = await _supabase.from('export').select('*').or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`).limit(20);
-            renderList(data);
+            const q = e.target.value.trim();
+            if(!q) { document.getElementById("listContainer").innerHTML = ""; return; }
+            const { data } = await _supabase.from('export').select('*').or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`).limit(30);
+            if(data) renderList(data);
         }, 500);
     };
 
@@ -195,14 +168,96 @@
         `).join('');
     }
 
-    function back() {
-        document.getElementById("ui-header").style.display = "block";
-        document.getElementById("listContainer").style.display = "block";
-        document.getElementById("detailContainer").style.display = "none";
-        document.getElementById("btnBackFloating").style.display = "none";
+    // --- DETAIL LOGIC ---
+    async function showDetail(fullBarcode) {
+        lastScroll = document.getElementById("scrollContainer").scrollTop;
+        const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();
+
+        if(data) {
+            document.getElementById("listContainer").style.opacity = "0";
+            document.getElementById("ui-header").style.opacity = "0";
+            
+            setTimeout(() => {
+                document.getElementById("listContainer").style.display = "none";
+                document.getElementById("ui-header").style.display = "none";
+                
+                // FIX BARCODE IMAGE: Encode URL & Gunakan API Metafloor yang lebih stabil
+                const cleanBC = String(data.Barcode).trim();
+                const bcType = cleanBC.length >= 12 ? 'ean13' : 'code128';
+                const bcUrl = `https://bwipjs-api.metafloor.com/?bcid=${bcType}&text=${encodeURIComponent(cleanBC)}&scale=3&rotate=N&includetext`;
+
+                const det = document.getElementById("detailContainer");
+                det.innerHTML = `
+                    <div style="text-align:center; padding: 20px 0;">
+                        <img src="${data.Image || ''}" style="width:100%; max-height:350px; object-fit:contain;" onerror="this.src='https://placehold.co/400x300?text=No+Image'">
+                    </div>
+                    
+                    <div style="padding: 0 5px;">
+                        <small style="font-weight:bold; color:var(--miniso-red);">${data.Category || 'GENERAL'}</small>
+                        <h2 style="margin:5px 0 20px 0; font-weight:800; line-height:1.2;">${data.Name}</h2>
+                        
+                        <div class="price-box">
+                            <div class="price-item reg">
+                                <div class="promo-label">Regular Store</div>
+                                <div class="price-val">${cleanPrice(data["Regular Store Price"])}</div>
+                            </div>
+                            <div class="price-item str">
+                                <div class="promo-label">Street Store</div>
+                                <div class="price-val">${cleanPrice(data["Street Store Price"])}</div>
+                            </div>
+                        </div>
+
+                        <div class="promo-banner">
+                            <div class="promo-row" style="border-bottom: 1px solid #f0f0f0;">
+                                <span class="promo-label">REGULAR PROMO</span>
+                                <span class="txt-blue">${data["Regular Store Promo"] || "NORMAL PRICE"}</span>
+                            </div>
+                            <div class="promo-row">
+                                <span class="promo-label">STREET PROMO</span>
+                                <span class="txt-green">${data["Street Store Promo"] || "NORMAL PRICE"}</span>
+                            </div>
+                            ${data["Extra Promo"] ? `
+                                <div style="text-align:center; margin-top:10px; padding:10px; background:#f2f2f7; border-radius:12px; font-weight:800; color:var(--miniso-red); font-size:13px;">
+                                    ${data["Extra Promo"]}
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <div class="barcode-footer">
+                            <img src="${bcUrl}" style="max-width:100%;" onerror="this.src='https://placehold.co/300x100?text=Barcode+Error'">
+                            <div style="margin-top:10px; font-size:12px; font-weight:bold; color:#666;">${cleanBC}</div>
+                        </div>
+                    </div>
+                `;
+                
+                det.style.display = "block";
+                setTimeout(() => { 
+                    det.classList.add('active'); 
+                    document.getElementById("btnBackFloating").style.display = "flex"; 
+                }, 10);
+                document.getElementById("scrollContainer").scrollTop = 0;
+            }, 200);
+        }
     }
 
-    // Scan Simple
+    function back() {
+        const det = document.getElementById("detailContainer");
+        det.classList.remove('active');
+        document.getElementById("btnBackFloating").style.display = "none";
+        
+        setTimeout(() => {
+            det.style.display = "none";
+            document.getElementById("ui-header").style.display = "block";
+            document.getElementById("listContainer").style.display = "block";
+            setTimeout(() => {
+                document.getElementById("ui-header").style.opacity = "1";
+                document.getElementById("listContainer").style.opacity = "1";
+                document.getElementById("scrollContainer").scrollTop = lastScroll;
+            }, 10);
+        }, 300);
+    }
+
+    // --- SCANNER SIMPLE ---
     document.getElementById("scanBtn").onclick = () => {
         const r = document.getElementById("reader");
         r.style.display = "block";
@@ -213,6 +268,7 @@
     };
 
     Quagga.onDetected(res => {
+        document.getElementById("beep").play();
         Quagga.stop();
         document.getElementById("reader").style.display = "none";
         showDetail(res.codeResult.code);

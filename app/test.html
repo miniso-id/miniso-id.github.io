@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MMS-X Deluxe v5.8</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
+    
+    <style>
+        :root {
+            --miniso-red: #e61523;
+            --miniso-soft: #fff1f2;
+            --text-dark: #1a1a1a;
+            --bg-gray: #f2f2f7;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { 
+            margin: 0; padding: 0; 
+            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto; 
+            background: #ffffff; color: var(--text-dark); 
+            height: 100vh; overflow: hidden;
+        }
+
+        /* --- LOGIN SCREEN --- */
+        #loginScreen { position: fixed; inset: 0; background: white; z-index: 9000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
+        .login-input { width: 100%; max-width: 340px; padding: 16px; margin-bottom: 12px; border: 1.5px solid #eee; border-radius: 14px; font-size: 16px; outline: none; }
+        .btn-login { width: 100%; max-width: 340px; padding: 16px; background: var(--miniso-red); color: white; border: none; border-radius: 14px; font-weight: bold; cursor: pointer; }
+
+        /* --- DASHBOARD --- */
+        #dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; max-width: 600px; margin: 40px auto; animation: fadeIn 0.4s ease; }
+        .menu-card { background: white; border-radius: 24px; padding: 25px 15px; text-align: center; border: 1px solid #f0f0f0; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .menu-card:active { transform: scale(0.95); background: var(--miniso-soft); }
+        .icon-box { width: 60px; height: 60px; background: var(--miniso-soft); border-radius: 18px; display: flex; align-items: center; justify-content: center; color: var(--miniso-red); margin-bottom: 12px; }
+        .menu-card h3 { margin: 0; font-size: 15px; font-weight: 800; }
+        .menu-card p { margin: 5px 0 0 0; font-size: 11px; color: #888; }
+
+        /* --- HEADER & UI --- */
+        #ui-header { background: #fff; padding: 15px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; }
+        .top-bar { display: flex; gap: 10px; align-items: center; max-width: 1200px; margin: auto; }
+        .search-container { position: relative; flex: 1; }
+        #searchInput { width: 100%; height: 44px; padding: 0 50px 0 15px; border-radius: 12px; border: 1.5px solid #eee; background: #f8f8f8; outline: none; }
+        #scanBtn { position: absolute; right: 5px; top: 5px; width: 34px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+
+        /* --- SCANNER --- */
+        #reader { display:none; width:100%; max-width: 450px; aspect-ratio:1/1; margin:10px auto; background:#000; border-radius:20px; overflow:hidden; position:relative; }
+        .focus-guide { position: absolute; inset: 20%; border: 2px solid var(--miniso-red); border-radius: 10px; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.5); }
+
+        /* --- LIST & GALLERY --- */
+        .main-content { height: calc(100vh - 80px); overflow-y: auto; padding: 15px; }
+        #listContainer { max-width: 1200px; margin: auto; }
+        .search-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f5f5f5; cursor: pointer; }
+        .thumb-img { width: 70px; height: 70px; border-radius: 10px; object-fit: contain; background: #f9f9f9; }
+
+        @media (min-width: 768px) {
+            #listContainer { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+            .search-item { flex-direction: column; align-items: flex-start; padding: 15px; border: 1px solid #eee; border-radius: 15px; }
+            .thumb-img { width: 100%; height: 160px; }
+        }
+
+        /* --- DETAIL --- */
+        .product-detail-card { display: none; max-width: 800px; margin: auto; padding-bottom: 50px; }
+        .price-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
+        .price-item { padding: 15px; border-radius: 15px; text-align: center; }
+        .price-item.reg { background: var(--miniso-soft); color: var(--miniso-red); }
+        .price-item.str { background: #f4f4f4; }
+        .barcode-img-container { text-align: center; padding: 20px; border: 1px dashed #ccc; border-radius: 15px; margin-top: 20px; }
+
+        .floating-back { position: fixed; top: 15px; left: 15px; width: 40px; height: 40px; background: white; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 200; border: none; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div id="loginScreen">
+    <h1 style="color:var(--miniso-red); font-size: 3rem; margin: 0; font-weight: 900;">MINISO</h1>
+    <p style="color:#888; margin-bottom: 30px;">Inventory System v5.8</p>
+    <input type="text" id="username" class="login-input" placeholder="Username">
+    <input type="password" id="password" class="login-input" placeholder="Password">
+    <button class="btn-login" onclick="handleLogin()">LOGIN</button>
+</div>
+
+<div id="appContent" style="display:none; height: 100vh; flex-direction: column;">
+    <button id="btnBackFloating" class="floating-back" onclick="backToSearch()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </button>
+
+    <header id="ui-header" style="display:none;">
+        <div class="top-bar">
+            <button onclick="showDashboard()" style="background:none; border:none; cursor:pointer;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            </button>
+            <div class="search-container">
+                <input id="searchInput" placeholder="Cari barang...">
+                <button id="scanBtn" onclick="toggleScan()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M8 12h8"/></svg>
+                </button>
+            </div>
+        </div>
+        <div id="reader"><div class="focus-guide"></div></div>
+        <select id="catFilter" style="width:100%; margin-top:10px; padding:10px; border-radius:10px; border:1px solid #eee;" onchange="search()"></select>
+    </header>
+
+    <main class="main-content" id="scrollContainer">
+        <div id="dashboard">
+            <div class="menu-card" onclick="openPriceChecker()">
+                <div class="icon-box"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg></div>
+                <h3>Price Checker</h3>
+                <p>Cek Harga & Promo</p>
+            </div>
+            <div class="menu-card" onclick="window.location.href='https://miniso-id.github.io/so/'">
+                <div class="icon-box"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
+                <h3>Stock Opname</h3>
+                <p>Input Data Stok</p>
+            </div>
+            <div class="menu-card" onclick="openPriceChecker()">
+                <div class="icon-box"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></div>
+                <h3>Gallery</h3>
+                <p>Katalog Produk</p>
+            </div>
+            <div class="menu-card" onclick="handleLogout()">
+                <div class="icon-box" style="background:#ffe5e5; color:red;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></div>
+                <h3>Logout</h3>
+                <p>Keluar Sistem</p>
+            </div>
+        </div>
+
+        <div id="listContainer" style="display:none;"></div>
+        <div id="detailContainer" class="product-detail-card"></div>
+    </main>
+</div>
+
+<audio id="beep" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
+
+<script>
+    const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let isScanning = false, lastScroll = 0, searchTimer;
+
+    // --- NAVIGATION ---
+    function handleLogin() {
+        const u = document.getElementById("username").value;
+        const p = document.getElementById("password").value;
+        if((u==="admin" && p==="miniso123") || (u==="ID12" && p==="12121212")) {
+            sessionStorage.setItem("logged", "true");
+            init();
+        } else { alert("Login Salah!"); }
+    }
+
+    function handleLogout() { sessionStorage.clear(); location.reload(); }
+
+    function init() {
+        if(sessionStorage.getItem("logged") !== "true") return;
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("appContent").style.display = "flex";
+        showDashboard();
+        loadCategories();
+    }
+
+    function showDashboard() {
+        stopScan();
+        document.getElementById("dashboard").style.display = "grid";
+        document.getElementById("ui-header").style.display = "none";
+        document.getElementById("listContainer").style.display = "none";
+        document.getElementById("detailContainer").style.display = "none";
+    }
+
+    function openPriceChecker() {
+        document.getElementById("dashboard").style.display = "none";
+        document.getElementById("ui-header").style.display = "block";
+        document.getElementById("listContainer").style.display = window.innerWidth >= 768 ? "grid" : "block";
+    }
+
+    // --- LOGIC ---
+    async function loadCategories() {
+        const { data } = await _supabase.from('export').select('Category');
+        if(data) {
+            const cats = [...new Set(data.map(i => i.Category))].filter(Boolean).sort();
+            const filter = document.getElementById("catFilter");
+            filter.innerHTML = '<option value="">Semua Kategori</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
+    }
+
+    document.getElementById("searchInput").oninput = () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(search, 500);
+    };
+
+    function cleanPrice(v) {
+        let num = parseInt(String(v).replace(/[^0-9]/g, "")) || 0;
+        return "Rp " + num.toLocaleString('id-ID');
+    }
+
+    async function search() {
+        const q = document.getElementById("searchInput").value;
+        const c = document.getElementById("catFilter").value;
+        const list = document.getElementById("listContainer");
+        
+        let query = _supabase.from('export').select('*');
+        if(q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
+        if(c) query = query.eq('Category', c);
+
+        const { data } = await query.limit(40);
+        list.innerHTML = (data || []).map(p => `
+            <div class="search-item" onclick="showDetail('${p.Barcode}')">
+                <img class="thumb-img" src="${p.Image || 'https://placehold.co/100'}">
+                <div style="flex:1">
+                    <small style="color:red; font-weight:bold">${p.Category}</small>
+                    <div style="font-weight:bold; font-size:14px; margin:3px 0">${p.Name}</div>
+                    <div style="color:red; font-weight:900">${cleanPrice(p["Regular Store Price"])}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function showDetail(barcode) {
+        lastScroll = document.getElementById("scrollContainer").scrollTop;
+        const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${barcode}%`).maybeSingle();
+        if(!data) return;
+
+        document.getElementById("listContainer").style.display = "none";
+        document.getElementById("ui-header").style.display = "none";
+        document.getElementById("btnBackFloating").style.display = "flex";
+
+        const firstBc = String(data.Barcode).split('/')[0].trim();
+        const bcType = firstBc.length >= 12 ? 'ean13' : 'code128';
+
+        const det = document.getElementById("detailContainer");
+        det.innerHTML = `
+            <img src="${data.Image || ''}" style="width:100%; max-height:350px; object-fit:contain;">
+            <div style="padding:20px;">
+                <div style="margin-bottom:10px;">
+                    <span style="background:red; color:white; padding:3px 8px; border-radius:5px; font-size:10px; font-weight:bold;">${data.Category}</span>
+                    <span style="color:#888; font-size:12px;"> › ${data["Detail Category"] || ''}</span>
+                </div>
+                <h2 style="margin:0 0 15px 0">${data.Name}</h2>
+                <div class="price-box">
+                    <div class="price-item reg"><small>Regular Store</small><div style="font-weight:900; font-size:20px">${cleanPrice(data["Regular Store Price"])}</div></div>
+                    <div class="price-item str"><small>Street Store</small><div style="font-weight:900; font-size:20px">${cleanPrice(data["Street Store Price"])}</div></div>
+                </div>
+                <div style="background:#f9f9f9; padding:15px; border-radius:15px; margin-bottom:20px; font-size:13px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span>REG PROMO</span> <b>${data["Regular Store Promo"] || 'NORMAL'}</b></div>
+                    <div style="display:flex; justify-content:space-between;"><span>STR PROMO</span> <b>${data["Street Store Promo"] || 'NORMAL'}</b></div>
+                </div>
+                <div class="barcode-img-container">
+                    <img src="https://bwipjs-api.metafloor.com/?bcid=${bcType}&text=${firstBc}&scale=3&includetext">
+                    <div style="font-size:11px; color:#888; margin-top:10px; word-break:break-all;">${data.Barcode}</div>
+                </div>
+            </div>
+        `;
+        det.style.display = "block";
+        document.getElementById("scrollContainer").scrollTo(0,0);
+    }
+
+    function backToSearch() {
+        document.getElementById("detailContainer").style.display = "none";
+        document.getElementById("btnBackFloating").style.display = "none";
+        document.getElementById("ui-header").style.display =

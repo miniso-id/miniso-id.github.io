@@ -331,7 +331,12 @@
             const b = p.b ? p.b.split("/")[0].trim() : "";
             html += `
                 <div class="search-item">
-                    <img class="thumb-img" src="${p.i || ''}" onclick="openPopup('${p.i}')" onerror="this.src='https://via.placeholder.com/50';">
+                    <img class="thumb-img" 
+                     src="${p.i || ''}" 
+                     loading="lazy" 
+                     decoding="async" 
+                     onclick="openPopup('${p.i}')" 
+                     onerror="this.style.display='none';">
                     <div style="flex:1" onclick="selectItem('${b}')">
                         <div style="font-size:10px; font-weight:800; color:var(--miniso-red);">${p.c || ''}</div>
                         <div style="font-size:14px; font-weight:700;">${p.n}</div>

@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X Stable v3.5</title>
+    <title>MMS-X Stable v3.6</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
@@ -82,7 +82,7 @@
 
 <div id="loginScreen">
     <h1 style="color:var(--miniso-red); font-size: 3rem; margin-bottom: 0; letter-spacing: -2px;">MINISO</h1>
-    <p style="color:#888; margin-bottom: 30px; font-weight: 500;">Inventory System v3.5</p>
+    <p style="color:#888; margin-bottom: 30px; font-weight: 500;">Inventory System v3.6</p>
     <input type="text" id="username" class="login-input" placeholder="Username">
     <input type="password" id="password" class="login-input" placeholder="Password">
     <button class="btn-login" onclick="handleLogin()">MASUK</button>
@@ -134,12 +134,11 @@
     const listCont = document.getElementById("listContainer");
     const detCont = document.getElementById("detailContainer");
 
-    // Formatter Harga anti double Rp
-    function formatMoney(val) {
+    // Fungsi ini membersihkan "Rp" bawaan database agar tidak double
+    function cleanPrice(val) {
         if(!val) return "Rp0";
-        // Hilangkan tulisan Rp dan titik jika sudah ada di database agar tidak double
-        let clean = String(val).replace(/Rp/g, "").replace(/\./g, "").trim();
-        let num = parseInt(clean) || 0;
+        let str = String(val).replace(/Rp/g, "").replace(/\./g, "").trim();
+        let num = parseInt(str) || 0;
         return "Rp" + num.toLocaleString('id-ID');
     }
 
@@ -199,13 +198,13 @@
     function renderList(data) {
         listCont.innerHTML = data.map(p => `
             <div class="search-item" onclick="showDetail('${p.Barcode}')">
-                <img class="thumb-img" src="${p.Image || p["Image"] || ''}" onerror="this.src='https://placehold.co/100x100?text=No+Img'">
+                <img class="thumb-img" src="${p.Image || ''}" onerror="this.src='https://placehold.co/100x100?text=No+Img'">
                 <div style="flex:1">
-                    <small style="color:var(--miniso-red); font-weight:bold;">${p.Category || p["Category"] || 'GENERAL'}</small>
-                    <div style="font-weight:bold; font-size:14px; line-height:1.2;">${p.Name || p["Name"]}</div>
+                    <small style="color:var(--miniso-red); font-weight:bold;">${p.Category || 'GENERAL'}</small>
+                    <div style="font-weight:bold; font-size:14px; line-height:1.2;">${p.Name || ''}</div>
                     <div style="font-size:11px; color:#666; margin-top:2px;">${p.Barcode}</div>
                 </div>
-                <div style="font-weight:bold; color:var(--miniso-red);">${formatMoney(p["Regular Store Price"] || p.Price)}</div>
+                <div style="font-weight:bold; color:var(--miniso-red);">${cleanPrice(p["Regular Store Price"])}</div>
             </div>
         `).join('');
     }
@@ -222,40 +221,40 @@
             document.getElementById("ui-header").style.display = "none";
             detCont.style.display = "block";
 
-            const rawString = String(data.Barcode || data["Barcode"]).trim();
+            // Logika split barcode untuk gambar
+            const rawString = String(data.Barcode).trim();
             const barcodeForImg = rawString.includes('/') ? rawString.split('/')[0] : rawString;
-            
             const bcType = barcodeForImg.length === 13 ? 'ean13' : 'code128';
             const bcUrl = `https://bwipjs-api.metafloor.com/?bcid=${bcType}&text=${barcodeForImg}&scale=3&rotate=N&includetext`;
 
-            // Ambil data promo (antisipasi spasi di nama kolom)
-            const promoReg = data["Regular Promo"] || data["RegularPromo"] || "-";
-            const promoStr = data["Street Store Promo"] || data["StreetStorePromo"] || "-";
+            // Pemanggilan kolom SESUAI GAMBAR (Menggunakan spasi)
+            const promoReg = data["Regular Store Promo"] || "NORMAL PRICE";
+            const promoStr = data["Street Store Promo"] || "NORMAL PRICE";
             const extra = data["Extra Promo"] || "";
 
             detCont.innerHTML = `
                 <div style="text-align:center; padding:20px;">
-                    <img src="${data.Image || data["Image"] || ''}" style="max-width:100%; max-height:250px; border-radius:15px;" onerror="this.src='https://placehold.co/300x300?text=No+Image'">
+                    <img src="${data.Image || ''}" style="max-width:100%; max-height:250px; border-radius:15px;" onerror="this.src='https://placehold.co/300x300?text=No+Image'">
                 </div>
                 <div style="padding:0 10px;">
                     <small style="color:var(--miniso-red); font-weight:bold;">${data.Category || 'GENERAL'}</small>
                     <h2 style="margin:5px 0; font-size: 22px; line-height:1.1;">${data.Name || ''}</h2>
                     
                     <div class="price-box">
-                        <div class="price-item"><small style="color:#888">Regular</small><br><b style="color:var(--miniso-red); font-size:16px;">${formatMoney(data["Regular Store Price"])}</b></div>
-                        <div class="price-item"><small style="color:#888">Street</small><br><b style="font-size:16px;">${formatMoney(data["Street Store Price"])}</b></div>
+                        <div class="price-item"><small style="color:#888">Regular Store</small><br><b style="color:var(--miniso-red); font-size:16px;">${cleanPrice(data["Regular Store Price"])}</b></div>
+                        <div class="price-item"><small style="color:#888">Street Store</small><br><b style="font-size:16px;">${cleanPrice(data["Street Store Price"])}</b></div>
                     </div>
 
                     <div style="background:#f9f9f9; padding:15px; border-radius:16px; font-size:13px; border: 1px solid #eee;">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                            <span style="color:#666;">Promo Regular:</span> 
-                            <b style="color:#007aff;">${promoReg}</b>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                            <span style="color:#666;">Regular Promo:</span> 
+                            <b style="color:#007aff; text-align:right; margin-left:10px;">${promoReg}</b>
                         </div>
-                        <div style="display:flex; justify-content:space-between;">
-                            <span style="color:#666;">Promo Street:</span> 
-                            <b style="color:#34c759;">${promoStr}</b>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                            <span style="color:#666;">Street Promo:</span> 
+                            <b style="color:#34c759; text-align:right; margin-left:10px;">${promoStr}</b>
                         </div>
-                        ${extra ? `<div style="text-align:center; margin-top:10px; color:var(--miniso-red); font-weight:bold;">${extra}</div>` : ''}
+                        ${extra && extra !== "NORMAL PRICE" ? `<div style="text-align:center; margin-top:10px; padding-top:10px; border-top:1px dashed #ddd; color:var(--miniso-red); font-weight:bold;">${extra}</div>` : ''}
                     </div>
 
                     <div class="barcode-img-container">
@@ -290,7 +289,7 @@
         }
     };
 
-    Quagga.onDetected(res => {
+     Quagga.onDetected(res => {
         document.getElementById("beep").play();
         Quagga.stop(); scanning = false;
         document.getElementById("reader").style.display = "none";

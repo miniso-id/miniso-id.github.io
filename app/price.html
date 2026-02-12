@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X (Auto-Scan EAN13)</title>
+    <title>MMS-X (Smart Search)</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
@@ -41,7 +41,7 @@
 
         #scanBtn { position: absolute; right: 7px; top: 7px; width: 40px; height: 36px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
-        /* --- SCANNER (Auto Display) --- */
+        /* --- SCANNER --- */
         #reader { display:block; width:100%; max-width: 500px; aspect-ratio:1/1; margin:10px auto; background:#000; border-radius:20px; overflow:hidden; position:relative; border: 4px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         #reader video { width: 100%; height: 100%; object-fit: cover; }
         .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
@@ -51,7 +51,6 @@
         .main-content { flex: 1; overflow-y: auto; padding: 0 16px; }
         #listContainer { max-width: 1200px; margin: 0 auto; display: block; }
         
-        /* --- DETAIL VIEW --- */
         .product-detail-card { display: none; padding-bottom: 100px; max-width: 800px; margin: 0 auto; }
         .product-detail-card.active { display: block; animation: slideUp 0.3s ease both; }
         .price-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
@@ -66,8 +65,7 @@
 
 <div id="sidebar" class="sidebar">
     <h2 style="font-weight: 900;">MINISO</h2>
-    <p style="font-size: 11px; opacity: 0.8; margin-top: -15px;">AUTO-SCAN EAN13 READY</p>
-    <a href="#" onclick="location.reload()">Reset & Scan Ulang</a>
+    <a href="#" onclick="location.reload()">Reset Aplikasi</a>
 </div>
 <div id="overlay" onclick="toggleSidebar()"></div>
 
@@ -82,11 +80,11 @@
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             <div class="search-container">
-                <input id="searchInput" type="tel" maxlength="13" placeholder="Masukkan 13 Digit EAN...">
-                <button id="scanBtn">
+                <input id="searchInput" type="tel" placeholder="Ketik barcode di sini...">
+                <button id="scanBtn" onclick="location.reload()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path>
-                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                        <path d="M23 4v6h-6M1 20v-6h6"></path>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
                     </svg>
                 </button>
             </div>
@@ -113,9 +111,9 @@
 
     let scanning = false;
 
-    // --- FUNGSI AUTO START ---
-    function init() {
-        startScan(); // Langsung nyalakan kamera
+    function toggleSidebar() { 
+        document.getElementById("sidebar").classList.toggle("active");
+        document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none";
     }
 
     function cleanPrice(val) {
@@ -124,110 +122,95 @@
         return "Rp" + num.toLocaleString('id-ID');
     }
 
-    // Input manual tetap tersedia
+    // PENCARIAN LEBIH LONGGAR (Flexible Search)
     document.getElementById("searchInput").oninput = (e) => { 
-        const val = e.target.value.replace(/\D/g, '');
-        e.target.value = val;
-        if(val.length === 13) searchEAN(val);
+        let val = e.target.value.trim();
+        if(val.length >= 8) { // Mulai mencari jika minimal 8 karakter (EAN-8)
+            searchEAN(val);
+        }
     };
 
     async function searchEAN(ean) {
-        let { data } = await _supabase.from('export').select('*').eq('Barcode', ean).maybeSingle();
-        if(data) {
+        // Menggunakan ilike %ean% agar jika di database ada spasi/karakter lain tetap ketemu
+        let { data, error } = await _supabase
+            .from('export')
+            .select('*')
+            .ilike('Barcode', `%${ean}%`)
+            .limit(1);
+        
+        if(data && data.length > 0) {
             document.getElementById("beepOk").play();
-            showDetail(ean);
+            showDetail(data[0]); 
         } else {
-            document.getElementById("listContainer").innerHTML = `<p style="text-align:center; color:red; margin-top:10px;">EAN ${ean} tidak terdaftar.</p>`;
+            document.getElementById("listContainer").innerHTML = `<p style="text-align:center; color:#888; margin-top:20px;">Barcode "${ean}" tidak ditemukan di database.</p>`;
         }
     }
 
     // --- SCANNER LOGIC ---
     function startScan() {
-        if(scanning) return;
         scanning = true;
-        document.getElementById("reader").style.display = "block";
         Quagga.init({
             inputStream: { 
                 type: "LiveStream", 
                 target: document.getElementById("reader"), 
-                constraints: { facingMode: "environment", focusMode: "continuous" } 
+                constraints: { facingMode: "environment" } 
             },
-            decoder: { readers: ["ean_reader"] },
+            decoder: { readers: ["ean_reader", "code_128_reader", "upc_reader"] }, // Tambah jenis barcode lain
             locate: true
         }, (err) => {
-            if (err) {
-                console.error(err);
-                alert("Gagal mengakses kamera. Pastikan izin kamera diberikan.");
-                return;
-            }
+            if (err) return;
             Quagga.start();
         });
     }
 
-    function stopScan() { 
-        Quagga.stop(); 
-        scanning = false; 
-        document.getElementById("reader").style.display = "none"; 
-    }
-
     Quagga.onDetected(res => {
         const code = res.codeResult.code;
-        if(code.length === 13) {
-            stopScan();
+        if(code) {
+            Quagga.stop();
             document.getElementById("searchInput").value = code;
             searchEAN(code);
         }
     });
 
-    async function showDetail(fullBarcode) {
-        const { data } = await _supabase.from('export').select('*').eq('Barcode', fullBarcode).maybeSingle();
-        if(!data) return;
-
+    function showDetail(product) {
+        stopScan();
         document.getElementById("ui-header").style.display = "none";
         document.getElementById("listContainer").style.display = "none";
         
         const det = document.getElementById("detailContainer");
         det.innerHTML = `
-            <img src="${data.Image || ''}" style="width:100%; max-height:400px; object-fit:contain; background:#fff;" onerror="this.src='https://placehold.co/400x400?text=No+Image'">
+            <img src="${product.Image || ''}" style="width:100%; max-height:400px; object-fit:contain; background:#fff;" onerror="this.src='https://placehold.co/400x400?text=No+Image'">
             <div style="padding:20px;">
-                <span style="background:var(--miniso-red); color:#fff; padding:4px 8px; border-radius:5px; font-size:11px; font-weight:bold;">${data.Category || 'MINISO ITEM'}</span>
-                <h2 style="margin:10px 0; font-size:24px;">${data.Name}</h2>
+                <span style="background:var(--miniso-red); color:#fff; padding:4px 8px; border-radius:5px; font-size:11px; font-weight:bold;">${product.Category || 'MINISO'}</span>
+                <h2 style="margin:10px 0; font-size:22px;">${product.Name}</h2>
                 <div class="price-box">
                     <div class="price-item" style="background:var(--miniso-soft)">
-                        <small style="color:#666">Regular Store</small>
-                        <div style="font-size:22px; font-weight:900; color:var(--miniso-red);">${cleanPrice(data["Regular Store Price"])}</div>
+                        <small>Store Price</small>
+                        <div style="font-size:20px; font-weight:900; color:var(--miniso-red);">${cleanPrice(product["Regular Store Price"])}</div>
                     </div>
                     <div class="price-item" style="background:var(--bg-gray)">
-                        <small style="color:#666">Street Store</small>
-                        <div style="font-size:22px; font-weight:900;">${cleanPrice(data["Street Store Price"])}</div>
+                        <small>Other Price</small>
+                        <div style="font-size:20px; font-weight:900;">${cleanPrice(product["Street Store Price"])}</div>
                     </div>
                 </div>
-                <div style="text-align:center; border:1px dashed #ccc; padding:15px; border-radius:15px; background: #fff;">
-                    <img src="https://bwipjs-api.metafloor.com/?bcid=ean13&text=${data.Barcode}&scale=3&includetext">
+                <div style="text-align:center; padding:15px; border: 1px solid #eee; border-radius:15px;">
+                    <div style="font-size:12px; color:#999; margin-bottom:5px;">BARCODE DATA</div>
+                    <div style="font-weight:bold; letter-spacing: 2px;">${product.Barcode}</div>
                 </div>
             </div>
         `;
         det.style.display = "block";
-        setTimeout(() => { 
-            det.classList.add('active'); 
-            document.getElementById("btnBackFloating").style.display = "flex"; 
-        }, 10);
+        det.classList.add('active'); 
+        document.getElementById("btnBackFloating").style.display = "flex"; 
     }
+
+    function stopScan() { Quagga.stop(); scanning = false; document.getElementById("reader").style.display = "none"; }
 
     function back() {
-        document.getElementById("detailContainer").classList.remove('active');
-        document.getElementById("btnBackFloating").style.display = "none";
-        setTimeout(() => { 
-            document.getElementById("detailContainer").style.display = "none"; 
-            document.getElementById("ui-header").style.display = "block"; 
-            document.getElementById("listContainer").innerHTML = "";
-            document.getElementById("searchInput").value = "";
-            startScan(); // Nyalakan kamera lagi otomatis saat kembali
-        }, 300);
+        location.reload(); // Cara paling bersih untuk reset scanner
     }
 
-    // Trigger init saat halaman selesai dimuat
-    window.onload = init;
+    window.onload = startScan;
 </script>
 </body>
 </html>

@@ -305,14 +305,38 @@
         
         const det = document.getElementById("detailContainer");
         det.innerHTML = `
-            <div style="text-align:center;"><img src="${data.Image || ''}" style="width:100%; max-height:400px; object-fit:contain;" onclick="openImgModal(this.src)" onerror="this.src='https://placehold.co/400x400?text=No+Image'"></div>
+            <div style="text-align:center;">
+                <img src="${data.Image || ''}" 
+                     style="width:100%; max-height:400px; object-fit:contain; background:#fff;" 
+                     onclick="openImgModal(this.src)" 
+                     onerror="this.src='https://placehold.co/400x400?text=No+Image'">
+            </div>
             <div style="padding:20px;">
                 <small style="color:var(--miniso-red); font-weight:bold;">${data.Category || 'GENERAL'}</small>
-                <h2 style="margin:5px 0 20px 0; font-size: 28px; font-weight: 800;">${data.Name}</h2>
+                <h2 style="margin:5px 0 20px 0; font-size: 28px; font-weight: 800; line-height:1.2;">${data.Name}</h2>
+                
                 <div class="price-box">
-                    <div class="price-item reg"><small>Regular Store</small><div style="color:var(--miniso-red); font-size:22px; font-weight:900;">${cleanPrice(data["Regular Store Price"])}</div></div>
-                    <div class="price-item str"><small>Street Store</small><div style="font-size:22px; font-weight:900;">${cleanPrice(data["Street Store Price"])}</div></div>
+                    <div class="price-item reg">
+                        <small>Regular Store</small>
+                        <div style="color:var(--miniso-red); font-size:22px; font-weight:900;">${cleanPrice(data["Regular Store Price"])}</div>
+                    </div>
+                    <div class="price-item str">
+                        <small>Street Store</small>
+                        <div style="font-size:22px; font-weight:900;">${cleanPrice(data["Street Store Price"])}</div>
+                    </div>
                 </div>
+
+                <div class="promo-banner" style="padding:20px; border-radius:24px; background:#fff; border:1.5px solid #eee; margin-bottom: 20px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:12px; border-bottom:1px solid #f0f0f0; padding-bottom:12px;">
+                        <span style="color: #666; font-weight: 600;">REGULAR PROMO</span> 
+                        <b style="color: var(--miniso-red);">${data["Regular Store Promo"] || "NORMAL"}</b>
+                    </div>
+                    <div style="display:flex; justify-content:space-between;">
+                        <span style="color: #666; font-weight: 600;">STREET PROMO</span> 
+                        <b style="color: #28a745;">${data["Street Store Promo"] || "NORMAL"}</b>
+                    </div>
+                </div>
+
                 <div class="barcode-img-container">
                     <img src="https://bwipjs-api.metafloor.com/?bcid=${bcType}&text=${firstBc}&scale=3&rotate=N&includetext">
                     <div style="margin-top:10px; font-weight:bold; font-size:13px; color:#555; word-break:break-all;">${data.Barcode}</div>
@@ -320,7 +344,10 @@
             </div>
         `;
         det.style.display = "block";
-        setTimeout(() => { det.classList.add('active'); document.getElementById("btnBackFloating").style.display = "flex"; }, 10);
+        setTimeout(() => { 
+            det.classList.add('active'); 
+            document.getElementById("btnBackFloating").style.display = "flex"; 
+        }, 10);
         document.getElementById("scrollContainer").scrollTo(0, 0);
     }
 

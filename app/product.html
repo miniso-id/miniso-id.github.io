@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X Deluxe v4.7</title>
+    <title>MMS-X Deluxe v4.8</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
@@ -28,9 +28,9 @@
             height: 100vh; display: flex; flex-direction: column; overflow: hidden;
         }
 
-        /* --- LOGIN SCREEN --- */
+        /* --- LOGIN --- */
         #loginScreen {
-            position: fixed; inset: 0; background: white; z-index: 9000;
+            position: fixed; inset: 0; background: white; z-index: 9999;
             display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px;
         }
         .login-input {
@@ -42,15 +42,11 @@
             color: white; border: none; border-radius: 14px; font-weight: bold; cursor: pointer;
         }
 
-        /* --- UI HEADER --- */
+        /* --- HEADER --- */
         #ui-header {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(15px);
-            padding: 16px 16px 8px 16px;
-            border-bottom: 1px solid #eee;
-            z-index: 1000;
-            position: sticky; top: 0;
-            transition: opacity 0.2s ease;
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px);
+            padding: 16px 16px 8px 16px; border-bottom: 1px solid #eee;
+            z-index: 1000; position: sticky; top: 0; transition: opacity 0.2s ease;
         }
         .top-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
         .search-container { position: relative; flex: 1; }
@@ -74,12 +70,9 @@
         }
         #reader video { width: 100%; height: 100%; object-fit: cover; }
 
-        /* --- MAIN CONTENT --- */
-        .main-content { 
-            flex: 1; overflow-y: auto; overflow-x: hidden; 
-            padding: 0 16px; -webkit-overflow-scrolling: touch; position: relative; 
-        }
-        .search-item { display: flex; align-items: center; gap: 12px; padding: 15px 0; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
+        /* --- CONTENT --- */
+        .main-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0 16px; position: relative; }
+        .search-item { display: flex; align-items: center; gap: 12px; padding: 15px 0; border-bottom: 1px solid #f0f0f0; }
         .thumb-img { width: 65px; height: 65px; border-radius: 10px; object-fit: contain; background: #f9f9f9; }
 
         /* --- SIDEBAR --- */
@@ -92,19 +85,21 @@
         .sidebar a { color: #fff; text-decoration: none; display: block; padding: 15px; border-radius: 12px; margin-bottom: 5px; font-weight: 600; }
         #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 4000; display: none; backdrop-filter: blur(4px); }
 
-        /* --- DETAIL & MODAL --- */
-        .product-detail-card { display: none; padding-bottom: 100px; will-change: transform, opacity; }
+        /* --- DETAIL & BACK --- */
+        .product-detail-card { display: none; padding-bottom: 100px; }
         .product-detail-card.active { display: block; animation: slideUp 0.3s ease both; }
         .floating-back {
             position: fixed; top: 20px; left: 20px; width: 45px; height: 45px; 
-            background: rgba(255,255,255,0.9); backdrop-filter: blur(10px);
+            background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
             border-radius: 50%; display: none; align-items: center; justify-content: center;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 8000;
         }
+
         .price-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
         .price-item { padding: 15px; border-radius: 18px; text-align: center; }
         .price-item.reg { background: var(--miniso-soft); border: 1px solid rgba(230,21,35,0.1); }
         .price-item.str { background: var(--bg-gray); border: 1px solid #e5e5ea; }
+        .promo-banner { padding: 20px; border-radius: 24px; background: #fff; border: 1.5px solid #eee; }
         .barcode-img-container { background: white; padding: 20px; border-radius: 20px; border: 1px dashed #ccc; text-align: center; margin-top: 15px; }
 
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -114,7 +109,7 @@
 
 <div id="loginScreen">
     <h1 style="color:var(--miniso-red); font-size: 3.5rem; margin-bottom: 0; letter-spacing: -3px; font-weight: 900;">MINISO</h1>
-    <p style="color:#888; margin-bottom: 30px; font-weight: 500;">Inventory System v4.7</p>
+    <p style="color:#888; margin-bottom: 30px; font-weight: 500;">Inventory System v4.8</p>
     <input type="text" id="username" class="login-input" placeholder="Username">
     <input type="password" id="password" class="login-input" placeholder="Password">
     <button class="btn-login" onclick="handleLogin()">MASUK</button>
@@ -126,22 +121,22 @@
 
 <div id="appContent" style="display:none; height: 100vh; flex-direction: column;">
     <div id="sidebar" class="sidebar">
-        <h2 style="font-weight: 900; letter-spacing: -1px;">MMS-X</h2>
-        <a href="#" style="background: rgba(255,255,255,0.2);">🔍 Price Checker</a>
+        <h2 style="font-weight: 900;">MMS-X</h2>
+        <a href="#">🔍 Price Checker</a>
         <a href="https://miniso-id.github.io/so/">📦 Stock Opname</a>
-        <a href="#" onclick="handleLogout()" style="margin-top: 50px; opacity: 0.7;">Logout</a>
+        <a href="#" onclick="handleLogout()">Logout</a>
     </div>
     <div id="overlay" onclick="toggleSidebar()"></div>
 
     <header id="ui-header">
         <div class="top-bar">
-            <button onclick="toggleSidebar()" style="background:none; border:none; font-size:24px; padding:0 5px;">☰</button>
+            <button onclick="toggleSidebar()" style="background:none; border:none; font-size:24px;">☰</button>
             <div class="search-container">
                 <input id="searchInput" placeholder="Cari nama / barcode...">
                 <button id="scanBtn">🔍</button>
             </div>
         </div>
-        <select id="catFilter" style="width:100%; padding:12px; border-radius:12px; border:1px solid #eee; background: #fff; font-weight: bold;">
+        <select id="catFilter" style="width:100%; padding:12px; border-radius:12px; border:1px solid #eee;">
             <option value="">Semua Kategori</option>
         </select>
         <div id="reader"></div>
@@ -160,16 +155,18 @@
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let scanning = false, lastScroll = 0, timer;
+    let scanning = false;
+    let lastScroll = 0;
+    let timer;
 
-    // --- LOGIN LOGIC ---
+    // --- LOGIN ---
     function handleLogin() {
         const u = document.getElementById("username").value;
         const p = document.getElementById("password").value;
         if((u === "admin" && p === "miniso123") || (u === "ID12" && p === "12121212")) {
             sessionStorage.setItem("logged", "true");
             initApp();
-        } else { alert("Username atau Password Salah!"); }
+        } else { alert("Login Gagal!"); }
     }
 
     function handleLogout() { sessionStorage.clear(); location.reload(); }
@@ -187,52 +184,56 @@
         document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none";
     }
 
-    // --- SEARCH & UI ---
+    // --- UI HELPERS ---
     function cleanPrice(val) {
         if(!val) return "Rp0";
-        let str = String(val).replace(/Rp/g, "").replace(/\./g, "").trim();
-        return "Rp" + (parseInt(str) || 0).toLocaleString('id-ID');
+        let num = parseInt(String(val).replace(/[^0-9]/g, "")) || 0;
+        return "Rp" + num.toLocaleString('id-ID');
     }
 
     async function loadCategories() {
         const { data } = await _supabase.from('export').select('Category');
         if(data) {
             const cats = [...new Set(data.map(i => i.Category))].filter(Boolean).sort();
+            const filter = document.getElementById("catFilter");
             cats.forEach(c => {
                 const opt = document.createElement("option");
                 opt.value = opt.textContent = c;
-                document.getElementById("catFilter").appendChild(opt);
+                filter.appendChild(opt);
             });
         }
     }
 
+    // --- SEARCH ---
     document.getElementById("searchInput").oninput = () => {
         clearTimeout(timer);
         timer = setTimeout(async () => {
             const q = document.getElementById("searchInput").value.trim();
             const c = document.getElementById("catFilter").value;
-            if(!q && !c) { document.getElementById("listContainer").innerHTML = ""; return; }
+            const list = document.getElementById("listContainer");
+            
+            if(!q && !c) { list.innerHTML = ""; return; }
+            
             let query = _supabase.from('export').select('*');
             if(q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
             if(c) query = query.eq('Category', c);
+            
             const { data } = await query.limit(50);
-            if(data) renderList(data);
+            if(data) {
+                list.innerHTML = data.map(p => `
+                    <div class="search-item" onclick="showDetail('${p.Barcode}')">
+                        <img class="thumb-img" src="${p.Image || ''}" onerror="this.src='https://placehold.co/100x100?text=No+Img'">
+                        <div style="flex:1">
+                            <small style="color:var(--miniso-red); font-weight:bold;">${p.Category || 'GENERAL'}</small>
+                            <div style="font-weight:bold; font-size:14px;">${p.Name}</div>
+                            <div style="font-size:11px; color:#666;">${p.Barcode}</div>
+                        </div>
+                        <div style="font-weight:bold; color:var(--miniso-red);">${cleanPrice(p["Regular Store Price"])}</div>
+                    </div>
+                `).join('');
+            }
         }, 500);
     };
-
-    function renderList(data) {
-        document.getElementById("listContainer").innerHTML = data.map(p => `
-            <div class="search-item" onclick="showDetail('${p.Barcode}')">
-                <img class="thumb-img" src="${p.Image || ''}" onerror="this.src='https://placehold.co/100x100?text=No+Img'">
-                <div style="flex:1">
-                    <small style="color:var(--miniso-red); font-weight:bold;">${p.Category || 'GENERAL'}</small>
-                    <div style="font-weight:bold; font-size:14px;">${p.Name}</div>
-                    <div style="font-size:11px; color:#666;">${p.Barcode}</div>
-                </div>
-                <div style="font-weight:bold; color:var(--miniso-red);">${cleanPrice(p["Regular Store Price"])}</div>
-            </div>
-        `).join('');
-    }
 
     // --- SCANNER ---
     document.getElementById("scanBtn").onclick = () => {
@@ -264,8 +265,8 @@
         document.getElementById("ui-header").style.display = "none";
         
         const barcodes = String(data.Barcode).split('/').map(b => b.trim());
-        const barcodeHtml = barcodes.map(bc => {
-            const bcType = bc.length === 13 ? 'ean13' : 'code128';
+        const bcHtml = barcodes.map(bc => {
+            const bcType = bc.length >= 12 ? 'ean13' : 'code128';
             return `<div class="barcode-img-container">
                 <img src="https://bwipjs-api.metafloor.com/?bcid=${bcType}&text=${bc}&scale=3&rotate=N&includetext" style="max-width:100%;">
                 <div style="margin-top:10px; font-weight:bold; font-size:12px; color:#666;">${bc}</div>
@@ -277,20 +278,23 @@
             <div style="text-align:center;"><img src="${data.Image || ''}" style="width:100%; max-height:380px; object-fit:contain; background:#fff;" onerror="this.src='https://placehold.co/300x300?text=No+Image'"></div>
             <div style="padding:15px 5px;">
                 <small style="color:var(--miniso-red); font-weight:bold;">${data.Category || 'GENERAL'}</small>
-                <h2 style="margin:5px 0 20px 0; font-size:26px; font-weight:800; line-height:1.1;">${data.Name}</h2>
+                <h2 style="margin:5px 0 20px 0; font-size:26px; font-weight:800;">${data.Name}</h2>
                 <div class="price-box">
                     <div class="price-item reg"><small>Regular Store</small><div style="color:var(--miniso-red); font-size:20px; font-weight:900;">${cleanPrice(data["Regular Store Price"])}</div></div>
                     <div class="price-item str"><small>Street Store</small><div style="font-size:20px; font-weight:900;">${cleanPrice(data["Street Store Price"])}</div></div>
                 </div>
                 <div class="promo-banner">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span>REGULAR PROMO</span> <b style="color:var(--promo-blue);">${data["Regular Store Promo"] || "NORMAL"}</b></div>
-                    <div style="display:flex; justify-content:space-between;"><span>STREET PROMO</span> <b style="color:var(--promo-green);">${data["Street Store Promo"] || "NORMAL"}</b></div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span>REGULAR</span> <b style="color:var(--promo-blue);">${data["Regular Store Promo"] || "NORMAL"}</b></div>
+                    <div style="display:flex; justify-content:space-between;"><span>STREET</span> <b style="color:var(--promo-green);">${data["Street Store Promo"] || "NORMAL"}</b></div>
                 </div>
-                <div style="margin-top:20px;">${barcodeHtml}</div>
+                <div style="margin-top:20px;">${bcHtml}</div>
             </div>
         `;
         det.style.display = "block";
-        setTimeout(() => { det.classList.add('active'); document.getElementById("btnBackFloating").style.display = "flex"; }, 10);
+        setTimeout(() => { 
+            det.classList.add('active'); 
+            document.getElementById("btnBackFloating").style.display = "flex"; 
+        }, 10);
         document.getElementById("scrollContainer").scrollTo(0, 0);
     }
 

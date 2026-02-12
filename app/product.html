@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X (Full Stable v3.4)</title>
+    <title>MMS-X Stable v3.5</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
@@ -61,7 +61,7 @@
         
         .search-container { position: relative; flex: 1; }
         #searchInput { width: 100%; height: 44px; padding: 0 45px 0 15px; border-radius: 12px; border: 1.5px solid #eee; background: #f5f5f7; outline: none; }
-        #scanBtn { position: absolute; right: 5px; top: 5px; width: 34px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 8px; }
+        #scanBtn { position: absolute; right: 5px; top: 5px; width: 34px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 8px; font-size: 18px; }
 
         /* --- LIST & CARDS --- */
         .search-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
@@ -81,8 +81,8 @@
 <body>
 
 <div id="loginScreen">
-    <h1 style="color:var(--miniso-red); font-size: 3rem; margin-bottom: 0;">MINISO</h1>
-    <p style="color:#888; margin-bottom: 30px;">Inventory System v3.4</p>
+    <h1 style="color:var(--miniso-red); font-size: 3rem; margin-bottom: 0; letter-spacing: -2px;">MINISO</h1>
+    <p style="color:#888; margin-bottom: 30px; font-weight: 500;">Inventory System v3.5</p>
     <input type="text" id="username" class="login-input" placeholder="Username">
     <input type="password" id="password" class="login-input" placeholder="Password">
     <button class="btn-login" onclick="handleLogin()">MASUK</button>
@@ -90,7 +90,7 @@
 
 <div id="appContent">
     <div id="sidebar" class="sidebar">
-        <h2>MMS-X</h2>
+        <h2 style="font-weight: 900; letter-spacing: -1px;">MMS-X</h2>
         <div id="userDisplay" style="font-size: 12px; opacity: 0.8; margin-bottom: 20px;"></div>
         <a href="#" style="background: rgba(255,255,255,0.2);">🔍 Price Checker</a>
         <a href="https://miniso-id.github.io/so/">📦 Stock Opname</a>
@@ -108,7 +108,7 @@
                         <button id="scanBtn">📸</button>
                     </div>
                 </div>
-                <select id="catFilter" style="width:100%; padding:10px; border-radius:10px; border:1px solid #eee;">
+                <select id="catFilter" style="width:100%; padding:12px; border-radius:12px; border:1px solid #eee; background: white; font-weight: bold; color: #555;">
                     <option value="">Semua Kategori</option>
                 </select>
             </div>
@@ -134,6 +134,15 @@
     const listCont = document.getElementById("listContainer");
     const detCont = document.getElementById("detailContainer");
 
+    // Formatter Harga anti double Rp
+    function formatMoney(val) {
+        if(!val) return "Rp0";
+        // Hilangkan tulisan Rp dan titik jika sudah ada di database agar tidak double
+        let clean = String(val).replace(/Rp/g, "").replace(/\./g, "").trim();
+        let num = parseInt(clean) || 0;
+        return "Rp" + num.toLocaleString('id-ID');
+    }
+
     function handleLogin() {
         const u = document.getElementById("username").value;
         const p = document.getElementById("password").value;
@@ -158,13 +167,11 @@
     async function loadCategories() {
         const { data } = await _supabase.from('export').select('Category');
         if(data) {
-            const cats = [...new Set(data.map(i => i.Category))].sort();
+            const cats = [...new Set(data.map(i => i.Category))].filter(Boolean).sort();
             cats.forEach(c => {
-                if(c) {
-                    const opt = document.createElement("option");
-                    opt.value = opt.textContent = c;
-                    catFilter.appendChild(opt);
-                }
+                const opt = document.createElement("option");
+                opt.value = opt.textContent = c;
+                catFilter.appendChild(opt);
             });
         }
     }
@@ -194,16 +201,15 @@
             <div class="search-item" onclick="showDetail('${p.Barcode}')">
                 <img class="thumb-img" src="${p.Image || p["Image"] || ''}" onerror="this.src='https://placehold.co/100x100?text=No+Img'">
                 <div style="flex:1">
-                    <small style="color:var(--miniso-red); font-weight:bold;">${p.Category || p["Category"] || ''}</small>
-                    <div style="font-weight:bold; font-size:14px;">${p.Name || p["Name"]}</div>
-                    <div style="font-size:11px; color:#666;">${p.Barcode}</div>
+                    <small style="color:var(--miniso-red); font-weight:bold;">${p.Category || p["Category"] || 'GENERAL'}</small>
+                    <div style="font-weight:bold; font-size:14px; line-height:1.2;">${p.Name || p["Name"]}</div>
+                    <div style="font-size:11px; color:#666; margin-top:2px;">${p.Barcode}</div>
                 </div>
-                <div style="font-weight:bold; color:var(--miniso-red);">Rp${(p["Regular Store Price"] || 0).toLocaleString()}</div>
+                <div style="font-weight:bold; color:var(--miniso-red);">${formatMoney(p["Regular Store Price"] || p.Price)}</div>
             </div>
         `).join('');
     }
 
-    // --- DETAIL VIEW DENGAN LOGIKA SPLIT BARCODE ---
     async function showDetail(fullBarcode) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;
         document.getElementById("loader").style.display = "block";
@@ -216,39 +222,50 @@
             document.getElementById("ui-header").style.display = "none";
             detCont.style.display = "block";
 
-            // LOGIKA SPLIT: Jika barcode berisi '/', ambil bagian pertama saja untuk gambar
             const rawString = String(data.Barcode || data["Barcode"]).trim();
             const barcodeForImg = rawString.includes('/') ? rawString.split('/')[0] : rawString;
             
             const bcType = barcodeForImg.length === 13 ? 'ean13' : 'code128';
             const bcUrl = `https://bwipjs-api.metafloor.com/?bcid=${bcType}&text=${barcodeForImg}&scale=3&rotate=N&includetext`;
 
+            // Ambil data promo (antisipasi spasi di nama kolom)
+            const promoReg = data["Regular Promo"] || data["RegularPromo"] || "-";
+            const promoStr = data["Street Store Promo"] || data["StreetStorePromo"] || "-";
+            const extra = data["Extra Promo"] || "";
+
             detCont.innerHTML = `
                 <div style="text-align:center; padding:20px;">
-                    <img src="${data.Image || data["Image"] || ''}" style="max-width:100%; max-height:250px;" onerror="this.src='https://placehold.co/300x300?text=No+Image'">
+                    <img src="${data.Image || data["Image"] || ''}" style="max-width:100%; max-height:250px; border-radius:15px;" onerror="this.src='https://placehold.co/300x300?text=No+Image'">
                 </div>
                 <div style="padding:0 10px;">
-                    <small style="color:var(--miniso-red); font-weight:bold;">${data.Category || ''}</small>
-                    <h2 style="margin:5px 0;">${data.Name || ''}</h2>
+                    <small style="color:var(--miniso-red); font-weight:bold;">${data.Category || 'GENERAL'}</small>
+                    <h2 style="margin:5px 0; font-size: 22px; line-height:1.1;">${data.Name || ''}</h2>
                     
                     <div class="price-box">
-                        <div class="price-item"><small>Regular</small><br><b style="color:var(--miniso-red)">Rp${(data["Regular Store Price"] || 0).toLocaleString()}</b></div>
-                        <div class="price-item"><small>Street</small><br><b>Rp${(data["Street Store Price"] || 0).toLocaleString()}</b></div>
+                        <div class="price-item"><small style="color:#888">Regular</small><br><b style="color:var(--miniso-red); font-size:16px;">${formatMoney(data["Regular Store Price"])}</b></div>
+                        <div class="price-item"><small style="color:#888">Street</small><br><b style="font-size:16px;">${formatMoney(data["Street Store Price"])}</b></div>
                     </div>
 
-                    <div style="background:#f9f9f9; padding:15px; border-radius:12px; font-size:13px;">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span>Promo Reg:</span> <b>${data["Regular Promo"] || '-'}</b></div>
-                        <div style="display:flex; justify-content:space-between;"><span>Promo Street:</span> <b>${data["Street Store Promo"] || '-'}</b></div>
+                    <div style="background:#f9f9f9; padding:15px; border-radius:16px; font-size:13px; border: 1px solid #eee;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                            <span style="color:#666;">Promo Regular:</span> 
+                            <b style="color:#007aff;">${promoReg}</b>
+                        </div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:#666;">Promo Street:</span> 
+                            <b style="color:#34c759;">${promoStr}</b>
+                        </div>
+                        ${extra ? `<div style="text-align:center; margin-top:10px; color:var(--miniso-red); font-weight:bold;">${extra}</div>` : ''}
                     </div>
 
                     <div class="barcode-img-container">
-                        <img src="${bcUrl}" style="max-width:100%" onerror="this.src='https://placehold.co/200x80?text=Barcode+Error'">
-                        <div style="margin-top:10px; font-weight:bold; font-size:12px; word-break: break-all; letter-spacing:1px; color:#555;">
+                        <img src="${bcUrl}" style="max-width:100%; height: auto;" onerror="this.src='https://placehold.co/200x80?text=Barcode+Error'">
+                        <div style="margin-top:12px; font-weight:bold; font-size:12px; word-break: break-all; letter-spacing:1px; color:#555;">
                             ${rawString}
                         </div>
                     </div>
 
-                    <button onclick="back()" style="width:100%; padding:18px; background:var(--miniso-red); color:white; border:none; border-radius:15px; font-weight:bold; margin:20px 0;">KEMBALI</button>
+                    <button onclick="back()" style="width:100%; padding:20px; background:var(--miniso-red); color:white; border:none; border-radius:18px; font-weight:bold; font-size:16px; margin:25px 0; box-shadow: 0 10px 20px rgba(230,21,35,0.2);">KEMBALI</button>
                 </div>
             `;
         }
@@ -269,7 +286,7 @@
             Quagga.init({
                 inputStream: { type: "LiveStream", target: document.getElementById("reader"), constraints: { facingMode: "environment" } },
                 decoder: { readers: ["ean_reader", "code_128_reader"] }
-            }, (err) => { if(!err) Quagga.start(); });
+            }, (err) => { if(!err) Quagga.start(); else alert("Kamera Error"); });
         }
     };
 

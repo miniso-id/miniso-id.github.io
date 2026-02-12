@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X Deluxe v4.3</title>
+    <title>MMS-X Deluxe v4.4</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
@@ -49,6 +49,7 @@
             z-index: 1000;
             position: sticky;
             top: 0;
+            transition: opacity 0.2s ease;
         }
         .top-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
         
@@ -85,7 +86,7 @@
         #videoSource { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ddd; font-size: 12px; }
 
         /* --- CONTENT AREA --- */
-        .main-content { flex: 1; overflow-y: auto; padding: 0 16px; -webkit-overflow-scrolling: touch; }
+        .main-content { flex: 1; overflow-y: auto; padding: 0 16px; -webkit-overflow-scrolling: touch; position: relative; }
 
         /* --- SIDEBAR --- */
         .sidebar {
@@ -98,6 +99,7 @@
         #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 4000; display: none; backdrop-filter: blur(4px); }
 
         /* --- SEARCH LIST --- */
+        #listContainer { transition: opacity 0.2s ease; }
         .search-item { display: flex; align-items: center; gap: 12px; padding: 15px 0; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
         .thumb-img { width: 65px; height: 65px; border-radius: 10px; object-fit: contain; background: #f9f9f9; }
 
@@ -109,7 +111,17 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 8000; border: 1px solid rgba(0,0,0,0.05);
         }
 
-        .product-detail-card { display: none; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); padding-bottom: 50px; }
+        /* --- DETAIL CARD & ANIMATION --- */
+        .product-detail-card { 
+            display: none; 
+            padding-bottom: 50px;
+            will-change: transform, opacity;
+        }
+        .product-detail-card.active {
+            display: block;
+            animation: slideUp 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+        }
+
         .price-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
         .price-item { background: var(--bg-gray); padding: 15px; border-radius: 16px; text-align: center; }
         .barcode-img-container { background: white; padding: 20px; border-radius: 20px; border: 1px dashed #ccc; text-align: center; margin-top: 20px; }
@@ -124,7 +136,10 @@
         #modalImg { max-width: 90%; max-height: 80%; transform: scale(0.8); transition: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
         #imgModal.active #modalImg { transform: scale(1); }
 
-        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes slideUp { 
+            from { transform: translateY(20px); opacity: 0; } 
+            to { transform: translateY(0); opacity: 1; } 
+        }
     </style>
 </head>
 <body>
@@ -139,7 +154,7 @@
 
 <div id="loginScreen">
     <h1 style="color:var(--miniso-red); font-size: 3.5rem; margin-bottom: 0; letter-spacing: -3px; font-weight: 900;">MINISO</h1>
-    <p style="color:#888; margin-bottom: 30px; font-weight: 500;">Inventory System v4.3</p>
+    <p style="color:#888; margin-bottom: 30px; font-weight: 500;">Inventory System v4.4</p>
     <input type="text" id="username" class="login-input" placeholder="Username">
     <input type="password" id="password" class="login-input" placeholder="Password">
     <button class="btn-login" onclick="handleLogin()">MASUK</button>
@@ -327,7 +342,9 @@
         if(!q && !c) { listCont.innerHTML = ""; return; }
         
         detCont.style.display = "none";
+        detCont.classList.remove('active');
         listCont.style.display = "block";
+        listCont.style.opacity = "1";
 
         let query = _supabase.from('export').select('*');
         if(q) {
@@ -359,66 +376,83 @@
 
     async function showDetail(fullBarcode) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;
-
+        
         const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();
 
         if(data) {
-            listCont.style.display = "none";
-            header.style.display = "none";
-            detCont.style.display = "block";
-            floatingBack.style.display = "flex";
+            // Sembunyikan List & Header dengan halus
+            listCont.style.opacity = "0";
+            header.style.opacity = "0";
+            
+            setTimeout(() => {
+                listCont.style.display = "none";
+                header.style.display = "none";
+                
+                const rawString = String(data.Barcode).trim();
+                const barcodeForImg = rawString.includes('/') ? rawString.split('/')[0] : rawString;
+                const bcType = barcodeForImg.length === 13 ? 'ean13' : 'code128';
+                const bcUrl = `https://bwipjs-api.metafloor.com/?bcid=${bcType}&text=${barcodeForImg}&scale=3&rotate=N&includetext`;
 
-            const rawString = String(data.Barcode).trim();
-            const barcodeForImg = rawString.includes('/') ? rawString.split('/')[0] : rawString;
-            const bcType = barcodeForImg.length === 13 ? 'ean13' : 'code128';
-            const bcUrl = `https://bwipjs-api.metafloor.com/?bcid=${bcType}&text=${barcodeForImg}&scale=3&rotate=N&includetext`;
-
-            detCont.innerHTML = `
-                <div style="text-align:center; margin-bottom: 20px;">
-                    <img src="${data.Image || ''}" 
-                         style="width:100%; max-height:380px; object-fit:contain; border-radius:0 0 30px 30px; background:#fff;" 
-                         onclick="openImgModal(this.src)"
-                         onerror="this.src='https://placehold.co/300x300?text=No+Image'">
-                </div>
-                <div style="padding:0 5px;">
-                    <small style="color:var(--miniso-red); font-weight:bold; letter-spacing:1px;">${data.Category || 'GENERAL'}</small>
-                    <h2 style="margin:5px 0 20px 0; font-size: 26px; line-height:1.1; font-weight: 800;">${data.Name || ''}</h2>
-                    
-                    <div class="price-box">
-                        <div class="price-item"><small style="color:#888">Regular Store</small><br><b style="color:var(--miniso-red); font-size:18px;">${cleanPrice(data["Regular Store Price"])}</b></div>
-                        <div class="price-item"><small style="color:#888">Street Store</small><br><b style="font-size:18px;">${cleanPrice(data["Street Store Price"])}</b></div>
+                detCont.innerHTML = `
+                    <div style="text-align:center; margin-bottom: 20px;">
+                        <img src="${data.Image || ''}" 
+                             style="width:100%; max-height:380px; object-fit:contain; border-radius:0 0 30px 30px; background:#fff;" 
+                             onclick="openImgModal(this.src)"
+                             onerror="this.src='https://placehold.co/300x300?text=No+Image'">
                     </div>
-
-                    <div style="background:var(--miniso-soft); padding:20px; border-radius:24px; font-size:14px; border: 1px solid rgba(230,21,35,0.1);">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-                            <span style="color:#666;">Regular Promo:</span> 
-                            <b style="color:#007aff; text-align:right;">${data["Regular Store Promo"] || "NORMAL PRICE"}</b>
+                    <div style="padding:0 5px;">
+                        <small style="color:var(--miniso-red); font-weight:bold; letter-spacing:1px;">${data.Category || 'GENERAL'}</small>
+                        <h2 style="margin:5px 0 20px 0; font-size: 26px; line-height:1.1; font-weight: 800;">${data.Name || ''}</h2>
+                        
+                        <div class="price-box">
+                            <div class="price-item"><small style="color:#888">Regular Store</small><br><b style="color:var(--miniso-red); font-size:18px;">${cleanPrice(data["Regular Store Price"])}</b></div>
+                            <div class="price-item"><small style="color:#888">Street Store</small><br><b style="font-size:18px;">${cleanPrice(data["Street Store Price"])}</b></div>
                         </div>
-                        <div style="display:flex; justify-content:space-between;">
-                            <span style="color:#666;">Street Promo:</span> 
-                            <b style="color:#34c759; text-align:right;">${data["Street Store Promo"] || "NORMAL PRICE"}</b>
-                        </div>
-                        ${data["Extra Promo"] ? `<div style="text-align:center; margin-top:12px; padding-top:12px; border-top:1px dashed var(--miniso-red); color:var(--miniso-red); font-weight:900;">${data["Extra Promo"]}</div>` : ''}
-                    </div>
 
-                    <div class="barcode-img-container">
-                        <img src="${bcUrl}" style="max-width:100%;">
-                        <div style="margin-top:12px; font-weight:bold; font-size:13px; word-break: break-all; color:#555;">${rawString}</div>
+                        <div style="background:var(--miniso-soft); padding:20px; border-radius:24px; font-size:14px; border: 1px solid rgba(230,21,35,0.1);">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                                <span style="color:#666;">Regular Promo:</span> 
+                                <b style="color:#007aff; text-align:right;">${data["Regular Store Promo"] || "NORMAL PRICE"}</b>
+                            </div>
+                            <div style="display:flex; justify-content:space-between;">
+                                <span style="color:#666;">Street Promo:</span> 
+                                <b style="color:#34c759; text-align:right;">${data["Street Store Promo"] || "NORMAL PRICE"}</b>
+                            </div>
+                            ${data["Extra Promo"] ? `<div style="text-align:center; margin-top:12px; padding-top:12px; border-top:1px dashed var(--miniso-red); color:var(--miniso-red); font-weight:900;">${data["Extra Promo"]}</div>` : ''}
+                        </div>
+
+                        <div class="barcode-img-container">
+                            <img src="${bcUrl}" style="max-width:100%;">
+                            <div style="margin-top:12px; font-weight:bold; font-size:13px; word-break: break-all; color:#555;">${rawString}</div>
+                        </div>
                     </div>
-                </div>
-            `;
-            document.getElementById("scrollContainer").scrollTop = 0;
-        } else {
-            alert("Barcode " + fullBarcode + " tidak terdaftar.");
+                `;
+                
+                detCont.style.display = "block";
+                setTimeout(() => {
+                    detCont.classList.add('active');
+                    floatingBack.style.display = "flex";
+                }, 10);
+                document.getElementById("scrollContainer").scrollTop = 0;
+            }, 200);
         }
     }
 
     function back() {
-        detCont.style.display = "none";
+        detCont.classList.remove('active');
         floatingBack.style.display = "none";
-        header.style.display = "block";
-        listCont.style.display = "block";
-        document.getElementById("scrollContainer").scrollTop = lastScroll;
+        
+        setTimeout(() => {
+            detCont.style.display = "none";
+            header.style.display = "block";
+            listCont.style.display = "block";
+            
+            setTimeout(() => {
+                header.style.opacity = "1";
+                listCont.style.opacity = "1";
+                document.getElementById("scrollContainer").scrollTop = lastScroll;
+            }, 10);
+        }, 300);
     }
 
     window.onload = init;

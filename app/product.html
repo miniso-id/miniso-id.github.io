@@ -327,7 +327,7 @@
 
         document.getElementById("countDisplay").textContent = `Ditemukan ${filtered.length} produk`;
         let html = '';
-        filtered.slice(0, 50).forEach(p => {
+        filtered.slice(0, 500).forEach(p => {
             const b = p.b ? p.b.split("/")[0].trim() : "";
             html += `
                 <div class="search-item">

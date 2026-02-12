@@ -42,8 +42,27 @@
         .top-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
         .search-container { position: relative; flex: 1; }
         #searchInput { width: 100%; height: 46px; padding: 0 45px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
-        #scanBtn { position: absolute; right: 6px; top: 6px; width: 34px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+        #scanBtn {
+    position: absolute;
+    right: 6px;
+    top: 6px;
+    width: 38px;
+    height: 34px;
+    background: var(--miniso-red);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(230, 21, 35, 0.3);
+}
 
+#scanBtn svg {
+    width: 22px;
+    height: 22px;
+}
         /* --- ADVANCED SCANNER UI --- */
         #reader {
             display:none; width:100%; aspect-ratio:1/1;
@@ -125,7 +144,16 @@
             </button>
             <div class="search-container">
                 <input id="searchInput" placeholder="Cari nama / barcode...">
-                <button id="scanBtn">🔍</button>
+                <button id="scanBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+        <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+        <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+        <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+        <line x1="8" y1="12" x2="16" y2="12"></line>
+        <line x1="12" y1="8" x2="12" y2="16" style="opacity: 0.5"></line>
+    </svg>
+</button>
             </div>
         </div>
         

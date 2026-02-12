@@ -214,35 +214,54 @@
         document.getElementById("userDisplay").textContent = "Hi, " + sessionStorage.getItem("activeUserName");
 
         try {
-            // Mengambil data dari tabel 'export'
-            const { data, error } = await _supabase.from('export').select('*');
-            
-            if (error) {
-                console.error("Supabase Error:", error);
-                input.placeholder = "Error: " + error.message;
-                return;
+            input.placeholder = "Sedang menarik 60rb data...";
+            let allData = [];
+            let start = 0;
+            const step = 1000; // Supabase limit per request
+            let keepFetching = true;
+
+            // --- PROSES TARIK DATA BERTAHAP (PAGING) ---
+            while (keepFetching) {
+                const { data, error } = await _supabase
+                    .from('export')
+                    .select('*')
+                    .range(start, start + step - 1);
+
+                if (error) {
+                    console.error("Error:", error);
+                    keepFetching = false;
+                    break;
+                }
+
+                if (data && data.length > 0) {
+                    allData = [...allData, ...data];
+                    start += step;
+                    
+                    // Update progress di search bar agar user tidak bingung
+                    input.placeholder = `Memuat: ${allData.length} SKU...`;
+                } else {
+                    keepFetching = false;
+                }
+
+                // Safety break jika data sangat besar agar tidak crash (opsional)
+                if (start > 100000) break; 
             }
 
-            allProducts = data;
+            allProducts = allData;
             const cats = new Set();
             
+            // --- PROSES MAPPING DATA ---
             allProducts.forEach(p => { 
-                // MAPPING BERDASARKAN FOTO STRUKTUR BARU ANDA
-                // Jika nama kolom di Supabase pakai spasi, kita panggil seperti ini: p["Nama Kolom"]
-                
                 p.b = p.Barcode || "";
                 p.n = p.Name || "Tanpa Nama";
                 p.i = p.Image || "";
                 p.c = p.Category || "Uncategorized";
-                
-                // Menangani kolom dengan spasi
                 p.r = p["Regular Store Price"] || 0; 
                 p.s = p["Street Store Price"] || 0;
-                p.rp = p["Regular Store Promo"] || "-";
-                p.sp = p["Street Store Promo"] || "-"; // Sesuaikan jika namanya 'Street Store Promo' atau 'Street Promo'
+                p.rp = p["Regular Promo"] || "-";
+                p.sp = p["Street Store Promo"] || "-";
                 p.e = p["Extra Promo"] || "";
 
-                // Masukkan ke index pencarian (Barcode)
                 if(p.b) {
                     String(p.b).split("/").forEach(code => {
                         barcodeIndex.set(code.trim(), p);
@@ -261,7 +280,7 @@
             });
 
             input.placeholder = "Cari produk...";
-            document.getElementById("countDisplay").textContent = `Berhasil memuat ${allProducts.length} produk`;
+            document.getElementById("countDisplay").textContent = `Berhasil memuat ${allProducts.length} SKU`;
 
         } catch (err) {
             console.error("System Error:", err);

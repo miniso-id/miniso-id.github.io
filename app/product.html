@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X Deluxe v5.7</title>
+    <title>MMS-X</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
@@ -237,7 +237,7 @@
         if(q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
         if(c) query = query.eq('Category', c);
         
-        const { data } = await query.limit(50);
+        const { data } = await query.limit(1000);
         if(data) {
             list.innerHTML = data.map(p => `
                 <div class="search-item" onclick="showDetail('${p.Barcode}')">

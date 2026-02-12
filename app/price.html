@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X</title>
+    <title>MMS-X (No Login)</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
@@ -66,7 +66,7 @@
 <div id="sidebar" class="sidebar">
     <h2 style="margin-bottom: 30px;">MMS-X</h2>
     <a href="#" onclick="location.reload()">Refresh App</a>
-    <p style="position: absolute; bottom: 20px; font-size: 10px; opacity: 0.5;"></p>
+    <p style="position: absolute; bottom: 20px; font-size: 10px; opacity: 0.5;">v5.9 - No Login Mode</p>
 </div>
 <div id="overlay" onclick="toggleSidebar()"></div>
 
@@ -119,7 +119,6 @@
         document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none";
     }
 
-    // AUTO-START SCAN PADA SAAT LOAD
     window.onload = () => {
         setTimeout(() => {
             startScan(lastSelectedDeviceId);
@@ -194,27 +193,25 @@
 
         document.getElementById("ui-header").style.display = "none";
         document.getElementById("welcomeMsg").style.display = "none";
-        const firstBc = String(data.Barcode).split('/')[0].trim();
-        const bcType = firstBc.length >= 12 ? 'ean13' : 'code128';
         
         const det = document.getElementById("detailContainer");
         det.innerHTML = `
             <div style="text-align:center;">
-                <img src="${data.Image || ''}" style="width:100%; max-height:400px; object-fit:contain;" onerror="this.src='https://placehold.co/400x400?text=No+Image'">
+                <img src="${data.Image || ''}" style="width:100%; max-height:450px; object-fit:contain;" onerror="this.src='https://placehold.co/400x400?text=No+Image'">
             </div>
-            <div style="padding:20px;">
+            <div style="padding:25px;">
                 <span style="display:inline-block; padding:4px 10px; background:var(--miniso-red); color:#fff; border-radius:6px; font-size:11px; font-weight:800;">${data.Category || 'GENERAL'}</span>
-                <h2 style="margin:10px 0; font-size:24px; font-weight:800;">${data.Name}</h2>
+                <h2 style="margin:15px 0; font-size:26px; font-weight:800; line-height:1.2;">${data.Name}</h2>
+                <div style="font-size:14px; color:#666; margin-bottom: 20px; font-family: monospace;">Barcode: ${data.Barcode}</div>
+                
                 <div class="price-box">
-                    <div class="price-item reg"><small>Regular</small><div style="color:var(--miniso-red); font-size:20px; font-weight:900;">Rp${(data["Regular Store Price"]||0).toLocaleString('id-ID')}</div></div>
-                    <div class="price-item str"><small>Street</small><div style="font-size:20px; font-weight:900;">Rp${(data["Street Store Price"]||0).toLocaleString('id-ID')}</div></div>
+                    <div class="price-item reg"><small style="font-weight:bold; color:#888;">REGULAR STORE</small><div style="color:var(--miniso-red); font-size:24px; font-weight:900; margin-top:5px;">Rp${(data["Regular Store Price"]||0).toLocaleString('id-ID')}</div></div>
+                    <div class="price-item str"><small style="font-weight:bold; color:#888;">STREET STORE</small><div style="font-size:24px; font-weight:900; margin-top:5px;">Rp${(data["Street Store Price"]||0).toLocaleString('id-ID')}</div></div>
                 </div>
-                <div style="padding:15px; background:#f9f9f9; border-radius:15px; border:1px solid #eee;">
-                    <small>PROMO: </small><b>${data["Regular Store Promo"] || "NORMAL"}</b>
-                </div>
-                <div style="margin-top:20px; text-align:center; padding:15px; border:1px dashed #ccc; border-radius:15px;">
-                    <img src="https://bwipjs-api.metafloor.com/?bcid=${bcType}&text=${firstBc}&scale=3&rotate=N&includetext">
-                    <p style="font-size:12px; color:#666; margin-top:10px;">${data.Barcode}</p>
+                
+                <div style="padding:15px; background:#f9f9f9; border-radius:18px; border:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size:13px; font-weight:600; color:#666;">PROMO STATUS</span>
+                    <b style="color:var(--miniso-red); font-size:14px;">${data["Regular Store Promo"] || "NORMAL PRICE"}</b>
                 </div>
             </div>
         `;

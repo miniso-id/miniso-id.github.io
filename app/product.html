@@ -194,6 +194,7 @@
         typingTimer = setTimeout(() => performSearch(q), 500);
     };
 
+    // FUNGSI INI DIPERBAIKI UNTUK MENDUKUNG 60.000 SKU SECARA ONLINE
     async function performSearch(q) {
         detailContainer.style.display = "none";
         listContainer.style.display = "block";
@@ -204,7 +205,7 @@
                 .from('export')
                 .select('*')
                 .or(`Name.ilike.%${q}%,Barcode.eq.${q}`)
-                .limit(5000);
+                .limit(100); // Kita ambil 100 hasil teratas saja agar HP tidak lemot
 
             loader.style.display = "none";
             if (error) throw error;

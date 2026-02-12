@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X</title>
+    <title>MMS-X (Full Database)</title>
     
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -35,17 +35,21 @@
         #loginScreen {
             position: fixed; inset: 0; background: white; z-index: 5000;
             display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .login-card { width: 100%; max-width: 340px; text-align: center; }
         .login-card h1 { color: var(--miniso-red); font-size: 3rem; margin-bottom: 5px; font-weight: 900; letter-spacing: -2px; }
         .login-input {
             width: 100%; padding: 16px; margin-bottom: 12px; border: 1.5px solid #eee;
-            border-radius: 14px; outline: none; font-size: 16px; background: #f9f9f9;
+            border-radius: 14px; outline: none; font-size: 16px; transition: 0.3s; background: #f9f9f9;
         }
+        .login-input:focus { border-color: var(--miniso-red); background: white; box-shadow: 0 0 0 4px var(--miniso-soft); }
         .btn-login {
             width: 100%; padding: 16px; background: var(--miniso-red); color: white;
             border: none; border-radius: 14px; font-size: 16px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 8px 20px rgba(230,21,35,0.2); transition: transform 0.2s;
         }
+        .btn-login:active { transform: scale(0.97); }
 
         /* --- APP WRAPPER --- */
         #appContent { display: none; height: 100vh; width: 100%; flex-direction: column; }
@@ -56,9 +60,11 @@
             width: var(--sidebar-width); background-color: var(--miniso-red); color: #fff;
             display: flex; flex-direction: column; padding: 25px; z-index: 2000; flex-shrink: 0;
             transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%);
         }
         .sidebar.active { transform: translateX(0); }
         .sidebar h2 { font-size: 1.8rem; font-weight: 900; }
+        .user-tag { font-size: 13px; margin-bottom: 30px; color: rgba(255,255,255,0.8); }
         .sidebar a { text-decoration: none; color: #fff; padding: 14px 18px; margin-bottom: 8px; border-radius: 12px; display: block; font-weight: 600; }
         .logout-btn { margin-top: auto; background: rgba(0,0,0,0.1) !important; text-align: center; }
 
@@ -70,35 +76,38 @@
 
         /* --- MAIN AREA --- */
         .main-content { flex: 1; overflow-y: auto; position: relative; padding: 16px; background: #fff; }
-        .top-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; position: sticky; top: 0; background: white; z-index: 100; padding: 5px 0; }
-        .menu-toggle { background: var(--miniso-soft); color: var(--miniso-red); border: none; width: 44px; height: 44px; border-radius: 12px; font-size: 20px; }
+        .top-bar-container { background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 1100; margin-bottom: 15px; }
+        .top-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        .menu-toggle { background: var(--miniso-soft); color: var(--miniso-red); border: none; width: 44px; height: 44px; border-radius: 12px; }
         
         .search-container { position: relative; flex-grow: 1; }
-        #searchInput { width: 100%; height: 44px; padding: 0 45px 0 15px; border: 1.5px solid #eee; border-radius: 12px; outline: none; background: #f5f5f7; font-size: 16px; }
+        #searchInput { width: 100%; height: 44px; padding: 0 45px 0 15px; border: 1.5px solid #eee; border-radius: 12px; outline: none; background: #f5f5f7; }
         #scanBtn { background: var(--miniso-red); color: white; border: none; width: 36px; height: 36px; border-radius: 9px; position: absolute; right: 4px; top: 4px; display: flex; align-items: center; justify-content: center; }
 
         /* --- SCANNER --- */
-        #reader { display:none; width:100%; max-width:350px; aspect-ratio:1/1; margin:10px auto; border-radius:24px; overflow:hidden; position:relative; border: 4px solid var(--miniso-red); }
+        #reader { display:none; width:100%; max-width:350px; aspect-ratio:1/1; margin:10px auto 20px; border-radius:24px; overflow:hidden; position:relative; border: 4px solid white; box-shadow: var(--shadow-soft); }
         #reader video { width: 100%; height: 100%; object-fit: cover; }
+        .focus-guide { position: absolute; inset: 20%; border: 2px solid rgba(255,255,255,0.5); border-radius: 20px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.5); }
+        
+        #cameraSelector { display: none; width: 100%; max-width: 350px; margin: 0 auto 15px; }
+        #videoSource { width: 100%; padding: 12px; border-radius: 12px; border: 2px solid var(--miniso-red); background: white; font-weight: bold; color: var(--miniso-red); outline: none; font-size: 14px; }
 
         /* --- LIST & ITEMS --- */
-        .search-item { padding: 12px; border-radius: 16px; background: white; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; border: 1px solid #f0f0f0; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-        .thumb-img { width: 55px; height: 55px; object-fit: contain; border-radius: 10px; background: #f9f9f9; }
+        .search-item { padding: 12px; border-radius: 16px; background: white; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #f0f0f0; }
+        .thumb-img { width: 55px; height: 55px; object-fit: contain; border-radius: 10px; background: #f9f9f9; cursor: zoom-in; }
 
-        /* --- DETAIL --- */
-        .product-card { background: white; border-radius: 24px; display: none; animation: slideUp 0.3s ease-out; }
-        .price-item { background: var(--bg-gray); padding: 15px; border-radius: 16px; text-align: center; }
-        
-        #imagePopup { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:6000; align-items:center; justify-content:center; }
-        #popupImg { max-width: 90%; max-height: 80%; border-radius: 10px; }
+        /* --- IMAGE POPUP --- */
+        #imagePopup { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:6000; align-items:center; justify-content:center; backdrop-filter: blur(8px); }
+        #popupImg { max-width: 90%; max-height: 80%; border-radius: 16px; }
 
-        #loader { display: none; text-align: center; padding: 20px; color: #888; font-style: italic; }
+        /* --- DETAIL & BARCODE --- */
+        .product-card { background: white; border-radius: 24px; overflow: hidden; display: none; animation: slideUp 0.4s ease-out; }
+        .price-item { background: var(--bg-gray); padding: 15px; border-radius: 16px; text-align: center; border: 1px solid #e5e5ea; }
+        .barcode-box { background: #fff; padding: 20px; border-radius: 20px; border: 1px dashed #ccc; margin-top: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 
-        @media (max-width: 768px) {
-            .sidebar { position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); }
-            .sidebar.active { transform: translateX(0); }
-        }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        #loader { display: none; text-align: center; padding: 15px; color: #888; font-weight: bold; }
+
+        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
@@ -106,10 +115,11 @@
 <div id="loginScreen">
     <div class="login-card">
         <h1>MINISO</h1>
-        <p style="color:#8e8e93; margin-bottom:30px;">Product Checker Online v3.0</p>
+        <p style="color:#8e8e93; margin-bottom:30px; font-weight: 500;">Product Checker v3.1 (Full DB)</p>
         <input type="text" id="username" class="login-input" placeholder="Username">
         <input type="password" id="password" class="login-input" placeholder="Password">
         <button class="btn-login" onclick="handleLogin()">MASUK</button>
+        <div id="loginError" style="color:var(--miniso-red); font-size:13px; margin-top:15px; font-weight:bold; display:none;">Akun tidak ditemukan!</div>
     </div>
 </div>
 
@@ -117,12 +127,12 @@
     <div id="imagePopup" onclick="this.style.display='none'">
         <img id="popupImg" src="">
     </div>
-
+    
     <div class="app-wrapper">
         <nav class="sidebar" id="sidebar">
             <h2>MMS-X</h2>
-            <div id="userDisplay" style="font-size: 13px; margin-bottom: 30px; opacity: 0.8;"></div>
-            <a href="#" onclick="toggleSidebar()" style="background:rgba(255,255,255,0.15)">📸 Price Check</a>
+            <div id="userDisplay" class="user-tag"></div>
+            <a href="#" style="background:rgba(255,255,255,0.15)">📸 Price Check</a>
             <a href="https://miniso-id.github.io/so/">📦 Stock Opname ID12</a>
             <a href="#" class="logout-btn" onclick="handleLogout()">LOGOUT</a>
         </nav>
@@ -130,17 +140,23 @@
 
         <main class="main-content" id="scrollContainer">
             <div id="ui-controls">
-                <div class="top-bar">
-                    <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-                    <div class="search-container">
-                        <input id="searchInput" placeholder="Cari Nama / Scan Barcode...">
-                        <button id="scanBtn" onclick="toggleScanner()">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2m-10 0H5a2 2 0 0 1-2-2v-2"></path></svg>
-                        </button>
+                <div class="top-bar-container">
+                    <div class="top-bar">
+                        <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                        <div class="search-container">
+                            <input id="searchInput" placeholder="Cari produk...">
+                            <button id="scanBtn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2m-10 0H5a2 2 0 0 1-2-2v-2"></path></svg>
+                            </button>
+                        </div>
                     </div>
+                    <select id="catFilter" style="width:100%; height:38px; border-radius:10px; border:1px solid #ddd; background:#fff; font-size:13px; font-weight:600;"><option value="">Semua Kategori</option></select>
                 </div>
-                <div id="reader"></div>
-                <div id="loader">Menghubungkan ke database...</div>
+
+                <div id="reader"><div class="focus-guide"></div></div>
+                <div id="cameraSelector"><select id="videoSource"></select></div>
+                <div id="loader">Mencari di database...</div>
+                <div id="countDisplay" style="font-size:12px; color:#8e8e93; margin-bottom:10px; font-weight:600;"></div>
             </div>
 
             <div id="listContainer"></div>
@@ -152,21 +168,31 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
+    // --- SUPABASE CONFIG ---
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co"; 
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const USERS = { "admin": "miniso123", "ID12": "12121212" };
+    const USERS = { 
+        "admin": { pass: "miniso123", name: "Administrator" }, 
+        "ID12": { pass: "12121212", name: "ID12 Central Park" },
+        "JKT1": { pass: "Jakarta1@2026", name: "Jakarta 1" } 
+    };
+
+    let scanning = false, lastScrollPos = 0;
+    const input = document.getElementById("searchInput"), catFilter = document.getElementById("catFilter");
+    const listContainer = document.getElementById("listContainer"), detailContainer = document.getElementById("detailContainer");
+    const loader = document.getElementById("loader"), scrollContainer = document.getElementById("scrollContainer");
 
     // --- AUTH ---
     function handleLogin() {
-        const u = document.getElementById("username").value;
+        const u = document.getElementById("username").value.trim();
         const p = document.getElementById("password").value;
-        if(USERS[u] === p) {
+        if(USERS[u] && USERS[u].pass === p) {
             sessionStorage.setItem("isLoggedIn", "true");
-            sessionStorage.setItem("activeUser", u);
-            location.reload();
-        } else { alert("User atau Password salah!"); }
+            sessionStorage.setItem("activeUserName", USERS[u].name);
+            location.reload(); 
+        } else { document.getElementById("loginError").style.display = "block"; }
     }
     function handleLogout() { sessionStorage.clear(); location.reload(); }
     function toggleSidebar() { 
@@ -174,144 +200,182 @@
         document.getElementById("overlay").classList.toggle("active"); 
     }
 
+    // --- INITIALIZE CATEGORIES ---
+    async function initCategories() {
+        // Daftar kategori Miniso umum (Hardcoded agar cepat atau bisa fetch dari DB)
+        const categories = ["BAG", "ACCESSORIES", "BEAUTY", "HOUSEWARE", "TOYS", "ELECTRONIC", "STATIONERY"];
+        categories.sort().forEach(c => {
+            const o = document.createElement("option"); o.value = c; o.textContent = c; catFilter.appendChild(o);
+        });
+    }
+
     if(sessionStorage.getItem("isLoggedIn") === "true") {
         document.getElementById("loginScreen").style.display = "none";
         document.getElementById("appContent").style.display = "flex";
-        document.getElementById("userDisplay").textContent = "User: " + sessionStorage.getItem("activeUser");
+        document.getElementById("userDisplay").textContent = "Hi, " + sessionStorage.getItem("activeUserName");
+        initCategories();
     }
 
-    // --- SEARCH ---
-    const input = document.getElementById("searchInput");
-    const listContainer = document.getElementById("listContainer");
-    const detailContainer = document.getElementById("detailContainer");
-    const loader = document.getElementById("loader");
-
+    // --- SEARCH LOGIC (SUPABASE) ---
     let typingTimer;
     input.oninput = () => {
         clearTimeout(typingTimer);
         const q = input.value.trim();
-        if (q.length < 3) { listContainer.innerHTML = ""; return; }
-        typingTimer = setTimeout(() => performSearch(q), 500);
+        if (q.length < 3 && !catFilter.value) { listContainer.innerHTML = ""; return; }
+        typingTimer = setTimeout(() => performSearch(q, catFilter.value), 600);
     };
 
-    // FUNGSI INI DIPERBAIKI UNTUK MENDUKUNG 60.000 SKU SECARA ONLINE
-    async function performSearch(q) {
+    catFilter.onchange = () => performSearch(input.value, catFilter.value);
+
+    async function performSearch(q, cat) {
         detailContainer.style.display = "none";
         listContainer.style.display = "block";
+        document.getElementById("ui-controls").style.display = "block";
         loader.style.display = "block";
         
         try {
-            const { data, error } = await _supabase
-                .from('export')
-                .select('*')
-                .or(`Name.ilike.%${q}%,Barcode.eq.${q}`)
-                .limit(100); // Kita ambil 100 hasil teratas saja agar HP tidak lemot
+            let query = _supabase.from('export').select('*');
+            
+            if (q) query = query.or(`Name.ilike.%${q}%,Barcode.eq.${q}`);
+            if (cat) query = query.eq('Category', cat);
 
+            const { data, error } = await query.limit(100);
             loader.style.display = "none";
             if (error) throw error;
             renderList(data);
-        } catch (err) { loader.textContent = "Koneksi Bermasalah."; }
+        } catch (err) { loader.textContent = "Error koneksi database!"; }
     }
 
     function renderList(data) {
         if (!data || data.length === 0) {
             listContainer.innerHTML = "<p style='text-align:center; padding:20px;'>Produk tidak ditemukan.</p>";
+            document.getElementById("countDisplay").textContent = "";
             return;
         }
+        document.getElementById("countDisplay").textContent = `Ditemukan ${data.length} produk`;
         listContainer.innerHTML = data.map(p => `
-            <div class="search-item" onclick="getDetail('${p.Barcode}')">
-                <img class="thumb-img" src="${p.Image || ''}" onerror="this.style.visibility='hidden'">
+            <div class="search-item" onclick="showDetail('${p.Barcode}')">
+                <img class="thumb-img" src="${p.Image || ''}" loading="lazy" onclick="event.stopPropagation(); openPopup('${p.Image}')" onerror="this.style.display='none';">
                 <div style="flex:1">
-                    <div style="font-size:10px; font-weight:bold; color:var(--miniso-red);">${p.Category || ''}</div>
+                    <div style="font-size:10px; font-weight:800; color:var(--miniso-red);">${p.Category || ''}</div>
                     <div style="font-size:14px; font-weight:700;">${p.Name}</div>
-                    <div style="font-size:11px; color:#999;">${p.Barcode}</div>
                 </div>
-                <div style="font-weight:800; color:var(--miniso-red); font-size:14px;">Rp${(p["Regular Store Price"] || 0).toLocaleString('id-ID')}</div>
+                <div style="font-weight:800; font-size:14px; color:var(--miniso-red);">Rp${(p["Regular Store Price"] || 0).toLocaleString('id-ID')}</div>
             </div>
         `).join('');
     }
 
-    // --- DETAIL ---
-    async function getDetail(barcode) {
+    // --- DETAIL LOGIC ---
+    async function showDetail(barcode) {
+        lastScrollPos = scrollContainer.scrollTop;
         loader.style.display = "block";
         const { data, error } = await _supabase.from('export').select('*').eq('Barcode', barcode).maybeSingle();
         loader.style.display = "none";
-        if (data) renderDetail(data);
+        if (data) renderDetailPage(data);
     }
 
-    function renderDetail(p) {
+    function renderDetailPage(p) {
         listContainer.style.display = "none";
-        detailContainer.style.display = "block";
         document.getElementById("ui-controls").style.display = "none";
+        detailContainer.style.display = "block";
+        scrollContainer.scrollTop = 0;
         
         const barcodeApi = `https://bwipjs-api.metafloor.com/?bcid=ean13&text=${p.Barcode}&scale=3&rotate=N&includetext`;
 
         detailContainer.innerHTML = `
-            <div style="text-align:center; padding:20px; position:relative;">
-                <img src="${p.Image || ''}" style="max-width:100%; max-height:280px;" onclick="zoomImg('${p.Image}')">
+            <div style="position:relative; text-align:center; padding:20px; background:#fff;">
+                <img src="${p.Image || ''}" style="max-width:100%; max-height:280px; object-fit:contain;" onclick="openPopup('${p.Image}')">
             </div>
-            <div style="padding:15px;">
+            <div style="padding:20px;">
                 <span style="color:var(--miniso-red); font-weight:800; font-size:12px;">${p.Category || ''}</span>
-                <h2 style="margin:5px 0 20px 0; font-size:20px;">${p.Name}</h2>
+                <h2 style="margin:5px 0 20px 0; font-size:22px;">${p.Name}</h2>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                    <div class="price-item"><small>Regular:</small><br><b style="color:var(--miniso-red);">Rp${(p["Regular Store Price"] || 0).toLocaleString('id-ID')}</b></div>
-                    <div class="price-item"><small>Street:</small><br><b>Rp${(p["Street Store Price"] || 0).toLocaleString('id-ID')}</b></div>
+                    <div class="price-item"><small style="color:#8e8e93;">Regular: </small><br><b style="color:var(--miniso-red);">Rp${(p["Regular Store Price"] || 0).toLocaleString('id-ID')}</b></div>
+                    <div class="price-item"><small style="color:#8e8e93;">Street: </small><br><b>Rp${(p["Street Store Price"] || 0).toLocaleString('id-ID')}</b></div>
                 </div>
-                <div style="margin-top:15px; background:#f9f9f9; padding:15px; border-radius:16px; font-size:13px;">
-                    <div style="display:flex; justify-content:space-between;"><span>Promo Reg:</span> <b>${p["Regular Promo"] || '-'}</b></div>
-                    <div style="display:flex; justify-content:space-between; margin-top:8px;"><span>Promo Street:</span> <b>${p["Street Store Promo"] || '-'}</b></div>
-                    <div style="margin-top:8px; color:var(--miniso-red); font-weight:bold; text-align:center;">${p["Extra Promo"] || ''}</div>
+                <div style="background:#fff; border:1px solid #eee; border-radius:16px; padding:15px; margin-top:15px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:13px;"><span style="color:#666;">Regular Promo:</span> <b style="color:#007aff;">${p["Regular Promo"] || '-'}</b></div>
+                    <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:#666;">Street Promo:</span> <b style="color:#34c759;">${p["Street Store Promo"] || '-'}</b></div>
+                    <div style="text-align:center; color:var(--miniso-red); font-weight:bold; margin-top:10px;">${p["Extra Promo"] || ''}</div>
                 </div>
-                <div style="text-align:center; margin-top:20px; padding:15px; border:1px dashed #ccc; border-radius:15px;">
+                <div class="barcode-box">
                     <img src="${barcodeApi}" style="max-width:200px;">
-                    <div style="font-weight:bold; margin-top:5px;">${p.Barcode}</div>
+                    <div style="font-weight:700; margin-top:10px;">${p.Barcode}</div>
                 </div>
-                <button onclick="closeDetail()" style="width:100%; margin:20px 0; padding:18px; background:var(--miniso-red); color:white; border:none; border-radius:16px; font-weight:bold; font-size:16px;">KEMBALI</button>
-            </div>
-        `;
+                <button onclick="backToPrev()" style="width:100%; margin:25px 0; padding:18px; border:none; background:var(--miniso-red); border-radius:16px; font-weight:bold; color:white;">KEMBALI</button>
+            </div>`;
     }
 
-    function closeDetail() {
-        detailContainer.style.display = "none";
-        listContainer.style.display = "block";
-        document.getElementById("ui-controls").style.display = "block";
+    window.backToPrev = () => { 
+        detailContainer.style.display = "none"; 
+        listContainer.style.display = "block"; 
+        document.getElementById("ui-controls").style.display = "block"; 
+        setTimeout(() => { scrollContainer.scrollTo(0, lastScrollPos); }, 10); 
     }
 
-    function zoomImg(src) {
+    function openPopup(src) { 
         if(!src) return;
-        document.getElementById("popupImg").src = src;
-        document.getElementById("imagePopup").style.display = "flex";
+        document.getElementById("popupImg").src = src; 
+        document.getElementById("imagePopup").style.display = "flex"; 
     }
 
-    // --- SCANNER ---
-    let scanning = false;
-    function toggleScanner() {
-        if(scanning) { stopScan(); return; }
-        scanning = true;
+    // --- SCANNER LOGIC DENGAN SMART MEMORY ---
+    document.getElementById("scanBtn").onclick = async () => { 
+        if (scanning) { stopScan(); return; } 
+        const lastCamera = localStorage.getItem("preferredCameraId");
+        startScan(lastCamera); 
+    };
+
+    async function startScan(deviceId = null) {
+        scanning = true; 
         document.getElementById("reader").style.display = "block";
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            stream.getTracks().forEach(track => track.stop());
+            await initCameraList(deviceId); 
+        } catch (e) { console.error("Kamera Error"); }
+
         Quagga.init({
-            inputStream: { type: "LiveStream", target: document.getElementById("reader"), constraints: { facingMode: "environment" } },
-            decoder: { readers: ["ean_reader", "code_128_reader"] },
-            locate: true
+            inputStream: { 
+                type: "LiveStream", 
+                target: document.getElementById("reader"), 
+                constraints: { deviceId: deviceId ? { exact: deviceId } : undefined, facingMode: deviceId ? undefined : "environment" } 
+            },
+            decoder: { readers: ["ean_reader", "code_128_reader"] }
         }, (err) => {
-            if (err) { alert("Kamera tidak diizinkan."); stopScan(); return; }
+            if (err) { stopScan(); return; }
             Quagga.start();
         });
     }
+
+    async function initCameraList(currentId) {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        if (videoDevices.length > 1) {
+            document.getElementById("cameraSelector").style.display = "block";
+            document.getElementById("videoSource").innerHTML = videoDevices.map((d, i) => 
+                `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>${d.label || 'Kamera ' + (i+1)}</option>`
+            ).join("");
+        }
+    }
+
+    document.getElementById("videoSource").onchange = () => {
+        const newId = document.getElementById("videoSource").value;
+        localStorage.setItem("preferredCameraId", newId);
+        Quagga.stop();
+        startScan(newId);
+    };
+
+    function stopScan() { Quagga.stop(); scanning = false; document.getElementById("reader").style.display = "none"; document.getElementById("cameraSelector").style.display = "none"; }
 
     Quagga.onDetected(res => {
         const code = res.codeResult.code;
         document.getElementById("beepOk").play().catch(()=>{});
         stopScan();
         input.value = code;
-        getDetail(code);
+        showDetail(code);
     });
 
-    function stopScan() {
-        Quagga.stop();
-        scanning = false;
-        document.getElementById("reader").style.display = "none";
-    }
 </script>
 </body>
 </html>

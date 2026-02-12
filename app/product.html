@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X</title>
+    <title>MMS-X (Full Database v3.2)</title>
     
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -114,7 +114,7 @@
 <div id="loginScreen">
     <div class="login-card">
         <h1>MINISO</h1>
-        <p style="color:#8e8e93; margin-bottom:30px; font-weight: 500;">Product Checker v3.1</p>
+        <p style="color:#8e8e93; margin-bottom:30px; font-weight: 500;">Product Checker v3.2</p>
         <input type="text" id="username" class="login-input" placeholder="Username">
         <input type="password" id="password" class="login-input" placeholder="Password">
         <button class="btn-login" onclick="handleLogin()">MASUK</button>
@@ -169,7 +169,7 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
-    // --- SUPABASE CONFIG ---
+    // --- CONFIG ---
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co"; 
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -201,42 +201,40 @@
         document.getElementById("overlay").classList.toggle("active"); 
     }
 
-    // --- INIT APP ---
+    // --- INIT ---
     async function initApp() {
         if(sessionStorage.getItem("isLoggedIn") !== "true") return;
         document.getElementById("loginScreen").style.display = "none";
         document.getElementById("appContent").style.display = "flex";
         document.getElementById("userDisplay").textContent = "Hi, " + sessionStorage.getItem("activeUserName");
-        
         await fetchCategories();
     }
 
-    // --- FETCH CATEGORIES FROM SUPABASE ---
     async function fetchCategories() {
-        const { data, error } = await _supabase.from('export').select('Category').not('Category', 'is', null);
-        if (data) {
-            const uniqueCats = [...new Set(data.map(item => item.Category))].sort();
-            uniqueCats.forEach(cat => {
-                if(cat) {
-                    const o = document.createElement("option"); o.value = cat; o.textContent = cat; 
-                    catFilter.appendChild(o);
-                }
-            });
-        }
+        try {
+            const { data, error } = await _supabase.from('export').select('Category').not('Category', 'is', null);
+            if (data) {
+                const uniqueCats = [...new Set(data.map(item => item.Category))].sort();
+                uniqueCats.forEach(cat => {
+                    if(cat) {
+                        const o = document.createElement("option"); o.value = cat; o.textContent = cat; 
+                        catFilter.appendChild(o);
+                    }
+                });
+            }
+        } catch(e) {}
     }
 
-    // --- SEARCH LOGIC ---
+    // --- SEARCH ---
     input.oninput = () => {
         clearTimeout(typingTimer);
         typingTimer = setTimeout(() => performSearch(), 500);
     };
-
     catFilter.onchange = () => performSearch();
 
     async function performSearch() {
         const q = input.value.trim();
         const cat = catFilter.value;
-
         if (!q && !cat) { listContainer.innerHTML = ""; return; }
 
         detailContainer.style.display = "none";
@@ -247,54 +245,55 @@
 
         try {
             let query = _supabase.from('export').select('*');
-            
-            if (q) {
-                // Mencari Barcode (exact) ATAU Nama (contains)
-                query = query.or(`Name.ilike.%${q}%,Barcode.eq.${q}`);
-            }
-            if (cat) {
-                query = query.eq('Category', cat);
-            }
+            if (q) query = query.or(`Name.ilike.%${q}%,Barcode.eq.${q}`);
+            if (cat) query = query.eq('Category', cat);
 
             const { data, error } = await query.limit(50).order('Name', { ascending: true });
-            
             loader.style.display = "none";
             if (error) throw error;
             renderList(data);
-        } catch (err) { 
-            loader.textContent = "Error: Cek koneksi internet."; 
-        }
+        } catch (err) { loader.textContent = "Error koneksi."; }
     }
 
     function renderList(data) {
         if (!data || data.length === 0) {
-            listContainer.innerHTML = "<p style='text-align:center; padding:20px; color:#888;'>Produk tidak ditemukan.</p>";
-            document.getElementById("countDisplay").textContent = "";
+            listContainer.innerHTML = "<p style='text-align:center; padding:20px; color:#888;'>Tidak ditemukan.</p>";
             return;
         }
         document.getElementById("countDisplay").textContent = `Ditemukan ${data.length} produk`;
-        listContainer.innerHTML = data.map(p => `
-            <div class="search-item" onclick="showDetail('${p.Barcode}')">
-                <img class="thumb-img" src="${p.Image || ''}" loading="lazy" onclick="event.stopPropagation(); openPopup('${p.Image}')" onerror="this.src='https://placehold.co/100x100?text=No+Image';">
-                <div style="flex:1">
-                    <div style="font-size:10px; font-weight:800; color:var(--miniso-red);">${p.Category || 'GENERAL'}</div>
-                    <div style="font-size:14px; font-weight:700;">${p.Name}</div>
-                </div>
-                <div style="font-weight:800; font-size:14px; color:var(--miniso-red);">Rp${(p["Regular Store Price"] || 0).toLocaleString('id-ID')}</div>
-            </div>
-        `).join('');
+        listContainer.innerHTML = data.map(p => {
+            const barcode = p.Barcode || p["Barcode"];
+            const name = p.Name || p["Name"];
+            const price = p["Regular Store Price"] || p.Price || 0;
+            return `
+                <div class="search-item" onclick="showDetail('${barcode}')">
+                    <img class="thumb-img" src="${p.Image || p["Image"] || ''}" loading="lazy" onclick="event.stopPropagation(); openPopup(this.src)" onerror="this.src='https://placehold.co/100x100?text=No+Img';">
+                    <div style="flex:1">
+                        <div style="font-size:10px; font-weight:800; color:var(--miniso-red);">${p.Category || p["Category"] || 'GENERAL'}</div>
+                        <div style="font-size:14px; font-weight:700;">${name}</div>
+                    </div>
+                    <div style="font-weight:800; font-size:14px; color:var(--miniso-red);">Rp${price.toLocaleString('id-ID')}</div>
+                </div>`;
+        }).join('');
     }
 
-    // --- DETAIL VIEW ---
+    // --- DETAIL (FIXED) ---
     async function showDetail(barcode) {
+        if(!barcode || barcode === 'undefined') return;
         lastScrollPos = scrollContainer.scrollTop;
         loader.style.display = "block";
         loader.textContent = "Memuat detail...";
 
-        const { data, error } = await _supabase.from('export').select('*').eq('Barcode', barcode).maybeSingle();
-        
-        loader.style.display = "none";
-        if (data) renderDetailPage(data);
+        try {
+            const { data, error } = await _supabase.from('export').select('*').eq('Barcode', barcode).maybeSingle();
+            loader.style.display = "none";
+            if (error) throw error;
+            if (data) renderDetailPage(data);
+            else alert("Produk tidak ditemukan di database.");
+        } catch (err) {
+            loader.style.display = "none";
+            alert("Gagal memuat data.");
+        }
     }
 
     function renderDetailPage(p) {
@@ -303,18 +302,19 @@
         detailContainer.style.display = "block";
         scrollContainer.scrollTop = 0;
         
-        const barcodeApi = `https://bwipjs-api.metafloor.com/?bcid=ean13&text=${p.Barcode}&scale=3&rotate=N&includetext`;
+        const bVal = p.Barcode || p["Barcode"];
+        const barcodeApi = `https://bwipjs-api.metafloor.com/?bcid=ean13&text=${bVal}&scale=3&rotate=N&includetext`;
 
         detailContainer.innerHTML = `
             <div style="position:relative; text-align:center; padding:20px; background:#fff;">
-                <img src="${p.Image || ''}" style="max-width:100%; max-height:280px; object-fit:contain;" onclick="openPopup('${p.Image}')" onerror="this.src='https://placehold.co/300x300?text=No+Image';">
+                <img src="${p.Image || p["Image"] || ''}" style="max-width:100%; max-height:280px; object-fit:contain;" onclick="openPopup(this.src)" onerror="this.src='https://placehold.co/300x300?text=No+Image';">
             </div>
             <div style="padding:20px;">
-                <span style="color:var(--miniso-red); font-weight:800; font-size:12px;">${p.Category || ''}</span>
-                <h2 style="margin:5px 0 20px 0; font-size:22px;">${p.Name}</h2>
+                <span style="color:var(--miniso-red); font-weight:800; font-size:12px;">${p.Category || p["Category"] || 'GENERAL'}</span>
+                <h2 style="margin:5px 0 20px 0; font-size:22px;">${p.Name || p["Name"]}</h2>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                     <div class="price-item"><small style="color:#8e8e93;">Regular:</small><br><b style="color:var(--miniso-red);">Rp${(p["Regular Store Price"] || 0).toLocaleString('id-ID')}</b></div>
-                    <div class="price-item"><small style="color:#8e8e93;">Street Store:</small><br><b>Rp${(p["Street Store Price"] || 0).toLocaleString('id-ID')}</b></div>
+                    <div class="price-item"><small style="color:#8e8e93;">Street:</small><br><b>Rp${(p["Street Store Price"] || 0).toLocaleString('id-ID')}</b></div>
                 </div>
                 <div style="background:#fff; border:1px solid #eee; border-radius:16px; padding:15px; margin-top:15px;">
                     <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:13px;"><span style="color:#666;">Regular Promo:</span> <b style="color:#007aff;">${p["Regular Promo"] || '-'}</b></div>
@@ -323,7 +323,7 @@
                 </div>
                 <div class="barcode-box">
                     <img src="${barcodeApi}">
-                    <div style="font-weight:700; margin-top:10px; letter-spacing:1px;">${p.Barcode}</div>
+                    <div style="font-weight:700; margin-top:10px; letter-spacing:1px;">${bVal}</div>
                 </div>
                 <button onclick="backToPrev()" style="width:100%; margin:25px 0; padding:18px; border:none; background:var(--miniso-red); border-radius:16px; font-weight:bold; color:white;">KEMBALI</button>
             </div>`;
@@ -337,65 +337,39 @@
     }
 
     function openPopup(src) { 
-        if(!src) return;
+        if(!src || src.includes('placehold.co')) return;
         document.getElementById("popupImg").src = src; 
         document.getElementById("imagePopup").style.display = "flex"; 
     }
 
-    // --- SCANNER LOGIC ---
-    document.getElementById("scanBtn").onclick = async () => { 
-        if (scanning) { stopScan(); return; } 
-        startScan(localStorage.getItem("preferredCameraId")); 
-    };
+    // --- SCANNER ---
+    document.getElementById("scanBtn").onclick = () => { if (scanning) stopScan(); else startScan(localStorage.getItem("preferredCameraId")); };
 
     async function startScan(deviceId = null) {
-        scanning = true; 
-        document.getElementById("reader").style.display = "block";
+        scanning = true; document.getElementById("reader").style.display = "block";
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
             stream.getTracks().forEach(t => t.stop());
             await initCameraList(deviceId);
-
             Quagga.init({
-                inputStream: { 
-                    type: "LiveStream", 
-                    target: document.getElementById("reader"), 
-                    constraints: { deviceId: deviceId ? { exact: deviceId } : undefined, facingMode: deviceId ? undefined : "environment" } 
-                },
-                decoder: { readers: ["ean_reader", "code_128_reader"] },
-                locate: true
-            }, (err) => {
-                if (err) { stopScan(); return; }
-                Quagga.start();
-            });
-        } catch (e) { alert("Izinkan kamera untuk scan barcode."); stopScan(); }
+                inputStream: { type: "LiveStream", target: document.getElementById("reader"), constraints: { deviceId: deviceId ? { exact: deviceId } : undefined, facingMode: deviceId ? undefined : "environment" } },
+                decoder: { readers: ["ean_reader", "code_128_reader"] }
+            }, (err) => { if (err) stopScan(); else Quagga.start(); });
+        } catch (e) { stopScan(); }
     }
 
     async function initCameraList(currentId) {
         const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(d => d.kind === 'videoinput');
-        if (videoDevices.length > 1) {
+        const video = devices.filter(d => d.kind === 'videoinput');
+        if (video.length > 1) {
             document.getElementById("cameraSelector").style.display = "block";
-            document.getElementById("videoSource").innerHTML = videoDevices.map(d => 
-                `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>${d.label || 'Kamera'}</option>`
-            ).join("");
+            document.getElementById("videoSource").innerHTML = video.map(d => `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>${d.label || 'Kamera'}</option>`).join("");
         }
     }
 
-    document.getElementById("videoSource").onchange = () => {
-        const id = document.getElementById("videoSource").value;
-        localStorage.setItem("preferredCameraId", id);
-        Quagga.stop(); startScan(id);
-    };
-
+    document.getElementById("videoSource").onchange = () => { const id = document.getElementById("videoSource").value; localStorage.setItem("preferredCameraId", id); Quagga.stop(); startScan(id); };
     function stopScan() { Quagga.stop(); scanning = false; document.getElementById("reader").style.display = "none"; document.getElementById("cameraSelector").style.display = "none"; }
-
-    Quagga.onDetected(res => {
-        document.getElementById("beepOk").play().catch(()=>{});
-        stopScan();
-        input.value = res.codeResult.code;
-        showDetail(res.codeResult.code);
-    });
+    Quagga.onDetected(res => { document.getElementById("beepOk").play().catch(()=>{}); stopScan(); input.value = res.codeResult.code; showDetail(res.codeResult.code); });
 
     window.onload = initApp;
 </script>

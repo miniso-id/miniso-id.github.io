@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X Deluxe v4.4</title>
+    <title>MMS-X Deluxe v4.5</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
@@ -15,6 +15,8 @@
             --miniso-soft: #fff1f2;
             --text-dark: #1a1a1a;
             --bg-gray: #f2f2f7;
+            --promo-blue: #007aff;
+            --promo-green: #34c759;
             --sidebar-width: 280px;
         }
 
@@ -111,7 +113,7 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 8000; border: 1px solid rgba(0,0,0,0.05);
         }
 
-        /* --- DETAIL CARD & ANIMATION --- */
+        /* --- DETAIL CARD --- */
         .product-detail-card { 
             display: none; 
             padding-bottom: 50px;
@@ -123,7 +125,15 @@
         }
 
         .price-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
-        .price-item { background: var(--bg-gray); padding: 15px; border-radius: 16px; text-align: center; }
+        .price-item { padding: 15px; border-radius: 18px; text-align: center; }
+        .price-item.reg { background: var(--miniso-soft); border: 1px solid rgba(230,21,35,0.1); }
+        .price-item.str { background: var(--bg-gray); border: 1px solid #e5e5ea; }
+        
+        .promo-banner {
+            padding: 20px; border-radius: 24px; font-size: 14px; 
+            background: #fff; border: 1.5px solid #eee;
+        }
+
         .barcode-img-container { background: white; padding: 20px; border-radius: 20px; border: 1px dashed #ccc; text-align: center; margin-top: 20px; }
 
         /* --- MODAL --- */
@@ -154,7 +164,7 @@
 
 <div id="loginScreen">
     <h1 style="color:var(--miniso-red); font-size: 3.5rem; margin-bottom: 0; letter-spacing: -3px; font-weight: 900;">MINISO</h1>
-    <p style="color:#888; margin-bottom: 30px; font-weight: 500;">Inventory System v4.4</p>
+    <p style="color:#888; margin-bottom: 30px; font-weight: 500;">Inventory System v4.5</p>
     <input type="text" id="username" class="login-input" placeholder="Username">
     <input type="password" id="password" class="login-input" placeholder="Password">
     <button class="btn-login" onclick="handleLogin()">MASUK</button>
@@ -214,7 +224,6 @@
     const header = document.getElementById("ui-header");
     const floatingBack = document.getElementById("btnBackFloating");
     const videoSource = document.getElementById("videoSource");
-    const cameraControl = document.getElementById("cameraControl");
 
     function cleanPrice(val) {
         if(!val) return "Rp0";
@@ -273,37 +282,13 @@
         }, (err) => {
             if (err) { if(deviceId) startScan(null); return; }
             Quagga.start();
-            updateCameraList();
         });
     }
-
-    async function updateCameraList() {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(d => d.kind === 'videoinput');
-        const backCameras = videoDevices.filter(d => {
-            const label = d.label.toLowerCase();
-            return !label.includes('front') && !label.includes('user') && !label.includes('depan');
-        });
-        const finalDevices = backCameras.length > 0 ? backCameras : videoDevices;
-        if (finalDevices.length > 1) {
-            cameraControl.style.display = "block";
-            videoSource.innerHTML = finalDevices.map(d => 
-                `<option value="${d.deviceId}" ${d.deviceId === lastSelectedDeviceId ? 'selected' : ''}>${d.label || 'Kamera'}</option>`
-            ).join("");
-        }
-    }
-
-    videoSource.onchange = () => { 
-        lastSelectedDeviceId = videoSource.value;
-        localStorage.setItem('preferredCameraId', lastSelectedDeviceId);
-        Quagga.stop(); startScan(lastSelectedDeviceId); 
-    };
 
     function stopScan() {
         Quagga.stop();
         scanning = false;
         document.getElementById("reader").style.display = "none";
-        cameraControl.style.display = "none";
     }
 
     Quagga.onDetected(res => {
@@ -376,11 +361,9 @@
 
     async function showDetail(fullBarcode) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;
-        
         const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();
 
         if(data) {
-            // Sembunyikan List & Header dengan halus
             listCont.style.opacity = "0";
             header.style.opacity = "0";
             
@@ -405,25 +388,34 @@
                         <h2 style="margin:5px 0 20px 0; font-size: 26px; line-height:1.1; font-weight: 800;">${data.Name || ''}</h2>
                         
                         <div class="price-box">
-                            <div class="price-item"><small style="color:#888">Regular Store</small><br><b style="color:var(--miniso-red); font-size:18px;">${cleanPrice(data["Regular Store Price"])}</b></div>
-                            <div class="price-item"><small style="color:#888">Street Store</small><br><b style="font-size:18px;">${cleanPrice(data["Street Store Price"])}</b></div>
+                            <div class="price-item reg">
+                                <small style="color:var(--miniso-red); font-weight:800; text-transform:uppercase; font-size:10px;">Regular Store</small>
+                                <div style="color:var(--miniso-red); font-size:20px; font-weight:900; margin-top:4px;">${cleanPrice(data["Regular Store Price"])}</div>
+                            </div>
+                            <div class="price-item str">
+                                <small style="color:#666; font-weight:800; text-transform:uppercase; font-size:10px;">Street Store</small>
+                                <div style="color:var(--text-dark); font-size:20px; font-weight:900; margin-top:4px;">${cleanPrice(data["Street Store Price"])}</div>
+                            </div>
                         </div>
 
-                        <div style="background:var(--miniso-soft); padding:20px; border-radius:24px; font-size:14px; border: 1px solid rgba(230,21,35,0.1);">
-                            <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-                                <span style="color:#666;">Regular Promo:</span> 
-                                <b style="color:#007aff; text-align:right;">${data["Regular Store Promo"] || "NORMAL PRICE"}</b>
+                        <div class="promo-banner">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid #f0f0f0;">
+                                <span style="color:#666; font-size:12px; font-weight:600;">REGULAR PROMO</span> 
+                                <b style="color:var(--promo-blue); text-align:right;">${data["Regular Store Promo"] || "NORMAL PRICE"}</b>
                             </div>
-                            <div style="display:flex; justify-content:space-between;">
-                                <span style="color:#666;">Street Promo:</span> 
-                                <b style="color:#34c759; text-align:right;">${data["Street Store Promo"] || "NORMAL PRICE"}</b>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="color:#666; font-size:12px; font-weight:600;">STREET PROMO</span> 
+                                <b style="color:var(--promo-green); text-align:right;">${data["Street Store Promo"] || "NORMAL PRICE"}</b>
                             </div>
-                            ${data["Extra Promo"] ? `<div style="text-align:center; margin-top:12px; padding-top:12px; border-top:1px dashed var(--miniso-red); color:var(--miniso-red); font-weight:900;">${data["Extra Promo"]}</div>` : ''}
+                            ${data["Extra Promo"] ? `
+                                <div style="text-align:center; margin-top:15px; padding:10px; border-radius:12px; background:var(--miniso-soft); color:var(--miniso-red); font-weight:900; font-size:13px; border:1px dashed var(--miniso-red);">
+                                    🔥 ${data["Extra Promo"]}
+                                </div>` : ''}
                         </div>
 
                         <div class="barcode-img-container">
                             <img src="${bcUrl}" style="max-width:100%;">
-                            <div style="margin-top:12px; font-weight:bold; font-size:13px; word-break: break-all; color:#555;">${rawString}</div>
+                            <div style="margin-top:12px; font-weight:bold; font-size:13px; color:#555;">${rawString}</div>
                         </div>
                     </div>
                 `;
@@ -441,12 +433,10 @@
     function back() {
         detCont.classList.remove('active');
         floatingBack.style.display = "none";
-        
         setTimeout(() => {
             detCont.style.display = "none";
             header.style.display = "block";
             listCont.style.display = "block";
-            
             setTimeout(() => {
                 header.style.opacity = "1";
                 listCont.style.opacity = "1";

@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X Deluxe v4.2</title>
+    <title>MMS-X Deluxe v4.3</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
@@ -100,8 +100,6 @@
         /* --- SEARCH LIST --- */
         .search-item { display: flex; align-items: center; gap: 12px; padding: 15px 0; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
         .thumb-img { width: 65px; height: 65px; border-radius: 10px; object-fit: contain; background: #f9f9f9; }
-        
-        #loader { display: none; text-align: center; color: var(--miniso-red); padding: 15px; font-weight: bold; }
 
         /* --- FLOATING BACK --- */
         .floating-back {
@@ -141,7 +139,7 @@
 
 <div id="loginScreen">
     <h1 style="color:var(--miniso-red); font-size: 3.5rem; margin-bottom: 0; letter-spacing: -3px; font-weight: 900;">MINISO</h1>
-    <p style="color:#888; margin-bottom: 30px; font-weight: 500;">Inventory System v4.2</p>
+    <p style="color:#888; margin-bottom: 30px; font-weight: 500;">Inventory System v4.3</p>
     <input type="text" id="username" class="login-input" placeholder="Username">
     <input type="password" id="password" class="login-input" placeholder="Password">
     <button class="btn-login" onclick="handleLogin()">MASUK</button>
@@ -176,8 +174,6 @@
             <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK FOKUS</div>
         </div>
         <div id="cameraControl"><select id="videoSource"></select></div>
-        
-        <div id="loader">Memproses...</div>
     </header>
 
     <main class="main-content" id="scrollContainer">
@@ -332,18 +328,14 @@
         
         detCont.style.display = "none";
         listCont.style.display = "block";
-        document.getElementById("loader").style.display = "block";
 
-        // Logika Barcode Agresif: Mencari di Name atau Barcode sebagai text
         let query = _supabase.from('export').select('*');
         if(q) {
-            // Menggunakan .ilike untuk barcode agar angka parsial pun ketemu
             query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
         }
         if(c) query = query.eq('Category', c);
 
         const { data } = await query.limit(50);
-        document.getElementById("loader").style.display = "none";
         
         if(data && data.length > 0) renderList(data);
         else listCont.innerHTML = `<p style="text-align:center; color:#999; margin-top:40px;">Produk tidak ditemukan.</p>`;
@@ -367,11 +359,8 @@
 
     async function showDetail(fullBarcode) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;
-        document.getElementById("loader").style.display = "block";
 
-        // Cari barcode yang benar-benar cocok atau mengandung barcode tsb
         const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();
-        document.getElementById("loader").style.display = "none";
 
         if(data) {
             listCont.style.display = "none";

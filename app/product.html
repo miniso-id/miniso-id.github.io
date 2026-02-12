@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X Deluxe v5.3</title>
+    <title>MMS-X Deluxe v5.5</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
@@ -15,8 +15,6 @@
             --miniso-soft: #fff1f2;
             --text-dark: #1a1a1a;
             --bg-gray: #f2f2f7;
-            --promo-blue: #007aff;
-            --promo-green: #34c759;
             --sidebar-width: 280px;
         }
 
@@ -29,21 +27,13 @@
         }
 
         /* --- LOGIN --- */
-        #loginScreen {
-            position: fixed; inset: 0; background: white; z-index: 9000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px;
-        }
+        #loginScreen { position: fixed; inset: 0; background: white; z-index: 9000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
         .login-input { width: 100%; max-width: 340px; padding: 16px; margin-bottom: 12px; border: 1.5px solid #eee; border-radius: 14px; font-size: 16px; outline: none; }
-        .btn-login { width: 100%; max-width: 340px; padding: 16px; background: var(--miniso-red); color: white; border: none; border-radius: 14px; font-weight: bold; cursor: pointer; }
+        .btn-login { width: 100%; max-width: 340px; padding: 16px; background: var(--miniso-red); color: white; border: none; border-radius: 14px; font-weight: bold; }
 
         /* --- SIDEBAR --- */
-        .sidebar {
-            width: var(--sidebar-width); background: var(--miniso-red); color: #fff;
-            position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%);
-            transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 9500; padding: 25px;
-        }
+        .sidebar { width: var(--sidebar-width); background: var(--miniso-red); color: #fff; position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 9500; padding: 25px; }
         .sidebar.active { transform: translateX(0); }
-        .sidebar h2 { font-weight: 900; letter-spacing: -1px; margin-bottom: 30px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; }
         .sidebar a { color: #fff; text-decoration: none; display: block; padding: 15px; border-radius: 12px; margin-bottom: 10px; font-weight: 600; background: rgba(255,255,255,0.1); }
         #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 9000; display: none; backdrop-filter: blur(4px); }
 
@@ -56,8 +46,20 @@
 
         /* --- CONTENT AREA --- */
         .main-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0 16px; position: relative; }
+        
+        /* SEARCH ITEM WRAP FIX */
         .search-item { display: flex; align-items: center; gap: 12px; padding: 15px 0; border-bottom: 1px solid #f0f0f0; }
-        .thumb-img { width: 65px; height: 65px; border-radius: 10px; object-fit: contain; background: #f9f9f9; cursor: zoom-in; }
+        .thumb-img { width: 65px; height: 65px; border-radius: 10px; flex-shrink: 0; object-fit: contain; background: #f9f9f9; cursor: zoom-in; }
+        
+        /* SOLUSI WRAP TEXT BARCODE */
+        .barcode-text-list { 
+            font-size: 11px; 
+            color: #666; 
+            word-break: break-all; /* Memaksa teks barcode pecah baris jika kepanjangan */
+            display: block;
+            margin-top: 2px;
+            line-height: 1.2;
+        }
 
         /* --- IMAGE MODAL --- */
         #imgModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; backdrop-filter: blur(15px); align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; }
@@ -65,11 +67,11 @@
         #modalImg { max-width: 90%; max-height: 80%; border-radius: 15px; transform: scale(0.8); transition: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
         #imgModal.active #modalImg { transform: scale(1); }
 
-        /* --- DETAIL --- */
+        /* --- DETAIL & BARCODE IMAGE --- */
         .product-detail-card { display: none; padding-bottom: 100px; }
         .product-detail-card.active { display: block; animation: slideUp 0.3s ease both; }
         .barcode-wrapper { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; width: 100%; }
-        .barcode-img-container { background: white; padding: 15px; border-radius: 18px; border: 1px dashed #ccc; text-align: center; width: 100%; overflow: hidden; }
+        .barcode-img-container { background: white; padding: 15px; border-radius: 18px; border: 1px dashed #ccc; text-align: center; width: 100%; }
         .barcode-img-container img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
         .floating-back { position: fixed; top: 20px; left: 20px; width: 45px; height: 45px; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 8000; }
         .price-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
@@ -100,7 +102,7 @@
 
 <div id="loginScreen">
     <h1 style="color:var(--miniso-red); font-size: 3.5rem; margin-bottom: 0; letter-spacing: -3px; font-weight: 900;">MINISO</h1>
-    <p style="color:#888; margin-bottom: 30px; font-weight: 500;">Inventory System v5.3</p>
+    <p style="color:#888; margin-bottom: 30px; font-weight: 500;">Inventory System v5.5</p>
     <input type="text" id="username" class="login-input" placeholder="Username">
     <input type="password" id="password" class="login-input" placeholder="Password">
     <button class="btn-login" onclick="handleLogin()">MASUK</button>
@@ -149,8 +151,7 @@
         document.getElementById('modalImg').src = src;
         modal.style.display = 'flex';
         setTimeout(() => modal.classList.add('active'), 10);
-        // Stop event propagation agar tidak memicu click detail
-        event.stopPropagation();
+        if(event) event.stopPropagation();
     }
 
     function closeImgModal() {
@@ -215,12 +216,11 @@
                     <img class="thumb-img" src="${p.Image || ''}" 
                          onclick="openImgModal(this.src)" 
                          onerror="this.src='https://placehold.co/100x100?text=No+Img'">
-                    <div style="flex:1">
-                        <small style="color:var(--miniso-red); font-weight:bold;">${p.Category || 'GENERAL'}</small>
-                        <div style="font-weight:bold; font-size:14px;">${p.Name}</div>
-                        <div style="font-size:11px; color:#666;">${p.Barcode}</div>
+                    <div style="flex:1; min-width: 0;"> <small style="color:var(--miniso-red); font-weight:bold;">${p.Category || 'GENERAL'}</small>
+                        <div style="font-weight:bold; font-size:14px; overflow: hidden; text-overflow: ellipsis;">${p.Name}</div>
+                        <span class="barcode-text-list">${p.Barcode}</span>
                     </div>
-                    <div style="font-weight:bold; color:var(--miniso-red);">${cleanPrice(p["Regular Store Price"])}</div>
+                    <div style="font-weight:bold; color:var(--miniso-red); flex-shrink:0; margin-left:10px;">${cleanPrice(p["Regular Store Price"])}</div>
                 </div>
             `).join('');
         }
@@ -257,7 +257,7 @@
             const bcType = bc.length >= 12 ? 'ean13' : 'code128';
             return `<div class="barcode-img-container">
                 <img src="https://bwipjs-api.metafloor.com/?bcid=${bcType}&text=${bc}&scale=3&rotate=N&includetext">
-                <div style="margin-top:10px; font-weight:bold; font-size:13px; color:#555;">${bc}</div>
+                <div style="margin-top:10px; font-weight:bold; font-size:13px; color:#555; word-break:break-all;">${bc}</div>
             </div>`;
         }).join('');
 

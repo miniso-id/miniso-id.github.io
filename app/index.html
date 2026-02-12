@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X</title>
+    <title>MMS-X Deluxe</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
@@ -23,14 +23,45 @@
             height: 100vh; overflow: hidden;
         }
 
-        /* --- DASHBOARD (Langsung Muncul) --- */
+        /* --- STYLE BANNER BARU --- */
+        .hero-banner {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto 5px;
+            padding: 0 20px;
+            animation: fadeIn 0.6s ease;
+        }
+        .banner-card {
+            background: linear-gradient(135deg, #e61523 0%, #ff4d5a 100%);
+            border-radius: 24px;
+            padding: 25px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(230, 21, 35, 0.2);
+        }
+        .banner-card h2 { margin: 0; font-size: 24px; font-weight: 900; position: relative; z-index: 2; }
+        .banner-card p { margin: 5px 0 0; font-size: 14px; opacity: 0.9; position: relative; z-index: 2; line-height: 1.4; }
+        .banner-card::after {
+            content: "";
+            position: absolute;
+            right: -20px;
+            bottom: -20px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 50%;
+            z-index: 1;
+        }
+
+        /* --- DASHBOARD --- */
         #dashboard { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
             gap: 15px; 
-            padding: 20px; 
+            padding: 15px 20px; 
             max-width: 600px; 
-            margin: 40px auto; 
+            margin: 0 auto 40px; 
             animation: fadeIn 0.4s ease; 
         }
         .menu-card { 
@@ -57,37 +88,24 @@
         .menu-card h3 { margin: 0; font-size: 15px; font-weight: 800; }
         .menu-card p { margin: 5px 0 0 0; font-size: 11px; color: #888; }
 
-        /* --- HEADER --- */
+        /* --- HEADER & LAINNYA --- */
         #ui-header { background: #fff; padding: 15px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; display: none; }
         .top-bar { display: flex; gap: 10px; align-items: center; max-width: 1200px; margin: auto; }
         .search-container { position: relative; flex: 1; }
         #searchInput { width: 100%; height: 44px; padding: 0 50px 0 15px; border-radius: 12px; border: 1.5px solid #eee; background: #f8f8f8; outline: none; }
         #scanBtn { position: absolute; right: 5px; top: 5px; width: 34px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-
-        /* --- SCANNER --- */
         #reader { display:none; width:100%; max-width: 450px; aspect-ratio:1/1; margin:10px auto; background:#000; border-radius:20px; overflow:hidden; position:relative; }
         .focus-guide { position: absolute; inset: 20%; border: 2px solid var(--miniso-red); border-radius: 10px; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.5); }
-
-        /* --- MAIN AREA --- */
         .main-content { height: 100vh; overflow-y: auto; }
         #listContainer { max-width: 1200px; margin: auto; padding: 15px; display: none; }
         .search-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f5f5f5; cursor: pointer; }
         .thumb-img { width: 70px; height: 70px; border-radius: 10px; object-fit: contain; background: #f9f9f9; }
-
-        @media (min-width: 768px) {
-            #listContainer { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
-            .search-item { flex-direction: column; align-items: flex-start; padding: 15px; border: 1px solid #eee; border-radius: 15px; }
-            .thumb-img { width: 100%; height: 160px; }
-        }
-
-        /* --- DETAIL --- */
         .product-detail-card { display: none; max-width: 800px; margin: auto; padding-bottom: 50px; }
         .price-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
         .price-item { padding: 15px; border-radius: 15px; text-align: center; }
         .price-item.reg { background: var(--miniso-soft); color: var(--miniso-red); }
         .price-item.str { background: #f4f4f4; }
         .barcode-img-container { text-align: center; padding: 20px; border: 1px dashed #ccc; border-radius: 15px; margin-top: 20px; }
-
         .floating-back { position: fixed; top: 15px; left: 15px; width: 40px; height: 40px; background: white; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 200; border: none; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -117,8 +135,16 @@
     </header>
 
     <main class="main-content" id="scrollContainer">
+        
+        <div id="heroSection" class="hero-banner">
+            <div class="banner-card">
+                <h2>MMS-X Deluxe</h2>
+                <p>Sistem Inventori Toko<br>Monitoring Harga & Stok Real-time</p>
+            </div>
+        </div>
+
         <div id="dashboard">
-            <div class="menu-card" onclick="window.location.href='https://miniso-id.github.io/app/price.html'">
+            <div class="menu-card" onclick="openPriceChecker()">
                 <div class="icon-box"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg></div>
                 <h3>Price Checker</h3>
                 <p>Cek Harga & Promo</p>
@@ -157,6 +183,7 @@
     function showDashboard() {
         if(isScanning) stopScan();
         document.getElementById("dashboard").style.display = "grid";
+        document.getElementById("heroSection").style.display = "block";
         document.getElementById("ui-header").style.display = "none";
         document.getElementById("listContainer").style.display = "none";
         document.getElementById("detailContainer").style.display = "none";
@@ -165,6 +192,7 @@
 
     function openPriceChecker() {
         document.getElementById("dashboard").style.display = "none";
+        document.getElementById("heroSection").style.display = "none";
         document.getElementById("ui-header").style.display = "block";
         document.getElementById("listContainer").style.display = window.innerWidth >= 768 ? "grid" : "block";
         search();

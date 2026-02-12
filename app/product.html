@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X Deluxe v4.6</title>
+    <title>MMS-X Deluxe v4.7</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
@@ -28,21 +28,21 @@
             height: 100vh; display: flex; flex-direction: column; overflow: hidden;
         }
 
-        /* --- LOGIN --- */
+        /* --- LOGIN SCREEN --- */
         #loginScreen {
             position: fixed; inset: 0; background: white; z-index: 9000;
             display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px;
         }
         .login-input {
             width: 100%; max-width: 340px; padding: 16px; margin-bottom: 12px; 
-            border: 1.5px solid #eee; border-radius: 14px; font-size: 16px;
+            border: 1.5px solid #eee; border-radius: 14px; font-size: 16px; outline: none;
         }
         .btn-login {
             width: 100%; max-width: 340px; padding: 16px; background: var(--miniso-red); 
-            color: white; border: none; border-radius: 14px; font-weight: bold;
+            color: white; border: none; border-radius: 14px; font-weight: bold; cursor: pointer;
         }
 
-        /* --- STICKY HEADER --- */
+        /* --- UI HEADER --- */
         #ui-header {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(15px);
@@ -73,13 +73,14 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.15);
         }
         #reader video { width: 100%; height: 100%; object-fit: cover; }
-        .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
 
-        /* --- CONTENT AREA --- */
+        /* --- MAIN CONTENT --- */
         .main-content { 
             flex: 1; overflow-y: auto; overflow-x: hidden; 
             padding: 0 16px; -webkit-overflow-scrolling: touch; position: relative; 
         }
+        .search-item { display: flex; align-items: center; gap: 12px; padding: 15px 0; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
+        .thumb-img { width: 65px; height: 65px; border-radius: 10px; object-fit: contain; background: #f9f9f9; }
 
         /* --- SIDEBAR --- */
         .sidebar {
@@ -91,59 +92,36 @@
         .sidebar a { color: #fff; text-decoration: none; display: block; padding: 15px; border-radius: 12px; margin-bottom: 5px; font-weight: 600; }
         #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 4000; display: none; backdrop-filter: blur(4px); }
 
-        /* --- SEARCH LIST --- */
-        .search-item { display: flex; align-items: center; gap: 12px; padding: 15px 0; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
-        .thumb-img { width: 65px; height: 65px; border-radius: 10px; object-fit: contain; background: #f9f9f9; }
-
-        /* --- FLOATING BACK --- */
+        /* --- DETAIL & MODAL --- */
+        .product-detail-card { display: none; padding-bottom: 100px; will-change: transform, opacity; }
+        .product-detail-card.active { display: block; animation: slideUp 0.3s ease both; }
         .floating-back {
             position: fixed; top: 20px; left: 20px; width: 45px; height: 45px; 
             background: rgba(255,255,255,0.9); backdrop-filter: blur(10px);
             border-radius: 50%; display: none; align-items: center; justify-content: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 8000; border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 8000;
         }
-
-        /* --- DETAIL CARD (FIXED SCROLL) --- */
-        .product-detail-card { 
-            display: none; 
-            padding-bottom: 100px; /* Ruang ekstra untuk barcode banyak */
-            will-change: transform, opacity;
-        }
-        .product-detail-card.active { display: block; animation: slideUp 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
-
         .price-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
         .price-item { padding: 15px; border-radius: 18px; text-align: center; }
         .price-item.reg { background: var(--miniso-soft); border: 1px solid rgba(230,21,35,0.1); }
         .price-item.str { background: var(--bg-gray); border: 1px solid #e5e5ea; }
-        
-        .promo-banner { padding: 20px; border-radius: 24px; background: #fff; border: 1.5px solid #eee; }
         .barcode-img-container { background: white; padding: 20px; border-radius: 20px; border: 1px dashed #ccc; text-align: center; margin-top: 15px; }
-
-        /* --- MODAL --- */
-        #imgModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; backdrop-filter: blur(15px); align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; }
-        #imgModal.active { display: flex; opacity: 1; }
-        #modalImg { max-width: 90%; max-height: 80%; transform: scale(0.8); transition: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        #imgModal.active #modalImg { transform: scale(1); }
 
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
 
-<div id="btnBackFloating" class="floating-back" onclick="back()">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-</div>
-
-<div id="imgModal" onclick="closeImgModal()">
-    <img id="modalImg" src="">
-</div>
-
 <div id="loginScreen">
     <h1 style="color:var(--miniso-red); font-size: 3.5rem; margin-bottom: 0; letter-spacing: -3px; font-weight: 900;">MINISO</h1>
-    <p style="color:#888; margin-bottom: 30px; font-weight: 500;">Inventory System v4.6</p>
+    <p style="color:#888; margin-bottom: 30px; font-weight: 500;">Inventory System v4.7</p>
     <input type="text" id="username" class="login-input" placeholder="Username">
     <input type="password" id="password" class="login-input" placeholder="Password">
     <button class="btn-login" onclick="handleLogin()">MASUK</button>
+</div>
+
+<div id="btnBackFloating" class="floating-back" onclick="back()">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
 </div>
 
 <div id="appContent" style="display:none; height: 100vh; flex-direction: column;">
@@ -166,7 +144,7 @@
         <select id="catFilter" style="width:100%; padding:12px; border-radius:12px; border:1px solid #eee; background: #fff; font-weight: bold;">
             <option value="">Semua Kategori</option>
         </select>
-        <div id="reader"><div class="focus-guide"></div></div>
+        <div id="reader"></div>
     </header>
 
     <main class="main-content" id="scrollContainer">
@@ -184,47 +162,86 @@
 
     let scanning = false, lastScroll = 0, timer;
 
-    function cleanPrice(val) {
-        if(!val) return "Rp0";
-        let str = String(val).replace(/Rp/g, "").replace(/\./g, "").trim();
-        let num = parseInt(str) || 0;
-        return "Rp" + num.toLocaleString('id-ID');
-    }
-
-    function openImgModal(src) {
-        if(!src || src.includes('placehold.co')) return;
-        const modal = document.getElementById('imgModal');
-        document.getElementById('modalImg').src = src;
-        modal.style.display = 'flex';
-        setTimeout(() => modal.classList.add('active'), 10);
-    }
-
-    function closeImgModal() {
-        const modal = document.getElementById('imgModal');
-        modal.classList.remove('active');
-        setTimeout(() => modal.style.display = 'none', 300);
-    }
-
+    // --- LOGIN LOGIC ---
     function handleLogin() {
         const u = document.getElementById("username").value;
         const p = document.getElementById("password").value;
         if((u === "admin" && p === "miniso123") || (u === "ID12" && p === "12121212")) {
             sessionStorage.setItem("logged", "true");
-            location.reload();
-        } else { alert("Login Gagal"); }
+            initApp();
+        } else { alert("Username atau Password Salah!"); }
     }
+
     function handleLogout() { sessionStorage.clear(); location.reload(); }
+
+    function initApp() {
+        if(sessionStorage.getItem("logged") === "true") {
+            document.getElementById("loginScreen").style.display = "none";
+            document.getElementById("appContent").style.display = "flex";
+            loadCategories();
+        }
+    }
+
     function toggleSidebar() { 
         document.getElementById("sidebar").classList.toggle("active");
         document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none";
     }
 
+    // --- SEARCH & UI ---
+    function cleanPrice(val) {
+        if(!val) return "Rp0";
+        let str = String(val).replace(/Rp/g, "").replace(/\./g, "").trim();
+        return "Rp" + (parseInt(str) || 0).toLocaleString('id-ID');
+    }
+
+    async function loadCategories() {
+        const { data } = await _supabase.from('export').select('Category');
+        if(data) {
+            const cats = [...new Set(data.map(i => i.Category))].filter(Boolean).sort();
+            cats.forEach(c => {
+                const opt = document.createElement("option");
+                opt.value = opt.textContent = c;
+                document.getElementById("catFilter").appendChild(opt);
+            });
+        }
+    }
+
+    document.getElementById("searchInput").oninput = () => {
+        clearTimeout(timer);
+        timer = setTimeout(async () => {
+            const q = document.getElementById("searchInput").value.trim();
+            const c = document.getElementById("catFilter").value;
+            if(!q && !c) { document.getElementById("listContainer").innerHTML = ""; return; }
+            let query = _supabase.from('export').select('*');
+            if(q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
+            if(c) query = query.eq('Category', c);
+            const { data } = await query.limit(50);
+            if(data) renderList(data);
+        }, 500);
+    };
+
+    function renderList(data) {
+        document.getElementById("listContainer").innerHTML = data.map(p => `
+            <div class="search-item" onclick="showDetail('${p.Barcode}')">
+                <img class="thumb-img" src="${p.Image || ''}" onerror="this.src='https://placehold.co/100x100?text=No+Img'">
+                <div style="flex:1">
+                    <small style="color:var(--miniso-red); font-weight:bold;">${p.Category || 'GENERAL'}</small>
+                    <div style="font-weight:bold; font-size:14px;">${p.Name}</div>
+                    <div style="font-size:11px; color:#666;">${p.Barcode}</div>
+                </div>
+                <div style="font-weight:bold; color:var(--miniso-red);">${cleanPrice(p["Regular Store Price"])}</div>
+            </div>
+        `).join('');
+    }
+
+    // --- SCANNER ---
     document.getElementById("scanBtn").onclick = () => {
-        if (scanning) { Quagga.stop(); scanning = false; document.getElementById("reader").style.display = "none"; } 
+        const r = document.getElementById("reader");
+        if (scanning) { Quagga.stop(); scanning = false; r.style.display = "none"; } 
         else { 
-            scanning = true; document.getElementById("reader").style.display = "block";
+            scanning = true; r.style.display = "block";
             Quagga.init({
-                inputStream: { type: "LiveStream", target: document.getElementById("reader"), constraints: { facingMode: "environment" } },
+                inputStream: { type: "LiveStream", target: r, constraints: { facingMode: "environment" } },
                 decoder: { readers: ["ean_reader", "code_128_reader"] }
             }, (err) => { if (!err) Quagga.start(); });
         }
@@ -237,105 +254,58 @@
         showDetail(res.codeResult.code);
     });
 
-    // --- SEARCH ---
-    input.oninput = () => { clearTimeout(timer); timer = setTimeout(search, 500); };
-    catFilter.onchange = search;
-
-    async function search() {
-        const q = input.value.trim();
-        if(!q && !catFilter.value) { listCont.innerHTML = ""; return; }
-        let query = _supabase.from('export').select('*');
-        if(q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
-        if(catFilter.value) query = query.eq('Category', catFilter.value);
-        const { data } = await query.limit(50);
-        if(data) renderList(data);
-    }
-
-    function renderList(data) {
-        listCont.innerHTML = data.map(p => `
-            <div class="search-item" onclick="showDetail('${p.Barcode}')">
-                <img class="thumb-img" src="${p.Image || ''}" onerror="this.src='https://placehold.co/100x100?text=No+Img'">
-                <div style="flex:1">
-                    <small style="color:var(--miniso-red); font-weight:bold;">${p.Category || 'GENERAL'}</small>
-                    <div style="font-weight:bold; font-size:14px;">${p.Name || ''}</div>
-                    <div style="font-size:11px; color:#666;">${p.Barcode}</div>
-                </div>
-                <div style="font-weight:bold; color:var(--miniso-red);">${cleanPrice(p["Regular Store Price"])}</div>
-            </div>
-        `).join('');
-    }
-
-    // --- DETAIL (FIXED SCROLL & MULTI BARCODE) ---
+    // --- DETAIL ---
     async function showDetail(fullBarcode) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;
         const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();
+        if(!data) return;
 
-        if(data) {
-            listCont.style.opacity = "0"; header.style.opacity = "0";
-            setTimeout(() => {
-                listCont.style.display = "none"; header.style.display = "none";
-                
-                // MULTI-BARCODE LOGIC
-                const barcodes = String(data.Barcode).split('/').map(b => b.trim());
-                const barcodeHtml = barcodes.map(bc => {
-                    const bcType = bc.length === 13 ? 'ean13' : 'code128';
-                    return `
-                        <div class="barcode-img-container">
-                            <img src="https://bwipjs-api.metafloor.com/?bcid=${bcType}&text=${bc}&scale=3&rotate=N&includetext" style="max-width:100%;">
-                            <div style="margin-top:10px; font-weight:bold; font-size:12px; color:#666;">${bc}</div>
-                        </div>
-                    `;
-                }).join('');
+        document.getElementById("listContainer").style.display = "none";
+        document.getElementById("ui-header").style.display = "none";
+        
+        const barcodes = String(data.Barcode).split('/').map(b => b.trim());
+        const barcodeHtml = barcodes.map(bc => {
+            const bcType = bc.length === 13 ? 'ean13' : 'code128';
+            return `<div class="barcode-img-container">
+                <img src="https://bwipjs-api.metafloor.com/?bcid=${bcType}&text=${bc}&scale=3&rotate=N&includetext" style="max-width:100%;">
+                <div style="margin-top:10px; font-weight:bold; font-size:12px; color:#666;">${bc}</div>
+            </div>`;
+        }).join('');
 
-                detCont.innerHTML = `
-                    <div style="text-align:center; margin-bottom:20px;">
-                        <img src="${data.Image || ''}" style="width:100%; max-height:380px; object-fit:contain; background:#fff;" onclick="openImgModal(this.src)" onerror="this.src='https://placehold.co/300x300?text=No+Image'">
-                    </div>
-                    <div style="padding:0 5px;">
-                        <small style="color:var(--miniso-red); font-weight:bold;">${data.Category || 'GENERAL'}</small>
-                        <h2 style="margin:5px 0 20px 0; font-size: 26px; line-height:1.1; font-weight: 800;">${data.Name}</h2>
-                        
-                        <div class="price-box">
-                            <div class="price-item reg">
-                                <small style="color:var(--miniso-red); font-weight:800; text-transform:uppercase; font-size:10px;">Regular Store</small>
-                                <div style="color:var(--miniso-red); font-size:20px; font-weight:900; margin-top:4px;">${cleanPrice(data["Regular Store Price"])}</div>
-                            </div>
-                            <div class="price-item str">
-                                <small style="color:#666; font-weight:800; text-transform:uppercase; font-size:10px;">Street Store</small>
-                                <div style="color:var(--text-dark); font-size:20px; font-weight:900; margin-top:4px;">${cleanPrice(data["Street Store Price"])}</div>
-                            </div>
-                        </div>
-
-                        <div class="promo-banner">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid #f0f0f0;">
-                                <span style="color:#666; font-size:12px; font-weight:600;">REGULAR PROMO</span> 
-                                <b style="color:var(--promo-blue); text-align:right;">${data["Regular Store Promo"] || "NORMAL PRICE"}</b>
-                            </div>
-                            <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <span style="color:#666; font-size:12px; font-weight:600;">STREET PROMO</span> 
-                                <b style="color:var(--promo-green); text-align:right;">${data["Street Store Promo"] || "NORMAL PRICE"}</b>
-                            </div>
-                            ${data["Extra Promo"] ? `<div style="text-align:center; margin-top:15px; padding:10px; border-radius:12px; background:var(--miniso-soft); color:var(--miniso-red); font-weight:900; font-size:13px; border:1px dashed var(--miniso-red);">${data["Extra Promo"]}</div>` : ''}
-                        </div>
-                        <div style="margin-top:20px;">${barcodeHtml}</div>
-                    </div>
-                `;
-                detCont.style.display = "block";
-                setTimeout(() => { detCont.classList.add('active'); floatingBack.style.display = "flex"; }, 10);
-                document.getElementById("scrollContainer").scrollTo(0, 0);
-            }, 200);
-        }
+        const det = document.getElementById("detailContainer");
+        det.innerHTML = `
+            <div style="text-align:center;"><img src="${data.Image || ''}" style="width:100%; max-height:380px; object-fit:contain; background:#fff;" onerror="this.src='https://placehold.co/300x300?text=No+Image'"></div>
+            <div style="padding:15px 5px;">
+                <small style="color:var(--miniso-red); font-weight:bold;">${data.Category || 'GENERAL'}</small>
+                <h2 style="margin:5px 0 20px 0; font-size:26px; font-weight:800; line-height:1.1;">${data.Name}</h2>
+                <div class="price-box">
+                    <div class="price-item reg"><small>Regular Store</small><div style="color:var(--miniso-red); font-size:20px; font-weight:900;">${cleanPrice(data["Regular Store Price"])}</div></div>
+                    <div class="price-item str"><small>Street Store</small><div style="font-size:20px; font-weight:900;">${cleanPrice(data["Street Store Price"])}</div></div>
+                </div>
+                <div class="promo-banner">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span>REGULAR PROMO</span> <b style="color:var(--promo-blue);">${data["Regular Store Promo"] || "NORMAL"}</b></div>
+                    <div style="display:flex; justify-content:space-between;"><span>STREET PROMO</span> <b style="color:var(--promo-green);">${data["Street Store Promo"] || "NORMAL"}</b></div>
+                </div>
+                <div style="margin-top:20px;">${barcodeHtml}</div>
+            </div>
+        `;
+        det.style.display = "block";
+        setTimeout(() => { det.classList.add('active'); document.getElementById("btnBackFloating").style.display = "flex"; }, 10);
+        document.getElementById("scrollContainer").scrollTo(0, 0);
     }
 
     function back() {
-        detCont.classList.remove('active'); floatingBack.style.display = "none";
+        document.getElementById("detailContainer").classList.remove('active');
+        document.getElementById("btnBackFloating").style.display = "none";
         setTimeout(() => {
-            detCont.style.display = "none"; header.style.display = "block"; listCont.style.display = "block";
-            setTimeout(() => { header.style.opacity = "1"; listCont.style.opacity = "1"; document.getElementById("scrollContainer").scrollTop = lastScroll; }, 10);
+            document.getElementById("detailContainer").style.display = "none";
+            document.getElementById("ui-header").style.display = "block";
+            document.getElementById("listContainer").style.display = "block";
+            document.getElementById("scrollContainer").scrollTop = lastScroll;
         }, 300);
     }
 
-    window.onload = () => { if(sessionStorage.getItem("logged")) { document.getElementById("loginScreen").style.display="none"; document.getElementById("appContent").style.display="flex"; search(); } };
+    window.onload = initApp;
 </script>
 </body>
 </html>

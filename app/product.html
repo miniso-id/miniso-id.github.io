@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X Final Online</title>
+    <title>MMS-X</title>
     
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -204,7 +204,7 @@
                 .from('export')
                 .select('*')
                 .or(`Name.ilike.%${q}%,Barcode.eq.${q}`)
-                .limit(25);
+                .limit(5000);
 
             loader.style.display = "none";
             if (error) throw error;

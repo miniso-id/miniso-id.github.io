@@ -22,14 +22,11 @@
 
         .app-wrapper { display: flex; height: 100vh; width: 100%; position: relative; }
 
-        /* --- SIDEBAR PERBAIKAN TRANSISI --- */
         .sidebar {
             width: var(--sidebar-width); background-color: var(--miniso-red); color: #fff;
             display: flex; flex-direction: column; padding: 20px;
             z-index: 2000; flex-shrink: 0;
             box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-            
-            /* Gunakan transform untuk performa 60fps */
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             will-change: transform;
         }
@@ -37,7 +34,6 @@
         .sidebar a { text-decoration: none; color: #fff; padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; display: block; font-weight: 500; transition: background 0.2s; }
         .sidebar a:hover, .sidebar a.active-link { background-color: rgba(255,255,255,0.2); }
 
-        /* --- OVERLAY PERBAIKAN FADE --- */
         #overlay { 
             position: fixed; 
             inset: 0; 
@@ -54,7 +50,6 @@
 
         .main-content { flex: 1; padding: 15px; overflow-y: auto; position: relative; z-index: 100; }
 
-        /* --- TOP BAR --- */
         .top-bar {
             display: flex; align-items: center; gap: 10px; margin-bottom: 15px;
             background: white; padding: 10px; border-radius: 12px;
@@ -75,7 +70,6 @@
             position: absolute; right: 2px; display: flex; align-items: center; justify-content: center;
         }
 
-        /* --- SCANNER VIEW --- */
         #reader {
             display:none; width:100%; max-width:340px; aspect-ratio:1/1;
             margin:15px auto; background:#000; border-radius:20px;
@@ -96,7 +90,6 @@
         #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
         #videoSource { padding: 10px; border-radius: 8px; border: 2px solid var(--miniso-red); width: 100%; max-width: 300px; font-weight: 600; }
 
-        /* --- PRODUCT CARD --- */
         .product-card {
             background: white; border-radius: 18px; overflow: hidden;
             box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px;
@@ -138,16 +131,9 @@
         #history { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
         #history span { padding: 6px 12px; background: #fff; border: 1px solid #eee; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: 600; color: #666; }
 
-        /* Media Query Responsive Sidebar */
         @media (max-width: 768px) {
-            .sidebar { 
-                position: fixed; 
-                height: 100%; 
-                left: 0; 
-                top: 0; 
-                transform: translateX(-100%); /* Awalnya tersembunyi */
-            }
-            .sidebar.active { transform: translateX(0); } /* Muncul dengan transisi halus */
+            .sidebar { position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); }
+            .sidebar.active { transform: translateX(0); }
         }
     </style>
 </head>
@@ -156,8 +142,8 @@
 <div class="app-wrapper">
     <nav class="sidebar" id="sidebar">
         <h2>MMS-X (beta)</h2>
-        <a href="https://miniso-id.github.io/app/" class="active-link">📸 Price Check</a>
-        <a href="https://miniso-id.github.io/app/product.html">📝 Product</a>
+        <a href="https://miniso-id.github.io/app/" class="active-link">Home</a>
+        <a href="https://miniso-id.github.io/app/product.html">Product</a>
     </nav>
     <div id="overlay"></div>
 
@@ -199,6 +185,7 @@
     let barcodeIndex = new Map();
     let history = [];
     let scanning = false;
+    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
 
     fetch("https://miniso-id.github.io/product/products.json").then(r => r.json()).then(data => {
         data.forEach(p => { if(p.b) p.b.split("/").forEach(c => barcodeIndex.set(c.trim(), p)); });
@@ -207,34 +194,45 @@
 
     const toggleSidebar = () => {
         const isActive = sidebar.classList.toggle('active');
-        if (isActive) {
-            overlay.classList.add('show');
-        } else {
-            overlay.classList.remove('show');
-        }
+        if (isActive) { overlay.classList.add('show'); } 
+        else { overlay.classList.remove('show'); }
     };
 
     document.getElementById('menuToggle').onclick = toggleSidebar;
     overlay.onclick = toggleSidebar;
 
-    scanBtn.onclick = () => { if (scanning) { stopScan(); } else { startScan(); } };
+    scanBtn.onclick = () => { if (scanning) { stopScan(); } else { startScan(lastSelectedDeviceId); } };
     
     async function startScan(deviceId = null) {
         scanning = true; reader.style.display = "block";
+        
+        // PERBAIKAN: Selalu prioritaskan kamera belakang (environment) 
+        // namun gunakan deviceId spesifik jika user sudah memilih manual.
+        const constraints = {
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            facingMode: "environment" // Paksa ke arah belakang
+        };
+
+        if (deviceId) {
+            constraints.deviceId = { exact: deviceId };
+        }
+
         Quagga.init({
             inputStream: {
-                type: "LiveStream", target: reader,
-                constraints: { 
-                    width: { ideal: 1920 }, 
-                    height: { ideal: 1080 }, 
-                    deviceId: deviceId, 
-                    facingMode: "environment"
-                },
+                type: "LiveStream", 
+                target: reader,
+                constraints: constraints,
                 area: { top: "20%", right: "20%", left: "20%", bottom: "20%" }
             },
             decoder: { readers: ["ean_reader", "code_128_reader"] }
         }, (err) => {
-            if (err) return;
+            if (err) {
+                console.error(err);
+                // Jika error (misal ID tidak valid), coba tanpa deviceId tapi tetap facingMode environment
+                if(deviceId) startScan(null);
+                return;
+            }
             Quagga.start();
             updateCameraList();
         });
@@ -242,25 +240,33 @@
 
     async function updateCameraList() {
         const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(d => {
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+
+        // Filter hanya kamera belakang
+        const backCameras = videoDevices.filter(d => {
             const label = d.label.toLowerCase();
-            return d.kind === 'videoinput' && 
-                   !label.includes('front') && 
-                   !label.includes('user') && 
-                   !label.includes('depan');
+            return !label.includes('front') && !label.includes('user') && !label.includes('depan');
         });
 
-        const finalDevices = videoDevices.length > 0 ? videoDevices : devices.filter(d => d.kind === 'videoinput');
+        const finalDevices = backCameras.length > 0 ? backCameras : videoDevices;
         
         if (finalDevices.length <= 1) {
             cameraControl.style.display = "none";
         } else {
             cameraControl.style.display = "block";
-            videoSource.innerHTML = finalDevices.map(d => `<option value="${d.deviceId}">${d.label || 'Back Camera'}</option>`).join("");
+            videoSource.innerHTML = finalDevices.map(d => 
+                `<option value="${d.deviceId}" ${d.deviceId === lastSelectedDeviceId ? 'selected' : ''}>${d.label || 'Kamera Belakang'}</option>`
+            ).join("");
         }
     }
 
-    videoSource.onchange = () => { Quagga.stop(); startScan(videoSource.value); };
+    videoSource.onchange = () => { 
+        lastSelectedDeviceId = videoSource.value;
+        localStorage.setItem('preferredCameraId', lastSelectedDeviceId);
+        Quagga.stop(); 
+        startScan(lastSelectedDeviceId); 
+    };
+
     function stopScan() { Quagga.stop(); scanning = false; reader.style.display = "none"; cameraControl.style.display = "none"; }
 
     Quagga.onDetected(res => {
@@ -278,9 +284,7 @@
         if(!q || !barcodeIndex.has(q)) { result.innerHTML = ""; return; }
         const p = barcodeIndex.get(q);
         addHistory(q);
-
         const discountLabel = (p.e && p.e !== "NORMAL PRICE") ? `<div class="promo-badge">${p.e}</div>` : "";
-
         result.innerHTML = `
             <div class="product-card">
                 <div class="image-box">
@@ -291,7 +295,6 @@
                     <span class="p-cat">${p.c}</span>
                     <h3 class="p-title">${p.n}</h3>
                     <p class="p-desc">${p.d || ''}</p>
-                    
                     <div class="price-comparison-grid">
                         <div class="price-item reg">
                             <span class="price-label">Regular Price</span>
@@ -302,7 +305,6 @@
                             <span class="price-val">Rp${p.s.toLocaleString('id-ID')}</span>
                         </div>
                     </div>
-
                     <div class="p-meta">
                         <div class="meta-row"><span class="meta-label">Barcode</span><span class="meta-val">${q}</span></div>
                         <div class="meta-row">

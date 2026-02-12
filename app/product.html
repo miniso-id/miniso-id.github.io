@@ -248,7 +248,7 @@
             if (q) query = query.or(`Name.ilike.%${q}%,Barcode.eq.${q}`);
             if (cat) query = query.eq('Category', cat);
 
-            const { data, error } = await query.limit(50).order('Name', { ascending: true });
+            const { data, error } = await query.limit(5000).order('Name', { ascending: true });
             loader.style.display = "none";
             if (error) throw error;
             renderList(data);

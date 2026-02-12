@@ -10,7 +10,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
+    
     <style>
         :root {
             --miniso-red: #e61523;
@@ -85,7 +87,6 @@
         #reader video { width: 100%; height: 100%; object-fit: cover; }
         .focus-guide { position: absolute; inset: 20%; border: 2px solid rgba(255,255,255,0.5); border-radius: 20px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.5); }
         
-        /* Camera Selector Style */
         #cameraSelector { display: none; width: 100%; max-width: 350px; margin: 0 auto 15px; }
         #videoSource { width: 100%; padding: 12px; border-radius: 12px; border: 2px solid var(--miniso-red); background: white; font-weight: bold; color: var(--miniso-red); outline: none; font-size: 14px; }
 
@@ -97,7 +98,7 @@
         #imagePopup { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:6000; align-items:center; justify-content:center; backdrop-filter: blur(8px); animation: fadeIn 0.2s ease-out; }
         #popupImg { max-width: 90%; max-height: 80%; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); animation: zoomIn 0.3s cubic-bezier(0.17, 0.89, 0.32, 1.28); }
 
-        /* --- DETAIL & BARCODE CENTERED --- */
+        /* --- DETAIL & BARCODE --- */
         .product-card { background: white; border-radius: 24px; overflow: hidden; display: none; animation: slideUp 0.4s ease-out; }
         .price-item { background: var(--bg-gray); padding: 15px; border-radius: 16px; text-align: center; border: 1px solid #e5e5ea; }
         .barcode-box { background: #fff; padding: 20px; border-radius: 20px; border: 1px dashed #ccc; margin-top: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
@@ -133,7 +134,7 @@
         <nav class="sidebar" id="sidebar">
             <h2>MMS-X</h2>
             <div id="userDisplay" class="user-tag"></div>
-            <a href="https://miniso-id.github.io/app/" style="background:rgba(255,255,255,0.15)">📸 Price Check</a>
+            <a href="#" style="background:rgba(255,255,255,0.15)">📸 Price Check</a>
             <a href="https://miniso-id.github.io/so/">📦 Stock Opname ID12</a>
             <a href="#" class="logout-btn" onclick="handleLogout()">LOGOUT</a>
         </nav>
@@ -145,7 +146,7 @@
                     <div class="top-bar">
                         <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
                         <div class="search-container">
-                            <input id="searchInput" placeholder="Loading Data...">
+                            <input id="searchInput" placeholder="Loading Data Supabase...">
                             <button id="scanBtn">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2m-10 0H5a2 2 0 0 1-2-2v-2"></path></svg>
                             </button>
@@ -172,10 +173,16 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
-    const USERS = { "admin": { pass: "miniso123", name: "Administrator" }, 
-                   "ID12": { pass: "12121212", name: "ID12 Central Park" },
-                   "JKT1": { pass: "Jakarta1@2026", name: "Jakarta 1" } 
-                  };
+    // --- KONFIGURASI SUPABASE ---
+    const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co"; 
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const USERS = { 
+        "admin": { pass: "miniso123", name: "Administrator" }, 
+        "ID12": { pass: "12121212", name: "ID12 Central Park" },
+        "JKT1": { pass: "Jakarta1@2026", name: "Jakarta 1" } 
+    };
 
     function handleLogin() {
         const u = document.getElementById("username").value.trim();
@@ -187,6 +194,10 @@
         } else { document.getElementById("loginError").style.display = "block"; }
     }
     function handleLogout() { sessionStorage.clear(); location.reload(); }
+    function toggleSidebar() { 
+        document.getElementById("sidebar").classList.toggle("active"); 
+        document.getElementById("overlay").classList.toggle("active"); 
+    }
 
     let allProducts = [], barcodeIndex = new Map(), lastScrollPos = 0, scanning = false;
     const input = document.getElementById("searchInput"), catFilter = document.getElementById("catFilter");
@@ -195,32 +206,48 @@
     const videoSource = document.getElementById("videoSource");
     const cameraSelector = document.getElementById("cameraSelector");
 
-    function initApp() {
+    // --- INISIALISASI APP (AMBIL DATA SUPABASE) ---
+    async function initApp() {
         if(sessionStorage.getItem("isLoggedIn") !== "true") return;
         document.getElementById("loginScreen").style.display = "none";
         document.getElementById("appContent").style.display = "flex";
         document.getElementById("userDisplay").textContent = "Hi, " + sessionStorage.getItem("activeUserName");
 
-        fetch("https://miniso-id.github.io/product/products.json").then(r => r.json()).then(data => {
+        try {
+            // Tarik data dari Supabase (Tabel: produk)
+            const { data, error } = await _supabase.from('produk').select('*');
+            if (error) throw error;
+
             allProducts = data;
             const cats = new Set();
-            data.forEach(p => { 
-                if(p.b) p.b.split("/").forEach(c => barcodeIndex.set(c.trim(), p)); 
+            
+            allProducts.forEach(p => { 
+                // Mapping agar kode render lama tetap jalan
+                p.b = p.Barcode;
+                p.n = p.Description;
+                p.c = p.Category;
+                p.r = p.RegularPrice;
+                p.s = p.StreetPrice;
+                p.i = p.Image;
+                p.rp = p.RegularPromo;
+                p.sp = p.StreetPromo;
+                p.e = p.ExtraTag;
+
+                if(p.b) String(p.b).split("/").forEach(c => barcodeIndex.set(c.trim(), p)); 
                 if(p.c) cats.add(p.c);
             });
+
             Array.from(cats).sort().forEach(c => {
                 const o = document.createElement("option"); o.value = c; o.textContent = c; catFilter.appendChild(o);
             });
             input.placeholder = "Cari produk...";
-        });
+        } catch (err) {
+            console.error(err);
+            input.placeholder = "Error Koneksi Supabase!";
+        }
     }
 
-    function toggleSidebar() { 
-        document.getElementById("sidebar").classList.toggle("active"); 
-        document.getElementById("overlay").classList.toggle("active"); 
-    }
-
-    // --- LOGIKA SCANNER DENGAN PILIHAN KAMERA (SMART MEMORY) ---
+    // --- LOGIKA SCANNER ---
     document.getElementById("scanBtn").onclick = async () => { 
         if (scanning) { stopScan(); return; } 
         const lastCamera = localStorage.getItem("preferredCameraId");
@@ -230,23 +257,17 @@
     async function startScan(deviceId = null) {
         scanning = true; 
         reader.style.display = "block";
-
-        // Minta izin kamera agar label daftar kamera muncul
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            stream.getTracks().forEach(track => track.stop()); // Stop stream sementara untuk init Quagga
+            stream.getTracks().forEach(track => track.stop());
             await initCameraList(deviceId); 
-        } catch (e) {
-            console.error("Izin kamera diperlukan");
-        }
+        } catch (e) { console.error("Izin kamera diperlukan"); }
 
         Quagga.init({
             inputStream: { 
-                type: "LiveStream", 
-                target: reader, 
+                type: "LiveStream", target: reader, 
                 constraints: { 
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 },
+                    width: { ideal: 1920 }, height: { ideal: 1080 },
                     deviceId: deviceId ? { exact: deviceId } : undefined,
                     facingMode: deviceId ? undefined : "environment" 
                 },
@@ -255,10 +276,7 @@
             decoder: { readers: ["ean_reader", "code_128_reader"] },
             locate: true
         }, (err) => {
-            if (err) { 
-                if(deviceId) { startScan(null); return; } // Fallback jika ID salah
-                stopScan(); return; 
-            }
+            if (err) { if(deviceId) { startScan(null); return; } stopScan(); return; }
             Quagga.start();
         });
     }
@@ -266,15 +284,11 @@
     async function initCameraList(currentId) {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
-        
-        // Filter cerdas untuk mencari kamera belakang saja
         const backCameras = videoDevices.filter(d => {
             const label = d.label.toLowerCase();
             return label.includes('back') || label.includes('rear') || label.includes('belakang') || label.includes('0');
         });
-
         const finalDevices = backCameras.length > 0 ? backCameras : videoDevices;
-        
         if (finalDevices.length > 1) {
             cameraSelector.style.display = "block";
             videoSource.innerHTML = finalDevices.map((d, i) => 
@@ -282,23 +296,18 @@
                     ${d.label || 'Kamera Belakang ' + (i+1)}
                 </option>`
             ).join("");
-        } else {
-            cameraSelector.style.display = "none";
-        }
+        } else { cameraSelector.style.display = "none"; }
     }
 
     videoSource.onchange = () => {
         const newDeviceId = videoSource.value;
-        localStorage.setItem("preferredCameraId", newDeviceId); // Simpan pilihan permanen
-        Quagga.stop();
-        startScan(newDeviceId);
+        localStorage.setItem("preferredCameraId", newDeviceId);
+        Quagga.stop(); startScan(newDeviceId);
     };
 
     function stopScan() { 
-        Quagga.stop(); 
-        scanning = false; 
-        reader.style.display = "none"; 
-        cameraSelector.style.display = "none"; 
+        Quagga.stop(); scanning = false; 
+        reader.style.display = "none"; cameraSelector.style.display = "none"; 
     }
 
     Quagga.onDetected(res => {
@@ -311,7 +320,7 @@
         }
     });
 
-    // --- FITUR SEARCH & DETAIL (TIDAK BERUBAH) ---
+    // --- SEARCH & RENDER ---
     input.oninput = () => renderResults();
     catFilter.onchange = () => renderResults();
 
@@ -327,16 +336,11 @@
 
         document.getElementById("countDisplay").textContent = `Ditemukan ${filtered.length} produk`;
         let html = '';
-        filtered.slice(0, 5000).forEach(p => {
-            const b = p.b ? p.b.split("/")[0].trim() : "";
+        filtered.slice(0, 50).forEach(p => {
+            const b = p.b ? String(p.b).split("/")[0].trim() : "";
             html += `
                 <div class="search-item">
-                    <img class="thumb-img" 
-                     src="${p.i || ''}" 
-                     loading="lazy" 
-                     decoding="async" 
-                     onclick="openPopup('${p.i}')" 
-                     onerror="this.style.display='none';">
+                    <img class="thumb-img" src="${p.i || ''}" loading="lazy" onclick="openPopup('${p.i}')" onerror="this.style.visibility='hidden';">
                     <div style="flex:1" onclick="selectItem('${b}')">
                         <div style="font-size:10px; font-weight:800; color:var(--miniso-red);">${p.c || ''}</div>
                         <div style="font-size:14px; font-weight:700;">${p.n}</div>
@@ -365,8 +369,8 @@
                 <span style="color:var(--miniso-red); font-weight:800; font-size:12px;">${p.c || ''}</span>
                 <h2 style="margin:5px 0 20px 0; font-size:22px;">${p.n}</h2>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                    <div class="price-item"><small style="color:#8e8e93;">Regular Store: </small><b style="color:var(--miniso-red);">Rp${(p.r || 0).toLocaleString('id-ID')}</b></div>
-                    <div class="price-item"><small style="color:#8e8e93;">Street Store: </small><b>Rp${(p.s || 0).toLocaleString('id-ID')}</b></div>
+                    <div class="price-item"><small style="color:#8e8e93;">Regular: </small><b style="color:var(--miniso-red);">Rp${(p.r || 0).toLocaleString('id-ID')}</b></div>
+                    <div class="price-item"><small style="color:#8e8e93;">Street: </small><b>Rp${(p.s || 0).toLocaleString('id-ID')}</b></div>
                 </div>
                 <div style="background:#fff; border:1px solid #eee; border-radius:16px; padding:15px; margin-top:15px;">
                     <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:13px;"><span style="color:#666;">Regular Promo:</span> <b style="color:#007aff;">${p.rp || '-'}</b></div>
@@ -380,7 +384,10 @@
             </div>`;
     }
 
-    window.backToPrev = () => { detailContainer.style.display = "none"; listContainer.style.display = "block"; document.getElementById("ui-controls").style.display = "block"; setTimeout(() => { scrollContainer.scrollTo(0, lastScrollPos); }, 10); }
+    window.backToPrev = () => { 
+        detailContainer.style.display = "none"; listContainer.style.display = "block"; document.getElementById("ui-controls").style.display = "block"; 
+        setTimeout(() => { scrollContainer.scrollTo(0, lastScrollPos); }, 10); 
+    }
 
     function openPopup(src) { 
         if(!src || src === 'undefined') return;

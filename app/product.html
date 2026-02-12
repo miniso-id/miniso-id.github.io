@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X Deluxe v5.5</title>
+    <title>MMS-X Deluxe v5.6</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
@@ -44,22 +44,31 @@
         #searchInput { width: 100%; height: 46px; padding: 0 45px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
         #scanBtn { position: absolute; right: 6px; top: 6px; width: 34px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
 
-        /* --- CONTENT AREA --- */
+        /* --- ADVANCED SCANNER UI --- */
+        #reader {
+            display:none; width:100%; aspect-ratio:1/1;
+            margin:10px auto; background:#000; border-radius:20px;
+            overflow:hidden; position:relative; border: 4px solid white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        #reader video { width: 100%; height: 100%; object-fit: cover; }
+        .focus-guide {
+            position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red);
+            border-radius: 15px; pointer-events: none; z-index: 2;
+            box-shadow: 0 0 0 1000px rgba(0,0,0,0.4);
+        }
+        .tap-hint {
+            position: absolute; bottom: 10px; width: 100%; text-align: center;
+            color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3;
+        }
+        #cameraControl { display:none; margin-top: 10px; }
+        #videoSource { width:100%; padding: 10px; border-radius: 10px; border: 1.5px solid #eee; font-size: 13px; font-weight: 600; }
+
+        /* --- CONTENT & WRAP FIX --- */
         .main-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0 16px; position: relative; }
-        
-        /* SEARCH ITEM WRAP FIX */
         .search-item { display: flex; align-items: center; gap: 12px; padding: 15px 0; border-bottom: 1px solid #f0f0f0; }
         .thumb-img { width: 65px; height: 65px; border-radius: 10px; flex-shrink: 0; object-fit: contain; background: #f9f9f9; cursor: zoom-in; }
-        
-        /* SOLUSI WRAP TEXT BARCODE */
-        .barcode-text-list { 
-            font-size: 11px; 
-            color: #666; 
-            word-break: break-all; /* Memaksa teks barcode pecah baris jika kepanjangan */
-            display: block;
-            margin-top: 2px;
-            line-height: 1.2;
-        }
+        .barcode-text-list { font-size: 11px; color: #666; word-break: break-all; display: block; margin-top: 2px; line-height: 1.2; }
 
         /* --- IMAGE MODAL --- */
         #imgModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; backdrop-filter: blur(15px); align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; }
@@ -67,7 +76,7 @@
         #modalImg { max-width: 90%; max-height: 80%; border-radius: 15px; transform: scale(0.8); transition: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
         #imgModal.active #modalImg { transform: scale(1); }
 
-        /* --- DETAIL & BARCODE IMAGE --- */
+        /* --- DETAIL & PRICE --- */
         .product-detail-card { display: none; padding-bottom: 100px; }
         .product-detail-card.active { display: block; animation: slideUp 0.3s ease both; }
         .barcode-wrapper { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; width: 100%; }
@@ -102,7 +111,7 @@
 
 <div id="loginScreen">
     <h1 style="color:var(--miniso-red); font-size: 3.5rem; margin-bottom: 0; letter-spacing: -3px; font-weight: 900;">MINISO</h1>
-    <p style="color:#888; margin-bottom: 30px; font-weight: 500;">Inventory System v5.5</p>
+    <p style="color:#888; margin-bottom: 30px; font-weight: 500;">Inventory System v5.6</p>
     <input type="text" id="username" class="login-input" placeholder="Username">
     <input type="password" id="password" class="login-input" placeholder="Password">
     <button class="btn-login" onclick="handleLogin()">MASUK</button>
@@ -119,10 +128,16 @@
                 <button id="scanBtn">🔍</button>
             </div>
         </div>
-        <select id="catFilter" style="width:100%; padding:12px; border-radius:12px; border:1px solid #eee; background: #fff; font-weight: bold;">
+        
+        <div id="reader">
+            <div class="focus-guide"></div>
+            <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK FOKUS</div>
+        </div>
+        <div id="cameraControl"><select id="videoSource"></select></div>
+
+        <select id="catFilter" style="width:100%; padding:12px; margin-top:10px; border-radius:12px; border:1px solid #eee; background: #fff; font-weight: bold;">
             <option value="">Semua Kategori</option>
         </select>
-        <div id="reader" style="display:none; width:100%; aspect-ratio:1/1; margin-top:10px; border-radius:15px; overflow:hidden;"></div>
     </header>
 
     <main class="main-content" id="scrollContainer">
@@ -131,7 +146,7 @@
     </main>
 </div>
 
-<audio id="beep" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
+<audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
@@ -139,7 +154,9 @@
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let scanning = false, lastScroll = 0, timer;
+    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
 
+    // --- SIDEBAR & IMAGE MODAL ---
     function toggleSidebar() { 
         document.getElementById("sidebar").classList.toggle("active");
         document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none";
@@ -151,7 +168,7 @@
         document.getElementById('modalImg').src = src;
         modal.style.display = 'flex';
         setTimeout(() => modal.classList.add('active'), 10);
-        if(event) event.stopPropagation();
+        if(window.event) window.event.stopPropagation();
     }
 
     function closeImgModal() {
@@ -160,6 +177,7 @@
         setTimeout(() => modal.style.display = 'none', 300);
     }
 
+    // --- LOGIN ---
     function handleLogin() {
         const u = document.getElementById("username").value;
         const p = document.getElementById("password").value;
@@ -177,6 +195,7 @@
         loadCategories();
     }
 
+    // --- DATABASE HELPERS ---
     function cleanPrice(val) {
         if(!val) return "Rp0";
         let num = parseInt(String(val).replace(/[^0-9]/g, "")) || 0;
@@ -196,6 +215,7 @@
         }
     }
 
+    // --- SEARCH LOGIC ---
     document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 500); };
     document.getElementById("catFilter").onchange = search;
 
@@ -213,10 +233,9 @@
         if(data) {
             list.innerHTML = data.map(p => `
                 <div class="search-item" onclick="showDetail('${p.Barcode}')">
-                    <img class="thumb-img" src="${p.Image || ''}" 
-                         onclick="openImgModal(this.src)" 
-                         onerror="this.src='https://placehold.co/100x100?text=No+Img'">
-                    <div style="flex:1; min-width: 0;"> <small style="color:var(--miniso-red); font-weight:bold;">${p.Category || 'GENERAL'}</small>
+                    <img class="thumb-img" src="${p.Image || ''}" onclick="openImgModal(this.src)" onerror="this.src='https://placehold.co/100x100?text=No+Img'">
+                    <div style="flex:1; min-width: 0;">
+                        <small style="color:var(--miniso-red); font-weight:bold;">${p.Category || 'GENERAL'}</small>
                         <div style="font-weight:bold; font-size:14px; overflow: hidden; text-overflow: ellipsis;">${p.Name}</div>
                         <span class="barcode-text-list">${p.Barcode}</span>
                     </div>
@@ -226,24 +245,89 @@
         }
     }
 
+    // --- CANGKOK: NEW SCANNER ENGINE ---
     document.getElementById("scanBtn").onclick = () => {
-        const r = document.getElementById("reader");
-        if (scanning) { Quagga.stop(); scanning = false; r.style.display = "none"; } 
-        else { 
-            scanning = true; r.style.display = "block";
-            Quagga.init({
-                inputStream: { type: "LiveStream", target: r, constraints: { facingMode: "environment" } },
-                decoder: { readers: ["ean_reader", "code_128_reader"] }
-            }, (err) => { if (!err) Quagga.start(); });
-        }
+        if (scanning) { stopScan(); } 
+        else { startScan(lastSelectedDeviceId); }
     };
 
-    Quagga.onDetected(res => {
-        document.getElementById("beep").play();
-        Quagga.stop(); scanning = false; document.getElementById("reader").style.display = "none";
-        showDetail(res.codeResult.code);
+    async function startScan(deviceId = null) {
+        scanning = true; 
+        document.getElementById("reader").style.display = "block";
+        const constraints = {
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            facingMode: "environment"
+        };
+        if (deviceId) { constraints.deviceId = { exact: deviceId }; }
+
+        Quagga.init({
+            inputStream: {
+                type: "LiveStream",
+                target: document.getElementById("reader"),
+                constraints: constraints,
+                area: { top: "20%", right: "20%", left: "20%", bottom: "20%" } // Fokus di tengah kotak merah
+            },
+            decoder: { readers: ["ean_reader", "code_128_reader"] }
+        }, (err) => {
+            if (err) {
+                console.error(err);
+                if(deviceId) startScan(null); // Fallback jika ID salah
+                return;
+            }
+            Quagga.start();
+            updateCameraList();
+        });
+    }
+
+    async function updateCameraList() {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        const backCameras = videoDevices.filter(d => {
+            const label = d.label.toLowerCase();
+            return !label.includes('front') && !label.includes('user') && !label.includes('depan');
+        });
+        const finalDevices = backCameras.length > 0 ? backCameras : videoDevices;
+        
+        const control = document.getElementById("cameraControl");
+        const source = document.getElementById("videoSource");
+        if (finalDevices.length <= 1) {
+            control.style.display = "none";
+        } else {
+            control.style.display = "block";
+            source.innerHTML = finalDevices.map(d => 
+                `<option value="${d.deviceId}" ${d.deviceId === lastSelectedDeviceId ? 'selected' : ''}>${d.label || 'Kamera Belakang'}</option>`
+            ).join("");
+        }
+    }
+
+    document.getElementById("videoSource").onchange = (e) => { 
+        lastSelectedDeviceId = e.target.value;
+        localStorage.setItem('preferredCameraId', lastSelectedDeviceId);
+        Quagga.stop(); 
+        startScan(lastSelectedDeviceId); 
+    };
+
+    function stopScan() { 
+        Quagga.stop(); 
+        scanning = false; 
+        document.getElementById("reader").style.display = "none"; 
+        document.getElementById("cameraControl").style.display = "none"; 
+    }
+
+    Quagga.onDetected(async res => {
+        const code = res.codeResult.code;
+        // Validasi apakah barcode ada di Supabase
+        const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
+        if(data) {
+            document.getElementById("beepOk").play();
+            stopScan();
+            document.getElementById("searchInput").value = code;
+            showDetail(code);
+        }
     });
 
+    // --- DETAIL VIEW ---
     async function showDetail(fullBarcode) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;
         const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();

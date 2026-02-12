@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X Deluxe v5.8.2</title>
+    <title>MMS-X Deluxe v5.8.3</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
@@ -23,16 +23,37 @@
             height: 100vh; overflow: hidden;
         }
 
-        /* --- LOGIN SCREEN --- */
-        #loginScreen { position: fixed; inset: 0; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
-        .login-input { width: 100%; max-width: 340px; padding: 16px; margin-bottom: 12px; border: 1.5px solid #eee; border-radius: 14px; font-size: 16px; outline: none; }
-        .btn-login { width: 100%; max-width: 340px; padding: 16px; background: var(--miniso-red); color: white; border: none; border-radius: 14px; font-weight: bold; cursor: pointer; }
-
-        /* --- DASHBOARD --- */
-        #dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; max-width: 600px; margin: 20px auto; animation: fadeIn 0.4s ease; }
-        .menu-card { background: white; border-radius: 24px; padding: 25px 15px; text-align: center; border: 1px solid #f0f0f0; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        /* --- DASHBOARD (Langsung Muncul) --- */
+        #dashboard { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 15px; 
+            padding: 20px; 
+            max-width: 600px; 
+            margin: 40px auto; 
+            animation: fadeIn 0.4s ease; 
+        }
+        .menu-card { 
+            background: white; 
+            border-radius: 24px; 
+            padding: 25px 15px; 
+            text-align: center; 
+            border: 1px solid #f0f0f0; 
+            cursor: pointer; 
+            transition: 0.2s; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
+        }
         .menu-card:active { transform: scale(0.95); background: var(--miniso-soft); }
-        .icon-box { width: 60px; height: 60px; background: var(--miniso-soft); border-radius: 18px; display: flex; align-items: center; justify-content: center; color: var(--miniso-red); margin-bottom: 12px; }
+        .icon-box { 
+            width: 65px; height: 65px; 
+            background: var(--miniso-soft); 
+            border-radius: 20px; 
+            display: flex; align-items: center; justify-content: center; 
+            color: var(--miniso-red); margin-bottom: 12px; 
+        }
         .menu-card h3 { margin: 0; font-size: 15px; font-weight: 800; }
         .menu-card p { margin: 5px 0 0 0; font-size: 11px; color: #888; }
 
@@ -47,20 +68,20 @@
         #reader { display:none; width:100%; max-width: 450px; aspect-ratio:1/1; margin:10px auto; background:#000; border-radius:20px; overflow:hidden; position:relative; }
         .focus-guide { position: absolute; inset: 20%; border: 2px solid var(--miniso-red); border-radius: 10px; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.5); }
 
-        /* --- CONTENT AREA --- */
-        .main-content { height: 100vh; overflow-y: auto; padding-bottom: 50px; }
+        /* --- MAIN AREA --- */
+        .main-content { height: 100vh; overflow-y: auto; }
         #listContainer { max-width: 1200px; margin: auto; padding: 15px; display: none; }
         .search-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f5f5f5; cursor: pointer; }
         .thumb-img { width: 70px; height: 70px; border-radius: 10px; object-fit: contain; background: #f9f9f9; }
 
         @media (min-width: 768px) {
-            #listContainer[style*="display: grid"] { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+            #listContainer { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
             .search-item { flex-direction: column; align-items: flex-start; padding: 15px; border: 1px solid #eee; border-radius: 15px; }
             .thumb-img { width: 100%; height: 160px; }
         }
 
         /* --- DETAIL --- */
-        .product-detail-card { display: none; max-width: 800px; margin: auto; padding: 20px; }
+        .product-detail-card { display: none; max-width: 800px; margin: auto; padding-bottom: 50px; }
         .price-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
         .price-item { padding: 15px; border-radius: 15px; text-align: center; }
         .price-item.reg { background: var(--miniso-soft); color: var(--miniso-red); }
@@ -74,15 +95,7 @@
 </head>
 <body>
 
-<div id="loginScreen">
-    <h1 style="color:var(--miniso-red); font-size: 3rem; margin: 0; font-weight: 900;">MINISO</h1>
-    <p style="color:#888; margin-bottom: 30px;">Inventory System v5.8.2</p>
-    <input type="text" id="username" class="login-input" placeholder="Username">
-    <input type="password" id="password" class="login-input" placeholder="Password">
-    <button class="btn-login" onclick="handleLogin()">LOGIN</button>
-</div>
-
-<div id="appContent" style="display:none; height: 100vh; flex-direction: column;">
+<div id="appContent" style="display:flex; height: 100vh; flex-direction: column;">
     <button id="btnBackFloating" class="floating-back" onclick="backToSearch()">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
     </button>
@@ -104,26 +117,26 @@
     </header>
 
     <main class="main-content" id="scrollContainer">
-        <div id="dashboard" style="display:none;">
-            <div class="menu-card" onclick="window.location.href='https://miniso-id.github.io/app/price.html'">
-                <div class="icon-box"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg></div>
+        <div id="dashboard">
+            <div class="menu-card" onclick="openPriceChecker()">
+                <div class="icon-box"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg></div>
                 <h3>Price Checker</h3>
                 <p>Cek Harga & Promo</p>
             </div>
             <div class="menu-card" onclick="window.location.href='https://miniso-id.github.io/so/'">
-                <div class="icon-box"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
+                <div class="icon-box"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></div>
                 <h3>Stock Opname</h3>
                 <p>Input Data Stok</p>
             </div>
-            <div class="menu-card" onclick="window.location.href='https://miniso-id.github.io/app/product.html'">
-                <div class="icon-box"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></div>
+            <div class="menu-card" onclick="openPriceChecker()">
+                <div class="icon-box"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></div>
                 <h3>Gallery</h3>
-                <p>Product Search</p>
+                <p>Katalog Produk</p>
             </div>
-            <div class="menu-card" onclick="handleLogout()">
-                <div class="icon-box" style="background:#ffe5e5; color:red;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></div>
-                <h3>Logout</h3>
-                <p>Keluar Sistem</p>
+            <div class="menu-card" onclick="location.reload()">
+                <div class="icon-box" style="background:#f4f4f4; color:#333;"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></div>
+                <h3>Refresh</h3>
+                <p>Update Aplikasi</p>
             </div>
         </div>
 
@@ -135,37 +148,11 @@
 <audio id="beep" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
-    // 1. Inisialisasi Supabase
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let isScanning = false, lastScroll = 0, searchTimer;
-
-    // 2. Fungsi Login
-    function handleLogin() {
-        const u = document.getElementById("username").value.trim();
-        const p = document.getElementById("password").value.trim();
-        
-        if((u === "admin" && p === "miniso123") || (u === "ID12" && p === "12121212")) {
-            sessionStorage.setItem("logged", "true");
-            init();
-        } else { 
-            alert("Username atau Password salah!"); 
-        }
-    }
-
-    function handleLogout() { sessionStorage.clear(); location.reload(); }
-
-    // 3. Inisialisasi App
-    function init() {
-        if(sessionStorage.getItem("logged") === "true") {
-            document.getElementById("loginScreen").style.display = "none";
-            document.getElementById("appContent").style.display = "flex";
-            showDashboard();
-            loadCategories();
-        }
-    }
 
     function showDashboard() {
         if(isScanning) stopScan();
@@ -180,18 +167,15 @@
         document.getElementById("dashboard").style.display = "none";
         document.getElementById("ui-header").style.display = "block";
         document.getElementById("listContainer").style.display = window.innerWidth >= 768 ? "grid" : "block";
+        search();
     }
 
-    // 4. Data Logic
     async function loadCategories() {
-        try {
-            const { data } = await _supabase.from('export').select('Category');
-            if(data) {
-                const cats = [...new Set(data.map(i => i.Category))].filter(Boolean).sort();
-                const filter = document.getElementById("catFilter");
-                filter.innerHTML = '<option value="">Semua Kategori</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
-            }
-        } catch (e) { console.log("Gagal muat kategori"); }
+        const { data } = await _supabase.from('export').select('Category');
+        if(data) {
+            const cats = [...new Set(data.map(i => i.Category))].filter(Boolean).sort();
+            document.getElementById("catFilter").innerHTML = '<option value="">Semua Kategori</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
     }
 
     document.getElementById("searchInput").oninput = () => {
@@ -241,7 +225,7 @@
         const det = document.getElementById("detailContainer");
         det.innerHTML = `
             <img src="${data.Image || ''}" style="width:100%; max-height:350px; object-fit:contain;" onerror="this.src='https://placehold.co/350?text=No+Image'">
-            <div style="padding:10px;">
+            <div style="padding:20px;">
                 <div style="margin-bottom:10px;">
                     <span style="background:red; color:white; padding:3px 8px; border-radius:5px; font-size:10px; font-weight:bold;">${data.Category}</span>
                     <span style="color:#888; font-size:12px;"> › ${data["Detail Category"] || ''}</span>
@@ -277,7 +261,6 @@
         document.getElementById("scrollContainer").scrollTop = lastScroll;
     }
 
-    // 5. Scanner
     function toggleScan() { isScanning ? stopScan() : startScan(); }
     function startScan() {
         isScanning = true;
@@ -298,7 +281,9 @@
         showDetail(res.codeResult.code);
     });
 
-    window.onload = init;
+    window.onload = () => {
+        loadCategories();
+    };
 </script>
 </body>
 </html>

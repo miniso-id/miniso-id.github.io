@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -135,7 +134,7 @@
             <h2>MMS-X</h2>
             <div id="userDisplay" class="user-tag"></div>
             <a href="https://miniso-id.github.io/app/" style="background:rgba(255,255,255,0.15)">📸 Price Check</a>
-            <a href="#">📦 Stock Opname</a>
+            <a href="https://miniso-id.github.io/so/">📦 Stock Opname ID12</a>
             <a href="#" class="logout-btn" onclick="handleLogout()">LOGOUT</a>
         </nav>
         <div id="overlay" onclick="toggleSidebar()"></div>
@@ -173,10 +172,13 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
-    const USERS = { "admin": { pass: "miniso123", name: "Administrator" }, "staff1": { pass: "mms001", name: "Rizky Ramadhan" } };
+    const USERS = { "admin": { pass: "miniso123", name: "Administrator" }, 
+                   "ID12": { pass: "12121212", name: "ID12 Central Park" },
+                   "JKT1": { pass: "Jakarta1@2026", name: "Jakarta 1" } 
+                  };
 
     function handleLogin() {
-        const u = document.getElementById("username").value.toLowerCase().trim();
+        const u = document.getElementById("username").value.trim();
         const p = document.getElementById("password").value;
         if(USERS[u] && USERS[u].pass === p) {
             sessionStorage.setItem("isLoggedIn", "true");
@@ -218,10 +220,9 @@
         document.getElementById("overlay").classList.toggle("active"); 
     }
 
-    // --- SCANNER LOGIC WITH PREFERENCE ---
-    document.getElementById("scanBtn").onclick = () => { 
+    // --- LOGIKA SCANNER DENGAN PILIHAN KAMERA (SMART MEMORY) ---
+    document.getElementById("scanBtn").onclick = async () => { 
         if (scanning) { stopScan(); return; } 
-        // Load kamera terakhir yang disimpan
         const lastCamera = localStorage.getItem("preferredCameraId");
         startScan(lastCamera); 
     };
@@ -229,60 +230,88 @@
     async function startScan(deviceId = null) {
         scanning = true; 
         reader.style.display = "block";
-        cameraSelector.style.display = "none";
+
+        // Minta izin kamera agar label daftar kamera muncul
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            stream.getTracks().forEach(track => track.stop()); // Stop stream sementara untuk init Quagga
+            await initCameraList(deviceId); 
+        } catch (e) {
+            console.error("Izin kamera diperlukan");
+        }
 
         Quagga.init({
             inputStream: { 
                 type: "LiveStream", 
                 target: reader, 
                 constraints: { 
-                    width: 1920, 
-                    height: 1080, 
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 },
                     deviceId: deviceId ? { exact: deviceId } : undefined,
                     facingMode: deviceId ? undefined : "environment" 
                 },
-                area: { top: "20%", right: "20%", left: "20%", bottom: "20%" } 
+                area: { top: "15%", right: "15%", left: "15%", bottom: "15%" } 
             },
             decoder: { readers: ["ean_reader", "code_128_reader"] },
             locate: true
         }, (err) => {
             if (err) { 
-                // Jika error (mungkin kamera lama tidak ada), reset ke kamera default
-                if(deviceId) { startScan(null); return; }
+                if(deviceId) { startScan(null); return; } // Fallback jika ID salah
                 stopScan(); return; 
             }
             Quagga.start();
-            initCameraList(deviceId); 
         });
     }
 
     async function initCameraList(currentId) {
         const devices = await navigator.mediaDevices.enumerateDevices();
-        const backCameras = devices.filter(d => d.kind === 'videoinput');
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
         
-        if (backCameras.length > 1) {
+        // Filter cerdas untuk mencari kamera belakang saja
+        const backCameras = videoDevices.filter(d => {
+            const label = d.label.toLowerCase();
+            return label.includes('back') || label.includes('rear') || label.includes('belakang') || label.includes('0');
+        });
+
+        const finalDevices = backCameras.length > 0 ? backCameras : videoDevices;
+        
+        if (finalDevices.length > 1) {
             cameraSelector.style.display = "block";
-            videoSource.innerHTML = backCameras.map((d, i) => 
-                `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>Kamera Belakang ${i + 1}</option>`
+            videoSource.innerHTML = finalDevices.map((d, i) => 
+                `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>
+                    ${d.label || 'Kamera Belakang ' + (i+1)}
+                </option>`
             ).join("");
+        } else {
+            cameraSelector.style.display = "none";
         }
     }
 
     videoSource.onchange = () => {
         const newDeviceId = videoSource.value;
-        localStorage.setItem("preferredCameraId", newDeviceId); // Simpan pilihan terbaik
+        localStorage.setItem("preferredCameraId", newDeviceId); // Simpan pilihan permanen
         Quagga.stop();
         startScan(newDeviceId);
     };
 
-    function stopScan() { Quagga.stop(); scanning = false; reader.style.display = "none"; cameraSelector.style.display = "none"; }
+    function stopScan() { 
+        Quagga.stop(); 
+        scanning = false; 
+        reader.style.display = "none"; 
+        cameraSelector.style.display = "none"; 
+    }
 
     Quagga.onDetected(res => {
         const code = res.codeResult.code;
-        if(barcodeIndex.has(code)) { document.getElementById("beepOk").play().catch(()=>{}); stopScan(); input.value = code; showDetail(barcodeIndex.get(code), code); }
+        if(barcodeIndex.has(code)) { 
+            document.getElementById("beepOk").play().catch(()=>{}); 
+            stopScan(); 
+            input.value = code; 
+            showDetail(barcodeIndex.get(code), code); 
+        }
     });
 
-    // --- SEARCH & UI LOGIC ---
+    // --- FITUR SEARCH & DETAIL (TIDAK BERUBAH) ---
     input.oninput = () => renderResults();
     catFilter.onchange = () => renderResults();
 
@@ -298,11 +327,16 @@
 
         document.getElementById("countDisplay").textContent = `Ditemukan ${filtered.length} produk`;
         let html = '';
-        filtered.slice(0, 50).forEach(p => {
+        filtered.slice(0, 5000).forEach(p => {
             const b = p.b ? p.b.split("/")[0].trim() : "";
             html += `
                 <div class="search-item">
-                    <img class="thumb-img" src="${p.i || ''}" onclick="openPopup('${p.i}')" onerror="this.src='https://via.placeholder.com/50';">
+                    <img class="thumb-img" 
+                     src="${p.i || ''}" 
+                     loading="lazy" 
+                     decoding="async" 
+                     onclick="openPopup('${p.i}')" 
+                     onerror="this.style.display='none';">
                     <div style="flex:1" onclick="selectItem('${b}')">
                         <div style="font-size:10px; font-weight:800; color:var(--miniso-red);">${p.c || ''}</div>
                         <div style="font-size:14px; font-weight:700;">${p.n}</div>

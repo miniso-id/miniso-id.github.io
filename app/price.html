@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X</title>
+    <title>MMS-X (No Login + Full Features)</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
@@ -45,9 +45,20 @@
         #reader { display:none; width:100%; max-width: 500px; aspect-ratio:1/1; margin:10px auto; background:#000; border-radius:20px; overflow:hidden; position:relative; border: 4px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
         #reader video { width: 100%; height: 100%; object-fit: cover; }
         .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
+        .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; }
 
+        /* --- GRID & LIST --- */
         .main-content { flex: 1; overflow-y: auto; padding: 0 16px; }
-        
+        #listContainer { max-width: 1200px; margin: 0 auto; display: block; }
+        .search-item { display: flex; align-items: center; gap: 12px; padding: 15px 0; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
+        .thumb-img { width: 65px; height: 65px; border-radius: 10px; object-fit: contain; background: #f9f9f9; }
+
+        @media (min-width: 768px) {
+            #listContainer { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; padding: 20px 0; }
+            .search-item { flex-direction: column; align-items: flex-start; background: #fff; border: 1px solid #eee; border-radius: 18px; padding: 15px; height: 100%; }
+            .thumb-img { width: 100%; height: 180px; }
+        }
+
         /* --- DETAIL VIEW --- */
         .product-detail-card { display: none; padding-bottom: 100px; max-width: 800px; margin: 0 auto; }
         .product-detail-card.active { display: block; animation: slideUp 0.3s ease both; }
@@ -66,7 +77,7 @@
 <div id="sidebar" class="sidebar">
     <h2 style="margin-bottom: 30px;">MMS-X</h2>
     <a href="#" onclick="location.reload()">Refresh App</a>
-    <p style="position: absolute; bottom: 20px; font-size: 10px; opacity: 0.5;">v5.9 - No Login Mode</p>
+    <p style="position: absolute; bottom: 20px; font-size: 10px; opacity: 0.5;">v6.0 - No Login Mode</p>
 </div>
 <div id="overlay" onclick="toggleSidebar()"></div>
 
@@ -81,7 +92,7 @@
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             <div class="search-container">
-                <input id="searchInput" placeholder="Scan atau ketik 13 digit barcode...">
+                <input id="searchInput" placeholder="Cari nama / barcode...">
                 <button id="scanBtn">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                 </button>
@@ -90,16 +101,22 @@
         
         <div id="reader">
             <div class="focus-guide"></div>
+            <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK FOKUS</div>
         </div>
-        <div id="cameraControl" style="max-width: 1200px; margin-inline: auto; display: none;">
-            <select id="videoSource" style="width:100%; padding:10px; border-radius:10px; border:1px solid #eee; margin-top: 5px;"></select>
+        
+        <div style="max-width: 1200px; margin-inline: auto; display: flex; gap: 5px;">
+            <select id="videoSource" style="flex:1; display:none; padding:10px; border-radius:10px; border:1px solid #eee; margin-top: 5px;"></select>
+            <select id="catFilter" style="flex:1; padding:10px; border-radius:10px; border:1px solid #eee; margin-top: 5px; font-weight: bold;">
+                <option value="">Semua Kategori</option>
+            </select>
         </div>
     </header>
 
     <main class="main-content" id="scrollContainer">
+        <div id="listContainer"></div>
         <div id="detailContainer" class="product-detail-card"></div>
         <div id="welcomeMsg" style="text-align: center; padding-top: 50px; color: #ccc;">
-            <p>Siap scan barcode...</p>
+            <p>Siap scan atau ketik pencarian...</p>
         </div>
     </main>
 </div>
@@ -111,7 +128,7 @@
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let scanning = false;
+    let scanning = false, timer, lastScroll = 0;
     let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
 
     function toggleSidebar() { 
@@ -119,18 +136,66 @@
         document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none";
     }
 
+    function cleanPrice(val) {
+        if(!val) return "Rp0";
+        let num = parseInt(String(val).replace(/[^0-9]/g, "")) || 0;
+        return "Rp" + num.toLocaleString('id-ID');
+    }
+
+    // AUTO-START PADA LOAD
     window.onload = () => {
-        setTimeout(() => {
-            startScan(lastSelectedDeviceId);
-        }, 500);
+        loadCategories();
+        setTimeout(() => startScan(lastSelectedDeviceId), 500);
     };
 
-    document.getElementById("searchInput").oninput = (e) => {
-        const val = e.target.value.trim();
-        if(val.length >= 13) {
-            showDetail(val);
+    async function loadCategories() {
+        const { data } = await _supabase.from('export').select('Category');
+        if(data) {
+            const cats = [...new Set(data.map(i => i.Category))].filter(Boolean).sort();
+            const filter = document.getElementById("catFilter");
+            cats.forEach(c => {
+                const opt = document.createElement("option");
+                opt.value = opt.textContent = c;
+                filter.appendChild(opt);
+            });
         }
+    }
+
+    document.getElementById("searchInput").oninput = () => { 
+        clearTimeout(timer); 
+        timer = setTimeout(search, 500); 
     };
+    document.getElementById("catFilter").onchange = search;
+
+    async function search() {
+        const q = document.getElementById("searchInput").value.trim();
+        const c = document.getElementById("catFilter").value;
+        const list = document.getElementById("listContainer");
+        const welcome = document.getElementById("welcomeMsg");
+        
+        if(!q && !c) { list.innerHTML = ""; welcome.style.display = "block"; return; }
+        
+        welcome.style.display = "none";
+        if(scanning) stopScan();
+
+        let query = _supabase.from('export').select('*');
+        if(q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
+        if(c) query = query.eq('Category', c);
+        
+        const { data } = await query.limit(100);
+        if(data) {
+            list.innerHTML = data.map(p => `
+                <div class="search-item" onclick="showDetail('${p.Barcode}')">
+                    <img class="thumb-img" src="${p.Image || ''}" onerror="this.src='https://placehold.co/200x200?text=No+Img'">
+                    <div style="flex:1; min-width: 0;">
+                        <small style="color:var(--miniso-red); font-weight:bold;">${p.Category || 'GENERAL'}</small>
+                        <div style="font-weight:bold; font-size:14px; margin: 4px 0;">${p.Name}</div>
+                        <div style="font-weight:900; color:var(--miniso-red); font-size: 16px;">${cleanPrice(p["Regular Store Price"])}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
 
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
@@ -138,6 +203,7 @@
         scanning = true; 
         document.getElementById("reader").style.display = "block";
         document.getElementById("welcomeMsg").style.display = "none";
+        document.getElementById("listContainer").innerHTML = "";
         
         const constraints = { width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: "environment" };
         if (deviceId) { constraints.deviceId = { exact: deviceId }; }
@@ -155,8 +221,8 @@
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
         if (videoDevices.length > 1) {
-            document.getElementById("cameraControl").style.display = "block";
             const source = document.getElementById("videoSource");
+            source.style.display = "block";
             source.innerHTML = videoDevices.map(d => `<option value="${d.deviceId}" ${d.deviceId === lastSelectedDeviceId ? 'selected' : ''}>${d.label || 'Camera'}</option>`).join("");
         }
     }
@@ -172,8 +238,7 @@
         Quagga.stop(); 
         scanning = false; 
         document.getElementById("reader").style.display = "none"; 
-        document.getElementById("cameraControl").style.display = "none"; 
-        document.getElementById("searchInput").focus();
+        document.getElementById("videoSource").style.display = "none"; 
     }
 
     Quagga.onDetected(async res => {
@@ -187,12 +252,12 @@
     });
 
     async function showDetail(fullBarcode) {
+        lastScroll = document.getElementById("scrollContainer").scrollTop;
         const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();
-        
         if(!data) return;
 
         document.getElementById("ui-header").style.display = "none";
-        document.getElementById("welcomeMsg").style.display = "none";
+        document.getElementById("listContainer").style.display = "none";
         
         const det = document.getElementById("detailContainer");
         det.innerHTML = `
@@ -205,8 +270,8 @@
                 <div style="font-size:14px; color:#666; margin-bottom: 20px; font-family: monospace;">Barcode: ${data.Barcode}</div>
                 
                 <div class="price-box">
-                    <div class="price-item reg"><small style="font-weight:bold; color:#888;">REGULAR STORE</small><div style="color:var(--miniso-red); font-size:24px; font-weight:900; margin-top:5px;">Rp${(data["Regular Store Price"]||0).toLocaleString('id-ID')}</div></div>
-                    <div class="price-item str"><small style="font-weight:bold; color:#888;">STREET STORE</small><div style="font-size:24px; font-weight:900; margin-top:5px;">Rp${(data["Street Store Price"]||0).toLocaleString('id-ID')}</div></div>
+                    <div class="price-item reg"><small style="font-weight:bold; color:#888;">REGULAR</small><div style="color:var(--miniso-red); font-size:24px; font-weight:900; margin-top:5px;">${cleanPrice(data["Regular Store Price"])}</div></div>
+                    <div class="price-item str"><small style="font-weight:bold; color:#888;">STREET</small><div style="font-size:24px; font-weight:900; margin-top:5px;">${cleanPrice(data["Street Store Price"])}</div></div>
                 </div>
                 
                 <div style="padding:15px; background:#f9f9f9; border-radius:18px; border:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
@@ -225,11 +290,12 @@
     function back() {
         document.getElementById("detailContainer").classList.remove('active');
         document.getElementById("btnBackFloating").style.display = "none";
-        document.getElementById("searchInput").value = "";
         setTimeout(() => { 
             document.getElementById("detailContainer").style.display = "none"; 
             document.getElementById("ui-header").style.display = "block"; 
-            startScan(lastSelectedDeviceId);
+            document.getElementById("listContainer").style.display = window.innerWidth >= 768 ? "grid" : "block";
+            document.getElementById("scrollContainer").scrollTop = lastScroll;
+            if(!document.getElementById("searchInput").value) startScan(lastSelectedDeviceId);
         }, 300);
     }
 </script>

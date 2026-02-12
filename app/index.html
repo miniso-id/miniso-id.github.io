@@ -24,11 +24,12 @@
             height: 100vh; overflow: hidden;
         }
 
-        /* --- STYLE BANNER BARU --- */
+        /* --- STYLE BANNER (Posisi diturunkan) --- */
         .hero-banner {
             width: 100%;
             max-width: 600px;
-            margin: 20px auto 5px;
+            /* Margin top ditambah jadi 40px agar lebih turun */
+            margin: 40px auto 10px; 
             padding: 0 20px;
             animation: fadeIn 0.6s ease;
         }
@@ -55,14 +56,14 @@
             z-index: 1;
         }
 
-        /* --- DASHBOARD --- */
+        /* --- DASHBOARD (Jarak antar menu disesuaikan) --- */
         #dashboard { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
             gap: 15px; 
-            padding: 15px 20px; 
+            padding: 10px 20px 40px; 
             max-width: 600px; 
-            margin: 0 auto 40px; 
+            margin: 0 auto; 
             animation: fadeIn 0.4s ease; 
         }
         .menu-card { 
@@ -89,24 +90,31 @@
         .menu-card h3 { margin: 0; font-size: 15px; font-weight: 800; }
         .menu-card p { margin: 5px 0 0 0; font-size: 11px; color: #888; }
 
-        /* --- HEADER & LAINNYA --- */
+        /* --- UI HEADER --- */
         #ui-header { background: #fff; padding: 15px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; display: none; }
         .top-bar { display: flex; gap: 10px; align-items: center; max-width: 1200px; margin: auto; }
+        
+        /* SEARCH & SCANNER */
         .search-container { position: relative; flex: 1; }
         #searchInput { width: 100%; height: 44px; padding: 0 50px 0 15px; border-radius: 12px; border: 1.5px solid #eee; background: #f8f8f8; outline: none; }
         #scanBtn { position: absolute; right: 5px; top: 5px; width: 34px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
         #reader { display:none; width:100%; max-width: 450px; aspect-ratio:1/1; margin:10px auto; background:#000; border-radius:20px; overflow:hidden; position:relative; }
         .focus-guide { position: absolute; inset: 20%; border: 2px solid var(--miniso-red); border-radius: 10px; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.5); }
-        .main-content { height: 100vh; overflow-y: auto; }
+        
+        /* CONTENT AREA */
+        .main-content { height: 100vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         #listContainer { max-width: 1200px; margin: auto; padding: 15px; display: none; }
         .search-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f5f5f5; cursor: pointer; }
         .thumb-img { width: 70px; height: 70px; border-radius: 10px; object-fit: contain; background: #f9f9f9; }
+        
+        /* DETAIL VIEW */
         .product-detail-card { display: none; max-width: 800px; margin: auto; padding-bottom: 50px; }
         .price-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
         .price-item { padding: 15px; border-radius: 15px; text-align: center; }
         .price-item.reg { background: var(--miniso-soft); color: var(--miniso-red); }
         .price-item.str { background: #f4f4f4; }
         .barcode-img-container { text-align: center; padding: 20px; border: 1px dashed #ccc; border-radius: 15px; margin-top: 20px; }
+        
         .floating-back { position: fixed; top: 15px; left: 15px; width: 40px; height: 40px; background: white; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 200; border: none; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -140,12 +148,12 @@
         <div id="heroSection" class="hero-banner">
             <div class="banner-card">
                 <h2>MMS-X</h2>
-                <p>Miniso Management System<br>v10.2.1</p>
+                <p>Miniso Management System (Extended)<br>v10.2.1</p>
             </div>
         </div>
 
         <div id="dashboard">
-            <div class="menu-card" onclick="window.location.href='https://miniso-id.github.io/app/price.html'">
+            <div class="menu-card" onclick="openPriceChecker()">
                 <div class="icon-box"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg></div>
                 <h3>Price Checker</h3>
                 <p>Cek Harga & Promo</p>

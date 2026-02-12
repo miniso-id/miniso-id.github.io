@@ -214,7 +214,7 @@
         document.getElementById("userDisplay").textContent = "Hi, " + sessionStorage.getItem("activeUserName");
 
         try {
-            // Ambil data dari tabel 'export'
+            // Mengambil data dari tabel 'export'
             const { data, error } = await _supabase.from('export').select('*');
             
             if (error) {
@@ -223,33 +223,35 @@
                 return;
             }
 
-            if (!data || data.length === 0) {
-                input.placeholder = "Data di tabel kosong!";
-                return;
-            }
-
             allProducts = data;
             const cats = new Set();
             
             allProducts.forEach(p => { 
-                // MAPPING ULANG: Cek huruf besar & kecil sekaligus
-                p.b = p.Barcode || p.barcode || "";
-                p.n = p.Description || p.description || "Tanpa Nama";
-                p.c = p.Category || p.category || "Uncategorized";
-                p.r = p.RegularPrice || p.regularprice || 0;
-                p.s = p.StreetPrice || p.streetprice || 0;
-                p.i = p.Image || p.image || "";
-                p.rp = p.RegularPromo || p.regularpromo || "-";
-                p.sp = p.StreetPromo || p.streetpromo || "-";
-                p.e = p.ExtraTag || p.extratag || "";
+                // MAPPING BERDASARKAN FOTO STRUKTUR BARU ANDA
+                // Jika nama kolom di Supabase pakai spasi, kita panggil seperti ini: p["Nama Kolom"]
+                
+                p.b = p.Barcode || "";
+                p.n = p.Name || "Tanpa Nama";
+                p.i = p.Image || "";
+                p.c = p.Category || "Uncategorized";
+                
+                // Menangani kolom dengan spasi
+                p.r = p["Regular Store Price"] || 0; 
+                p.s = p["Street Store Price"] || 0;
+                p.rp = p["Regular Store Promo"] || "-";
+                p.sp = p["Street Store Promo"] || "-"; // Sesuaikan jika namanya 'Street Store Promo' atau 'Street Promo'
+                p.e = p["Extra Promo"] || "";
 
+                // Masukkan ke index pencarian (Barcode)
                 if(p.b) {
-                    String(p.b).split("/").forEach(c => barcodeIndex.set(c.trim(), p)); 
+                    String(p.b).split("/").forEach(code => {
+                        barcodeIndex.set(code.trim(), p);
+                    });
                 }
                 if(p.c) cats.add(p.c);
             });
 
-            // Isi dropdown kategori
+            // Update Dropdown Kategori
             catFilter.innerHTML = '<option value="">Semua Kategori</option>';
             Array.from(cats).sort().forEach(c => {
                 const o = document.createElement("option"); 
@@ -259,7 +261,7 @@
             });
 
             input.placeholder = "Cari produk...";
-            document.getElementById("countDisplay").textContent = `Total data: ${allProducts.length} produk`;
+            document.getElementById("countDisplay").textContent = `Berhasil memuat ${allProducts.length} produk`;
 
         } catch (err) {
             console.error("System Error:", err);

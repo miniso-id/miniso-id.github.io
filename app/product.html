@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X (Full Stable v3.3)</title>
+    <title>MMS-X (Full Stable v3.4)</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
@@ -82,7 +82,7 @@
 
 <div id="loginScreen">
     <h1 style="color:var(--miniso-red); font-size: 3rem; margin-bottom: 0;">MINISO</h1>
-    <p style="color:#888; margin-bottom: 30px;">Inventory System v3.3</p>
+    <p style="color:#888; margin-bottom: 30px;">Inventory System v3.4</p>
     <input type="text" id="username" class="login-input" placeholder="Username">
     <input type="password" id="password" class="login-input" placeholder="Password">
     <button class="btn-login" onclick="handleLogin()">MASUK</button>
@@ -134,7 +134,6 @@
     const listCont = document.getElementById("listContainer");
     const detCont = document.getElementById("detailContainer");
 
-    // --- AUTH ---
     function handleLogin() {
         const u = document.getElementById("username").value;
         const p = document.getElementById("password").value;
@@ -149,7 +148,6 @@
         document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none";
     }
 
-    // --- APP CORE ---
     async function init() {
         if(sessionStorage.getItem("logged") !== "true") return;
         document.getElementById("loginScreen").style.display = "none";
@@ -171,7 +169,6 @@
         }
     }
 
-    // --- SEARCH & FILTER ---
     input.oninput = () => { clearTimeout(timer); timer = setTimeout(search, 500); };
     catFilter.onchange = search;
 
@@ -179,7 +176,6 @@
         const q = input.value.trim();
         const c = catFilter.value;
         if(!q && !c) { listCont.innerHTML = ""; return; }
-
         detCont.style.display = "none";
         listCont.style.display = "block";
         document.getElementById("loader").style.display = "block";
@@ -188,9 +184,8 @@
         if(q) query = query.or(`Name.ilike.%${q}%,Barcode.eq.${q}`);
         if(c) query = query.eq('Category', c);
 
-        const { data, error } = await query.limit(50);
+        const { data } = await query.limit(50);
         document.getElementById("loader").style.display = "none";
-        
         if(data) renderList(data);
     }
 
@@ -201,19 +196,19 @@
                 <div style="flex:1">
                     <small style="color:var(--miniso-red); font-weight:bold;">${p.Category || p["Category"] || ''}</small>
                     <div style="font-weight:bold; font-size:14px;">${p.Name || p["Name"]}</div>
-                    <div style="font-size:12px; color:#666;">${p.Barcode}</div>
+                    <div style="font-size:11px; color:#666;">${p.Barcode}</div>
                 </div>
                 <div style="font-weight:bold; color:var(--miniso-red);">Rp${(p["Regular Store Price"] || 0).toLocaleString()}</div>
             </div>
         `).join('');
     }
 
-    // --- DETAIL VIEW (FIXED) ---
-    async function showDetail(barcode) {
+    // --- DETAIL VIEW DENGAN LOGIKA SPLIT BARCODE ---
+    async function showDetail(fullBarcode) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;
         document.getElementById("loader").style.display = "block";
 
-        const { data } = await _supabase.from('export').select('*').eq('Barcode', barcode).maybeSingle();
+        const { data } = await _supabase.from('export').select('*').eq('Barcode', fullBarcode).maybeSingle();
         document.getElementById("loader").style.display = "none";
 
         if(data) {
@@ -221,9 +216,12 @@
             document.getElementById("ui-header").style.display = "none";
             detCont.style.display = "block";
 
-            const bVal = String(data.Barcode || data["Barcode"]).trim();
-            const bcType = bVal.length === 13 ? 'ean13' : 'code128';
-            const bcUrl = `https://bwipjs-api.metafloor.com/?bcid=${bcType}&text=${bVal}&scale=3&rotate=N&includetext`;
+            // LOGIKA SPLIT: Jika barcode berisi '/', ambil bagian pertama saja untuk gambar
+            const rawString = String(data.Barcode || data["Barcode"]).trim();
+            const barcodeForImg = rawString.includes('/') ? rawString.split('/')[0] : rawString;
+            
+            const bcType = barcodeForImg.length === 13 ? 'ean13' : 'code128';
+            const bcUrl = `https://bwipjs-api.metafloor.com/?bcid=${bcType}&text=${barcodeForImg}&scale=3&rotate=N&includetext`;
 
             detCont.innerHTML = `
                 <div style="text-align:center; padding:20px;">
@@ -245,7 +243,9 @@
 
                     <div class="barcode-img-container">
                         <img src="${bcUrl}" style="max-width:100%" onerror="this.src='https://placehold.co/200x80?text=Barcode+Error'">
-                        <div style="margin-top:10px; font-weight:bold; letter-spacing:2px;">${bVal}</div>
+                        <div style="margin-top:10px; font-weight:bold; font-size:12px; word-break: break-all; letter-spacing:1px; color:#555;">
+                            ${rawString}
+                        </div>
                     </div>
 
                     <button onclick="back()" style="width:100%; padding:18px; background:var(--miniso-red); color:white; border:none; border-radius:15px; font-weight:bold; margin:20px 0;">KEMBALI</button>
@@ -261,7 +261,6 @@
         document.getElementById("scrollContainer").scrollTop = lastScroll;
     }
 
-    // --- SCANNER ---
     document.getElementById("scanBtn").onclick = () => {
         if(scanning) { Quagga.stop(); scanning = false; document.getElementById("reader").style.display = "none"; }
         else {

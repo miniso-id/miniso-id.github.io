@@ -364,14 +364,15 @@
         document.getElementById("listContainer").style.display = "none";
         document.getElementById("ui-header").style.display = "none";
 
-        const barcodes = String(data.Barcode).split('/').map(b => b.trim());
-        const bcHtml = barcodes.map(bc => {
-            const bcType = bc.length >= 12 ? 'ean13' : 'code128';
-            return `<div class="barcode-img-container">
-                <img src="https://bwipjs-api.metafloor.com/?bcid=${bcType}&text=${bc}&scale=3&rotate=N&includetext">
-                <div style="margin-top:10px; font-weight:bold; font-size:13px; color:#555; word-break:break-all;">${bc}</div>
+        // LOGIKA BARU: Hanya ambil satu barcode pertama
+        const firstBarcode = String(data.Barcode).split('/')[0].trim();
+        const bcType = firstBarcode.length >= 12 ? 'ean13' : 'code128';
+        
+        const bcHtml = `
+            <div class="barcode-img-container">
+                <img src="https://bwipjs-api.metafloor.com/?bcid=${bcType}&text=${firstBarcode}&scale=3&rotate=N&includetext">
+                <div style="margin-top:10px; font-weight:bold; font-size:13px; color:#555; word-break:break-all;">${data.Barcode}</div>
             </div>`;
-        }).join('');
 
         const det = document.getElementById("detailContainer");
         det.innerHTML = `

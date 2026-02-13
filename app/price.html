@@ -20,7 +20,6 @@
             --sidebar-width: 280px;
         }
 
-        /* --- STYLE ASLI (TIDAK BERUBAH) --- */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
             margin: 0; padding: 0; 
@@ -47,7 +46,6 @@
         .search-container { position: relative; flex: 1; }
         #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
         #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-
 
         #reader { 
             display:none; width:100%; max-width:340px; aspect-ratio:1/1; 
@@ -106,7 +104,7 @@
 <div id="sidebar" class="sidebar">
     <h2>MMS-X</h2>
     <a href="https://miniso-id.github.io/app/" onclick="toggleSidebar()">Home</a>
-    </div>
+</div>
 <div id="overlay" onclick="toggleSidebar()"></div>
 
 <div id="btnBackFloating" class="floating-back" onclick="back()">
@@ -130,7 +128,6 @@
                 </button>
             </div>
         </div>
-        
         <div id="reader">
             <div class="focus-guide"></div>
             <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK FOKUS</div>
@@ -147,16 +144,10 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
-    /* --- KONFIGURASI SUPABASE (Database User Dihapus) --- */
-    
-    // Database Produk (Data Asli)
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    /* --- LOGIKA LOGIN DIHAPUS --- */
-
-    /* --- SCRIPT ASLI --- */
     let scanning = false, lastScroll = 0, timer;
     let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
 
@@ -181,25 +172,29 @@
 
     document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 400); };
 
-    
     async function search() {
-    const q = document.getElementById("searchInput").value.trim();
-    const list = document.getElementById("listContainer");
-    
-    // Hapus logika kategori, langsung select
-    let query = _supabase.from('export').select('*');
-    
-    // Tetap pertahankan pencarian barcode
-    if (q) query = query.ilike('Barcode', `%${q}%`);
-    
-    let { data } = await query.limit(1);
-    // ... sisa kode di bawahnya biarkan saja ...
-    if(data) {
-        list.innerHTML = data.map(p => `
-            ... (kode rendering list item) ...
-        `).join('');
+        const q = document.getElementById("searchInput").value.trim();
+        const list = document.getElementById("listContainer");
+        let query = _supabase.from('export').select('*');
+        
+        if (q) query = query.ilike('Barcode', `%${q}%`);
+        
+        let { data } = await query.limit(5000);
+        if(data) {
+            list.innerHTML = data.map(p => `
+                <div class="list-item" onclick="showDetail('${p.Barcode}')">
+                    <div class="list-img-box" onclick="event.stopPropagation(); openLightbox('${p.Image}')">
+                        <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/150x150?text=Miniso'">
+                    </div>
+                    <div class="list-info">
+                        <div class="list-cat">${p.Category || 'GENERAL'}</div>
+                        <div class="list-name">${p.Name}</div>
+                        <div class="list-bc">${p.Barcode}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
     }
-}
 
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
@@ -256,7 +251,6 @@
         updateCameraList();
     });
 }
-
     async function updateCameraList() {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
@@ -273,20 +267,17 @@
     function stopScan() { Quagga.stop(); scanning = false; document.getElementById("reader").style.display = "none"; document.getElementById("cameraControl").style.display = "none"; }
 
     Quagga.onDetected(async res => {
-    const code = res.codeResult.code;
-    const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
-    
-    if(data) { 
-        document.getElementById("beepOk").play(); 
-        stopScan(); 
+        const code = res.codeResult.code;
+        const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
         
-        // Tambahkan ini agar keyboard menutup dan layar tidak goyang
-        document.getElementById("searchInput").blur(); 
-        
-        document.getElementById("searchInput").value = code; 
-        showDetail(code); 
-    }
-});
+        if(data) { 
+            document.getElementById("beepOk").play(); 
+            stopScan(); 
+            document.getElementById("searchInput").blur(); 
+            document.getElementById("searchInput").value = code; 
+            showDetail(code); 
+        }
+    });
 
     async function showDetail(fullBarcode) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;
@@ -344,11 +335,9 @@
         document.getElementById("listContainer").style.display = "grid";
         document.getElementById("btnBackFloating").style.display = "none";
         document.getElementById("scrollContainer").scrollTop = lastScroll;
-        // Opsional: Nyalakan scanner lagi saat kembali
         startScan(lastSelectedDeviceId);
     }
 
-    // MODIFIKASI: Langsung jalankan scanner saat halaman dibuka
     startScan(lastSelectedDeviceId);
 </script>
 </body>

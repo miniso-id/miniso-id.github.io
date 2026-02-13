@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X Deluxe v5.6</title>
+    <title>MMS-X</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
@@ -29,7 +29,7 @@
         /* --- LOGIN --- */
         #loginScreen { position: fixed; inset: 0; background: white; z-index: 9000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
         .login-input { width: 100%; max-width: 340px; padding: 16px; margin-bottom: 12px; border: 1.5px solid #eee; border-radius: 14px; font-size: 16px; outline: none; }
-        .btn-login { width: 100%; max-width: 340px; padding: 16px; background: var(--miniso-red); color: white; border: none; border-radius: 14px; font-weight: bold; }
+        .btn-login { width: 100%; max-width: 340px; padding: 16px; background: var(--miniso-red); color: white; border: none; border-radius: 14px; font-weight: bold; cursor: pointer; }
 
         /* --- SIDEBAR --- */
         .sidebar { width: var(--sidebar-width); background: var(--miniso-red); color: #fff; position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 9500; padding: 25px; }
@@ -39,83 +39,73 @@
 
         /* --- HEADER --- */
         #ui-header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); padding: 16px 16px 8px 16px; border-bottom: 1px solid #eee; z-index: 1000; position: sticky; top: 0; }
-        .top-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+        .top-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; max-width: 1200px; margin-inline: auto; }
         .search-container { position: relative; flex: 1; }
-        #searchInput { width: 100%; height: 46px; padding: 0 45px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
-        #scanBtn {
-    position: absolute;
-    right: 6px;
-    top: 6px;
-    width: 38px;
-    height: 34px;
-    background: var(--miniso-red);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 2px 6px rgba(230, 21, 35, 0.3);
-}
+        #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; transition: border 0.3s; }
+        #searchInput:focus { border-color: var(--miniso-red); background: #fff; }
 
-#scanBtn svg {
-    width: 22px;
-    height: 22px;
-}
-        /* --- ADVANCED SCANNER UI --- */
-        #reader {
-            display:none; width:100%; aspect-ratio:1/1;
-            margin:10px auto; background:#000; border-radius:20px;
-            overflow:hidden; position:relative; border: 4px solid white;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        /* --- SCAN BUTTON ICON (Sesuai script scanner asli) --- */
+        #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 6px rgba(230, 21, 35, 0.3); }
+        #scanBtn svg { width: 22px; height: 22px; }
+
+        /* --- SCANNER UI (DIAMBIL DARI SCRIPT PERTAMA) --- */
+        #reader { 
+            display:none; width:100%; max-width:340px; aspect-ratio:1/1; 
+            margin:15px auto; background:#000; border-radius:20px; 
+            overflow:hidden; position:relative; border: 4px solid white; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15); cursor: pointer; 
         }
         #reader video { width: 100%; height: 100%; object-fit: cover; }
-        .focus-guide {
-            position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red);
-            border-radius: 15px; pointer-events: none; z-index: 2;
-            box-shadow: 0 0 0 1000px rgba(0,0,0,0.4);
+        .focus-guide { 
+            position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); 
+            border-radius: 15px; pointer-events: none; z-index: 2; 
+            box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); 
         }
-        .tap-hint {
-            position: absolute; bottom: 10px; width: 100%; text-align: center;
-            color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3;
+        .tap-hint { 
+            position: absolute; bottom: 10px; width: 100%; text-align: center; 
+            color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; 
         }
-        #cameraControl { display:none; margin-top: 10px; }
-        #videoSource { width:100%; padding: 10px; border-radius: 10px; border: 1.5px solid #eee; font-size: 13px; font-weight: 600; }
+        #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
+        #videoSource { padding: 10px; border-radius: 8px; border: 2px solid var(--miniso-red); width: 100%; max-width: 300px; font-weight: 600; }
 
-        /* --- CONTENT & WRAP FIX --- */
+        /* --- CONTENT AREA & GALLERY GRID --- */
         .main-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0 16px; position: relative; }
-        .search-item { display: flex; align-items: center; gap: 12px; padding: 15px 0; border-bottom: 1px solid #f0f0f0; }
-        .thumb-img { width: 65px; height: 65px; border-radius: 10px; flex-shrink: 0; object-fit: contain; background: #f9f9f9; cursor: zoom-in; }
-        .barcode-text-list { font-size: 11px; color: #666; word-break: break-all; display: block; margin-top: 2px; line-height: 1.2; }
+        #listContainer { max-width: 1200px; margin: 0 auto; display: block; }
+        
+        .search-item { display: flex; align-items: center; gap: 12px; padding: 15px 0; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: 0.2s; }
+        .thumb-img { width: 65px; height: 65px; border-radius: 10px; flex-shrink: 0; object-fit: contain; background: #f9f9f9; }
+        .barcode-text-list { font-size: 11px; color: #666; word-break: break-all; display: block; margin-top: 2px; }
 
-        /* --- IMAGE MODAL --- */
+        @media (min-width: 768px) {
+            #listContainer { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; padding: 20px 0; }
+            .search-item { flex-direction: column; align-items: flex-start; background: #fff; border: 1px solid #eee; border-radius: 18px; padding: 15px; height: 100%; border-bottom: 1px solid #eee; }
+            .search-item:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+            .thumb-img { width: 100%; height: 180px; margin-bottom: 10px; }
+            .search-item div { margin-left: 0 !important; width: 100%; }
+        }
+
+        /* --- MODAL & DETAIL --- */
         #imgModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; backdrop-filter: blur(15px); align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; }
         #imgModal.active { display: flex; opacity: 1; }
         #modalImg { max-width: 90%; max-height: 80%; border-radius: 15px; transform: scale(0.8); transition: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
         #imgModal.active #modalImg { transform: scale(1); }
-
-        /* --- DETAIL & PRICE --- */
-        .product-detail-card { display: none; padding-bottom: 100px; }
+        .product-detail-card { display: none; padding-bottom: 100px; max-width: 800px; margin: 0 auto; }
         .product-detail-card.active { display: block; animation: slideUp 0.3s ease both; }
-        .barcode-wrapper { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; width: 100%; }
-        .barcode-img-container { background: white; padding: 15px; border-radius: 18px; border: 1px dashed #ccc; text-align: center; width: 100%; }
-        .barcode-img-container img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
-        .floating-back { position: fixed; top: 20px; left: 20px; width: 45px; height: 45px; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 8000; }
+        .barcode-img-container { background: white; padding: 15px; border-radius: 18px; border: 1px dashed #ccc; text-align: center; margin-top: 20px; }
+        .barcode-img-container img { max-width: 100%; height: auto; margin: 0 auto; }
         .price-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
         .price-item { padding: 15px; border-radius: 18px; text-align: center; }
         .price-item.reg { background: var(--miniso-soft); border: 1px solid rgba(230,21,35,0.1); }
         .price-item.str { background: var(--bg-gray); border: 1px solid #e5e5ea; }
-
+        .floating-back { position: fixed; top: 20px; left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 8000; cursor: pointer; }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
 
 <div id="sidebar" class="sidebar">
-    <h2>MMS-X MENU</h2>
-    <a href="#" onclick="toggleSidebar()">🔍 Price Checker</a>
-    <a href="https://miniso-id.github.io/so/">📦 Stock Opname</a>
+    <h2>MMS-X</h2>
+    <a href="https://miniso-id.github.io/app/">Home</a>
     <a href="#" onclick="handleLogout()" style="margin-top: 50px; opacity: 0.7; background:none; border:1px solid rgba(255,255,255,0.3);">Logout</a>
 </div>
 <div id="overlay" onclick="toggleSidebar()"></div>
@@ -130,7 +120,7 @@
 
 <div id="loginScreen">
     <h1 style="color:var(--miniso-red); font-size: 3.5rem; margin-bottom: 0; letter-spacing: -3px; font-weight: 900;">MINISO</h1>
-    <p style="color:#888; margin-bottom: 30px; font-weight: 500;">Inventory System v5.6</p>
+    <p style="color:#888; margin-bottom: 30px; font-weight: 500;">Inventory System v5.7</p>
     <input type="text" id="username" class="login-input" placeholder="Username">
     <input type="password" id="password" class="login-input" placeholder="Password">
     <button class="btn-login" onclick="handleLogin()">MASUK</button>
@@ -145,15 +135,11 @@
             <div class="search-container">
                 <input id="searchInput" placeholder="Cari nama / barcode...">
                 <button id="scanBtn">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
-        <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
-        <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
-        <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
-        <line x1="8" y1="12" x2="16" y2="12"></line>
-        <line x1="12" y1="8" x2="12" y2="16" style="opacity: 0.5"></line>
-    </svg>
-</button>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path>
+                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                    </svg>
+                </button>
             </div>
         </div>
         
@@ -161,11 +147,15 @@
             <div class="focus-guide"></div>
             <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK FOKUS</div>
         </div>
-        <div id="cameraControl"><select id="videoSource"></select></div>
+        <div id="cameraControl">
+            <select id="videoSource"></select>
+        </div>
 
-        <select id="catFilter" style="width:100%; padding:12px; margin-top:10px; border-radius:12px; border:1px solid #eee; background: #fff; font-weight: bold;">
-            <option value="">Semua Kategori</option>
-        </select>
+        <div style="max-width: 1200px; margin-inline: auto; margin-top:10px;">
+            <select id="catFilter" style="width:100%; padding:12px; border-radius:12px; border:1px solid #eee; background: #fff; font-weight: bold;">
+                <option value="">Semua Kategori</option>
+            </select>
+        </div>
     </header>
 
     <main class="main-content" id="scrollContainer">
@@ -184,7 +174,6 @@
     let scanning = false, lastScroll = 0, timer;
     let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
 
-    // --- SIDEBAR & IMAGE MODAL ---
     function toggleSidebar() { 
         document.getElementById("sidebar").classList.toggle("active");
         document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none";
@@ -205,7 +194,6 @@
         setTimeout(() => modal.style.display = 'none', 300);
     }
 
-    // --- LOGIN ---
     function handleLogin() {
         const u = document.getElementById("username").value;
         const p = document.getElementById("password").value;
@@ -223,7 +211,6 @@
         loadCategories();
     }
 
-    // --- DATABASE HELPERS ---
     function cleanPrice(val) {
         if(!val) return "Rp0";
         let num = parseInt(String(val).replace(/[^0-9]/g, "")) || 0;
@@ -243,7 +230,6 @@
         }
     }
 
-    // --- SEARCH LOGIC ---
     document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 500); };
     document.getElementById("catFilter").onchange = search;
 
@@ -257,54 +243,41 @@
         if(q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
         if(c) query = query.eq('Category', c);
         
-        const { data } = await query.limit(50);
+        const { data } = await query.limit(1000);
         if(data) {
             list.innerHTML = data.map(p => `
                 <div class="search-item" onclick="showDetail('${p.Barcode}')">
-                    <img class="thumb-img" src="${p.Image || ''}" onclick="openImgModal(this.src)" onerror="this.src='https://placehold.co/100x100?text=No+Img'">
+                    <img class="thumb-img" src="${p.Image || ''}" onclick="openImgModal(this.src)" onerror="this.src='https://placehold.co/200x200?text=No+Img'">
                     <div style="flex:1; min-width: 0;">
                         <small style="color:var(--miniso-red); font-weight:bold;">${p.Category || 'GENERAL'}</small>
-                        <div style="font-weight:bold; font-size:14px; overflow: hidden; text-overflow: ellipsis;">${p.Name}</div>
+                        <div style="font-weight:bold; font-size:14px; margin: 4px 0;">${p.Name}</div>
                         <span class="barcode-text-list">${p.Barcode}</span>
+                        <div style="font-weight:900; color:var(--miniso-red); font-size: 16px; margin-top:8px;">${cleanPrice(p["Regular Store Price"])}</div>
                     </div>
-                    <div style="font-weight:bold; color:var(--miniso-red); flex-shrink:0; margin-left:10px;">${cleanPrice(p["Regular Store Price"])}</div>
                 </div>
             `).join('');
         }
     }
 
-    // --- CANGKOK: NEW SCANNER ENGINE ---
-    document.getElementById("scanBtn").onclick = () => {
-        if (scanning) { stopScan(); } 
-        else { startScan(lastSelectedDeviceId); }
-    };
+    /* --- LOGIKA SCANNER ASLI (IDENTIK) --- */
+    document.getElementById("scanBtn").onclick = () => { if (scanning) { stopScan(); } else { startScan(lastSelectedDeviceId); } };
 
     async function startScan(deviceId = null) {
-        scanning = true; 
-        document.getElementById("reader").style.display = "block";
-        const constraints = {
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-            facingMode: "environment"
-        };
+        scanning = true; document.getElementById("reader").style.display = "block";
+        const constraints = { width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: "environment" };
         if (deviceId) { constraints.deviceId = { exact: deviceId }; }
 
         Quagga.init({
-            inputStream: {
-                type: "LiveStream",
-                target: document.getElementById("reader"),
-                constraints: constraints,
-                area: { top: "20%", right: "20%", left: "20%", bottom: "20%" } // Fokus di tengah kotak merah
+            inputStream: { 
+                type: "LiveStream", 
+                target: document.getElementById("reader"), 
+                constraints: constraints, 
+                area: { top: "20%", right: "20%", left: "20%", bottom: "20%" } 
             },
             decoder: { readers: ["ean_reader", "code_128_reader"] }
         }, (err) => {
-            if (err) {
-                console.error(err);
-                if(deviceId) startScan(null); // Fallback jika ID salah
-                return;
-            }
-            Quagga.start();
-            updateCameraList();
+            if (err) { console.error(err); if(deviceId) startScan(null); return; }
+            Quagga.start(); updateCameraList();
         });
     }
 
@@ -316,46 +289,36 @@
             return !label.includes('front') && !label.includes('user') && !label.includes('depan');
         });
         const finalDevices = backCameras.length > 0 ? backCameras : videoDevices;
-        
-        const control = document.getElementById("cameraControl");
         const source = document.getElementById("videoSource");
-        if (finalDevices.length <= 1) {
-            control.style.display = "none";
+        if (finalDevices.length <= 1) { 
+            document.getElementById("cameraControl").style.display = "none"; 
         } else {
-            control.style.display = "block";
-            source.innerHTML = finalDevices.map(d => 
-                `<option value="${d.deviceId}" ${d.deviceId === lastSelectedDeviceId ? 'selected' : ''}>${d.label || 'Kamera Belakang'}</option>`
-            ).join("");
+            document.getElementById("cameraControl").style.display = "block";
+            source.innerHTML = finalDevices.map(d => `<option value="${d.deviceId}" ${d.deviceId === lastSelectedDeviceId ? 'selected' : ''}>${d.label || 'Kamera Belakang'}</option>`).join("");
         }
     }
 
-    document.getElementById("videoSource").onchange = (e) => { 
-        lastSelectedDeviceId = e.target.value;
-        localStorage.setItem('preferredCameraId', lastSelectedDeviceId);
-        Quagga.stop(); 
-        startScan(lastSelectedDeviceId); 
+    document.getElementById("videoSource").onchange = () => { 
+        lastSelectedDeviceId = document.getElementById("videoSource").value; 
+        localStorage.setItem('preferredCameraId', lastSelectedDeviceId); 
+        Quagga.stop(); startScan(lastSelectedDeviceId); 
     };
 
-    function stopScan() { 
-        Quagga.stop(); 
-        scanning = false; 
-        document.getElementById("reader").style.display = "none"; 
-        document.getElementById("cameraControl").style.display = "none"; 
-    }
+    function stopScan() { Quagga.stop(); scanning = false; document.getElementById("reader").style.display = "none"; document.getElementById("cameraControl").style.display = "none"; }
 
     Quagga.onDetected(async res => {
         const code = res.codeResult.code;
-        // Validasi apakah barcode ada di Supabase
+        // Integrasi dengan Supabase: Cari apakah barcode ada di DB
         const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
-        if(data) {
-            document.getElementById("beepOk").play();
-            stopScan();
-            document.getElementById("searchInput").value = code;
-            showDetail(code);
+        if(data) { 
+            document.getElementById("beepOk").play(); 
+            stopScan(); 
+            document.getElementById("searchInput").value = code; 
+            showDetail(code); 
         }
     });
 
-    // --- DETAIL VIEW ---
+    /* --- DETAIL VIEW --- */
     async function showDetail(fullBarcode) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;
         const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();
@@ -364,51 +327,74 @@
         document.getElementById("listContainer").style.display = "none";
         document.getElementById("ui-header").style.display = "none";
 
-        // LOGIKA BARU: Hanya ambil satu barcode pertama
-        const firstBarcode = String(data.Barcode).split('/')[0].trim();
-        const bcType = firstBarcode.length >= 12 ? 'ean13' : 'code128';
+        const firstBc = String(data.Barcode).split('/')[0].trim();
+        const bcType = firstBc.length >= 12 ? 'ean13' : 'code128';
         
-        const bcHtml = `
-            <div class="barcode-img-container">
-                <img src="https://bwipjs-api.metafloor.com/?bcid=${bcType}&text=${firstBarcode}&scale=3&rotate=N&includetext">
-                <div style="margin-top:10px; font-weight:bold; font-size:13px; color:#555; word-break:break-all;">${data.Barcode}</div>
-            </div>`;
-
         const det = document.getElementById("detailContainer");
         det.innerHTML = `
             <div style="text-align:center;">
                 <img src="${data.Image || ''}" 
-                     style="width:100%; max-height:380px; object-fit:contain; background:#fff; cursor:pointer;" 
-                     onclick="openImgModal(this.src)"
-                     onerror="this.src='https://placehold.co/300x300?text=No+Image'">
+                     style="width:100%; max-height:400px; object-fit:contain; background:#fff;" 
+                     onclick="openImgModal(this.src)" 
+                     onerror="this.src='https://placehold.co/400x400?text=No+Image'">
             </div>
-            <div style="padding:15px 5px;">
-                <small style="color:var(--miniso-red); font-weight:bold;">${data.Category || 'GENERAL'}</small>
-                <h2 style="margin:5px 0 20px 0; font-size: 26px; line-height:1.1; font-weight: 800;">${data.Name}</h2>
+            <div style="padding:20px;">
+                <div style="margin-bottom: 15px;">
+                    <span style="display: inline-block; padding: 4px 10px; background: var(--miniso-red); color: #fff; border-radius: 6px; font-size: 11px; font-weight: 800; text-transform: uppercase;">
+                        ${data.Category || 'GENERAL'}
+                    </span>
+                </div>
+                
+                <h2 style="margin:0 0 20px 0; font-size: 28px; font-weight: 800; line-height:1.2; color: var(--text-dark);">
+                    ${data.Name}
+                </h2>
+                
                 <div class="price-box">
-                    <div class="price-item reg"><small>Regular Store</small><div style="color:var(--miniso-red); font-size:20px; font-weight:900;">${cleanPrice(data["Regular Store Price"])}</div></div>
-                    <div class="price-item str"><small>Street Store</small><div style="font-size:20px; font-weight:900;">${cleanPrice(data["Street Store Price"])}</div></div>
+                    <div class="price-item reg">
+                        <small style="color: #666; font-weight: 600;">Regular Store</small>
+                        <div style="color:var(--miniso-red); font-size:22px; font-weight:900;">${cleanPrice(data["Regular Store Price"])}</div>
+                    </div>
+                    <div class="price-item str">
+                        <small style="color: #666; font-weight: 600;">Street Store</small>
+                        <div style="font-size:22px; font-weight:900;">${cleanPrice(data["Street Store Price"])}</div>
+                    </div>
                 </div>
-                <div class="promo-banner" style="padding:20px; border-radius:24px; background:#fff; border:1.5px solid #eee;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid #f0f0f0; padding-bottom:10px;"><span>Regular Store Promo</span> <b>${data["Regular Store Promo"] || "NORMAL"}</b></div>
-                    <div style="display:flex; justify-content:space-between;"><span>Street Store Promo</span> <b>${data["Street Store Promo"] || "NORMAL"}</b></div>
+
+                <div class="promo-banner" style="padding:20px; border-radius:24px; background:#f9f9f9; border:1px solid #eee; margin-bottom: 25px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:12px; border-bottom:1px solid #eee; padding-bottom:12px;">
+                        <span style="color: #666; font-weight: 600; font-size: 13px;">REGULAR PROMO</span> 
+                        <b style="color: var(--miniso-red);">${data["Regular Store Promo"] || "NORMAL"}</b>
+                    </div>
+                    <div style="display:flex; justify-content:space-between;">
+                        <span style="color: #666; font-weight: 600; font-size: 13px;">STREET PROMO</span> 
+                        <b style="color: #28a745;">${data["Street Store Promo"] || "NORMAL"}</b>
+                    </div>
                 </div>
-                <div class="barcode-wrapper">${bcHtml}</div>
+
+                <div class="barcode-img-container">
+                    <img src="https://bwipjs-api.metafloor.com/?bcid=${bcType}&text=${firstBc}&scale=3&rotate=N&includetext">
+                    <div style="margin-top:10px; font-weight:bold; font-size:13px; color:#555; word-break:break-all;">
+                        ${data.Barcode}
+                    </div>
+                </div>
             </div>
         `;
         det.style.display = "block";
-        setTimeout(() => { det.classList.add('active'); document.getElementById("btnBackFloating").style.display = "flex"; }, 10);
+        setTimeout(() => { 
+            det.classList.add('active'); 
+            document.getElementById("btnBackFloating").style.display = "flex"; 
+        }, 10);
         document.getElementById("scrollContainer").scrollTo(0, 0);
     }
 
     function back() {
         document.getElementById("detailContainer").classList.remove('active');
         document.getElementById("btnBackFloating").style.display = "none";
-        setTimeout(() => {
-            document.getElementById("detailContainer").style.display = "none";
-            document.getElementById("ui-header").style.display = "block";
-            document.getElementById("listContainer").style.display = "block";
-            document.getElementById("scrollContainer").scrollTop = lastScroll;
+        setTimeout(() => { 
+            document.getElementById("detailContainer").style.display = "none"; 
+            document.getElementById("ui-header").style.display = "block"; 
+            document.getElementById("listContainer").style.display = window.innerWidth >= 768 ? "grid" : "block"; 
+            document.getElementById("scrollContainer").scrollTop = lastScroll; 
         }, 300);
     }
 

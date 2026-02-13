@@ -173,8 +173,8 @@
 /* --- PENYESUAIAN TOMBOL BACK FLOATING --- */
 .floating-back { 
     position: fixed; 
-    /* Samakan jarak top dengan padding header agar sejajar secara visual */
-    top: calc(12px + env(safe-area-inset-top)); 
+    /* Diubah dari 12px ke 60px agar turun di bawah label promo */
+    top: calc(60px + env(safe-area-inset-top)); 
     left: 20px; 
     width: 45px; 
     height: 45px; 
@@ -184,7 +184,6 @@
     align-items: center; 
     justify-content: center; 
     box-shadow: 0 8px 20px rgba(0,0,0,0.15); 
-    /* Tingkatkan z-index agar di atas segalanya */
     z-index: 9999; 
     cursor: pointer; 
     border: 1px solid #eee; 

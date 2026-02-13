@@ -309,7 +309,7 @@
         let query = _supabase.from('export').select('*');
         if (currentCategory !== 'All') query = query.eq('Category', currentCategory);
         if (q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
-        let { data } = await query.limit(50);
+        let { data } = await query.limit(5000);
         if(data) {
             list.innerHTML = data.map(p => `
                 <div class="list-item" onclick="showDetail('${p.Barcode}')">

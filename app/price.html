@@ -192,7 +192,7 @@
     // Tetap pertahankan pencarian barcode
     if (q) query = query.ilike('Barcode', `%${q}%`);
     
-    let { data } = await query.limit(5000);
+    let { data } = await query.limit(1);
     // ... sisa kode di bawahnya biarkan saja ...
     if(data) {
         list.innerHTML = data.map(p => `

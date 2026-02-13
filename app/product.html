@@ -36,49 +36,16 @@
 
         /* --- HEADER & SCANNER --- */
         #ui-header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); padding: 16px 16px 8px 16px; border-bottom: 1px solid #eee; z-index: 1000; position: sticky; top: 0; }
-        .top-bar { display: flex; flex-direction: column; gap: 10px; max-width: 1200px; margin-inline: auto; }
-        .search-row { display: flex; gap: 10px; align-items: center; width: 100%; }
+        .top-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; max-width: 1200px; margin-inline: auto; }
         .search-container { position: relative; flex: 1; }
         #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
         #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        
-        /* Category Filter */
-        #categoryFilter { width: 100%; padding: 10px; border-radius: 10px; border: 1.5px solid #eee; background: #fff; font-size: 14px; outline: none; cursor: pointer; }
 
-        /* --- LIST & GRID SYSTEM --- */
-        #listContainer { 
-            display: grid; 
-            grid-template-columns: 1fr; 
-            gap: 12px; 
-            padding: 10px 0;
-            max-width: 1200px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        /* Desktop Grid */
-        @media (min-width: 768px) {
-            #listContainer { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
-        }
-
-        .list-item { 
-            background: #fff; 
-            border: 1px solid #eee; 
-            border-radius: 16px; 
-            padding: 12px; 
-            display: flex; 
-            gap: 15px; 
-            align-items: center; 
-            cursor: pointer; 
-            transition: transform 0.2s;
-            overflow: hidden; /* Prevent horizontal overflow */
-        }
-        .list-item:active { transform: scale(0.98); }
-        .list-item img { width: 70px; height: 70px; object-fit: contain; border-radius: 8px; background: #f9f9f9; }
-        .list-info { flex: 1; min-width: 0; }
-        .list-title { font-weight: 700; font-size: 15px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .list-cat { font-size: 11px; color: var(--miniso-red); font-weight: 800; text-transform: uppercase; }
-        .list-barcode { font-size: 12px; color: #888; }
+        /* --- CATEGORY FILTER --- */
+        #catFilterContainer { display: flex; gap: 8px; overflow-x: auto; padding: 5px 0 10px 0; scrollbar-width: none; }
+        #catFilterContainer::-webkit-scrollbar { display: none; }
+        .cat-chip { padding: 6px 14px; background: #f0f0f0; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer; border: 1px solid transparent; transition: 0.2s; }
+        .cat-chip.active { background: var(--miniso-red); color: white; }
 
         /* --- SCANNER UI --- */
         #reader { 
@@ -93,16 +60,38 @@
         #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
         #videoSource { padding: 10px; border-radius: 8px; border: 2px solid var(--miniso-red); width: 100%; max-width: 300px; font-weight: 600; }
 
-        /* --- PRODUCT DETAIL --- */
+        /* --- PRODUCT GRID & LIST --- */
+        #listContainer { 
+            display: grid; 
+            grid-template-columns: 1fr; /* Mobile: 1 kolom */
+            gap: 12px; 
+            padding-bottom: 30px;
+        }
+        @media (min-width: 768px) {
+            #listContainer { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        }
+
+        .list-item { 
+            display: flex; align-items: center; gap: 15px; 
+            padding: 12px; background: white; border-radius: 16px; 
+            border: 1px solid #f0f0f0; transition: 0.2s; cursor: pointer;
+        }
+        .list-item:active { transform: scale(0.98); background: #fafafa; }
+        .list-item img { width: 70px; height: 70px; object-fit: contain; border-radius: 8px; background: #f9f9f9; flex-shrink: 0; }
+        .list-info { flex: 1; min-width: 0; }
+        .list-name { font-weight: 700; font-size: 14px; color: #222; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .list-cat { font-size: 10px; color: var(--miniso-red); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        .list-bc { font-size: 11px; color: #888; }
+
+        /* --- PRODUCT CARD STYLES (DETAIL) --- */
         .product-card { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; animation: slideUp 0.3s ease-out; }
-        .image-box { background: #fff; text-align: center; padding: 15px; position: relative; border-bottom: 1px solid #f9f9f9; cursor: zoom-in; }
-        .image-box img { max-width: 100%; height: 250px; object-fit: contain; }
+        .image-box { background: #fff; text-align: center; padding: 15px; position: relative; border-bottom: 1px solid #f9f9f9; }
+        .image-box img { max-width: 100%; height: 250px; object-fit: contain; cursor: zoom-in; }
         .promo-badge { position: absolute; top: 12px; left: 12px; background: #ff9800; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; z-index: 10; }
         .p-info { padding: 20px; }
         .p-cat { font-size: 11px; font-weight: 700; color: var(--miniso-red); text-transform: uppercase; margin-bottom: 5px; display: block; }
         .p-title { font-size: 20px; font-weight: 700; margin: 0 0 5px 0; color: #111; }
         .p-desc { font-size: 13px; color: #666; margin-bottom: 15px; }
-        
         .price-comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
         .price-item { padding: 12px; border-radius: 12px; border-bottom: 4px solid #ddd; display: flex; flex-direction: column; background: var(--bg-gray); }
         .price-item.reg { border-bottom-color: var(--miniso-red); background: var(--miniso-soft); }
@@ -110,24 +99,27 @@
         .price-label { font-size: 10px; font-weight: 800; color: #888; margin-bottom: 4px; text-transform: uppercase; }
         .price-val { font-size: 18px; font-weight: 800; color: #333; }
         .price-item.reg .price-val { color: var(--miniso-red); }
-        
         .p-meta { border-top: 1px solid #eee; padding-top: 15px; }
         .meta-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; align-items: center; }
         .meta-label { color: #888; display: flex; align-items: center; gap: 5px; }
         .meta-val { font-weight: 700; color: #333; }
         .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; }
 
-        .main-content { flex: 1; overflow-y: auto; padding: 0 16px; overflow-x: hidden; }
+        /* --- LIGHTBOX (Pop-up Gambar) --- */
+        #lightbox { 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 10000; 
+            display: none; align-items: center; justify-content: center; 
+            opacity: 0; transition: opacity 0.3s ease; padding: 20px;
+        }
+        #lightbox.active { display: flex; opacity: 1; }
+        #lightbox img { max-width: 100%; max-height: 80vh; border-radius: 12px; transform: scale(0.9); transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #lightbox.active img { transform: scale(1); }
+
+        .main-content { flex: 1; overflow-y: auto; padding: 0 16px; }
         #detailContainer { display: none; padding-top: 20px; padding-bottom: 80px; max-width: 800px; margin: 0 auto; }
         #detailContainer.active { display: block; }
         .floating-back { position: fixed; top: 20px; left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 8000; cursor: pointer; }
-
-        /* --- IMAGE MODAL --- */
-        #imageModal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; padding: 20px; }
-        #imageModal.active { display: flex; opacity: 1; }
-        #imageModal img { max-width: 100%; max-height: 80vh; border-radius: 12px; transform: scale(0.8); transition: transform 0.3s ease; }
-        #imageModal.active img { transform: scale(1); }
-
+        
         @keyframes slideUp { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
@@ -139,32 +131,31 @@
 </div>
 <div id="overlay" onclick="toggleSidebar()"></div>
 
-<div id="imageModal" onclick="closeModal()">
-    <img id="modalImg" src="">
-</div>
-
 <div id="btnBackFloating" class="floating-back" onclick="back()">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+</div>
+
+<div id="lightbox" onclick="closeLightbox()">
+    <img id="lightboxImg" src="">
 </div>
 
 <div id="appContent" style="display:flex; height: 100vh; flex-direction: column;">
     <header id="ui-header">
         <div class="top-bar">
-            <div class="search-row">
-                <button onclick="toggleSidebar()" style="background:none; border:none; padding:10px 5px; cursor:pointer;">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            <button onclick="toggleSidebar()" style="background:none; border:none; padding:10px 5px; cursor:pointer;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            <div class="search-container">
+                <input id="searchInput" placeholder="Cari nama / barcode...">
+                <button id="scanBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                 </button>
-                <div class="search-container">
-                    <input id="searchInput" placeholder="Cari nama / barcode...">
-                    <button id="scanBtn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                    </button>
-                </div>
             </div>
-            <select id="categoryFilter">
-                <option value="">Semua Kategori</option>
-            </select>
         </div>
+
+        <div id="catFilterContainer">
+            <div class="cat-chip active" onclick="filterCat('All', this)">All</div>
+            </div>
         
         <div id="reader">
             <div class="focus-guide"></div>
@@ -188,22 +179,42 @@
 
     let scanning = false, lastScroll = 0, timer;
     let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
+    let currentCategory = 'All';
 
-    // Initialize Categories
+    // Inisialisasi Kategori
     async function fetchCategories() {
         const { data } = await _supabase.from('export').select('Category');
         if (data) {
-            const uniqueCats = [...new Set(data.map(i => i.Category))].filter(Boolean).sort();
-            const filter = document.getElementById("categoryFilter");
+            const uniqueCats = [...new Set(data.map(item => item.Category).filter(Boolean))].sort();
+            const container = document.getElementById('catFilterContainer');
             uniqueCats.forEach(cat => {
-                const opt = document.createElement("option");
-                opt.value = cat;
-                opt.textContent = cat;
-                filter.appendChild(opt);
+                const chip = document.createElement('div');
+                chip.className = 'cat-chip';
+                chip.innerText = cat;
+                chip.onclick = () => filterCat(cat, chip);
+                container.appendChild(chip);
             });
         }
     }
     fetchCategories();
+
+    function filterCat(cat, el) {
+        document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        currentCategory = cat;
+        search();
+    }
+
+    function openLightbox(src) {
+        if(!src) return;
+        const lb = document.getElementById('lightbox');
+        document.getElementById('lightboxImg').src = src;
+        lb.classList.add('active');
+    }
+
+    function closeLightbox() {
+        document.getElementById('lightbox').classList.remove('active');
+    }
 
     function toggleSidebar() { 
         document.getElementById("sidebar").classList.toggle("active");
@@ -216,49 +227,33 @@
     }
 
     document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 500); };
-    document.getElementById("categoryFilter").onchange = () => search();
 
     async function search() {
         const q = document.getElementById("searchInput").value.trim();
-        const cat = document.getElementById("categoryFilter").value;
         const list = document.getElementById("listContainer");
         
-        if(!q && !cat) { list.innerHTML = ""; return; }
-        
+        // Base Query
         let query = _supabase.from('export').select('*');
         
-        if(q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
-        if(cat) query = query.eq('Category', cat);
-
+        // Logic Filter & Search
+        if (currentCategory !== 'All') query = query.eq('Category', currentCategory);
+        if (q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
+        
         let { data } = await query.limit(40);
-
+        
         if(data) {
             list.innerHTML = data.map(p => `
                 <div class="list-item" onclick="showDetail('${p.Barcode}')">
-                    <img src="${p.Image || 'https://via.placeholder.com/100?text=No+Img'}" onerror="this.src='https://via.placeholder.com/100'">
+                    <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/100x100?text=No+Img'" 
+                         onclick="event.stopPropagation(); openLightbox('${p.Image}')">
                     <div class="list-info">
                         <div class="list-cat">${p.Category || 'GENERAL'}</div>
-                        <div class="list-title">${p.Name}</div>
-                        <div class="list-barcode">${p.Barcode}</div>
+                        <div class="list-name">${p.Name}</div>
+                        <div class="list-bc">${p.Barcode}</div>
                     </div>
                 </div>
             `).join('');
         }
-    }
-
-    // Modal Image Functions
-    function openModal(src) {
-        const modal = document.getElementById("imageModal");
-        const img = document.getElementById("modalImg");
-        img.src = src;
-        modal.style.display = "flex";
-        setTimeout(() => modal.classList.add("active"), 10);
-    }
-
-    function closeModal() {
-        const modal = document.getElementById("imageModal");
-        modal.classList.remove("active");
-        setTimeout(() => modal.style.display = "none", 300);
     }
 
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
@@ -313,9 +308,9 @@
         const det = document.getElementById("detailContainer");
         det.innerHTML = `
             <div class="product-card">
-                <div class="image-box" onclick="openModal('${p.Image || ''}')">
+                <div class="image-box">
                     ${discountLabel}
-                    <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/300x300?text=Miniso+Product'">
+                    <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/300x300?text=Miniso+Product'" onclick="openLightbox('${p.Image}')">
                 </div>
                 <div class="p-info">
                     <span class="p-cat">${p.Category || 'GENERAL'}</span>

@@ -54,8 +54,27 @@
         #reader video { width: 100%; height: 100%; object-fit: cover; }
 
         /* --- IMPROVED LIST (FIXED WIDTH) --- */
-        .main-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0 16px; width: 100%; }
-        #listContainer { width: 100%; max-width: 1200px; margin: 15px auto; display: flex; flex-direction: column; gap: 12px; }
+        /* --- IMPROVED LIST (FIXED WIDTH) --- */
+        .main-content { 
+            flex: 1; 
+            overflow-y: auto; 
+            overflow-x: hidden; 
+            padding: 0 16px; 
+            width: 100%; 
+            /* Tambahan agar padding tidak menambah lebar total */
+            box-sizing: border-box; 
+        }
+
+        #listContainer { 
+            width: 100%; 
+            max-width: 1200px; 
+            margin: 15px auto; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            /* Mencegah kebocoran ke samping */
+            box-sizing: border-box; 
+        }
         
         .search-item { 
             display: flex; 
@@ -65,35 +84,40 @@
             background: #fff; 
             border-radius: 16px; 
             border: 1px solid #f0f0f0; 
-            width: 100%; /* Pastikan tidak melebihi container */
+            width: 100%; 
             box-shadow: 0 2px 6px rgba(0,0,0,0.03); 
+            /* Pastikan padding item tidak mendorong lebar keluar */
+            box-sizing: border-box; 
         }
 
         .thumb-wrapper { width: 65px; height: 65px; border-radius: 10px; background: #f9f9f9; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         .thumb-img { width: 85%; height: 85%; object-fit: contain; }
         
-        .item-info { flex: 1; min-width: 0; } /* min-width 0 penting agar text-overflow jalan */
+        .item-info { flex: 1; min-width: 0; } 
         .item-name { font-size: 14px; font-weight: 700; color: #111; margin: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .item-cat { font-size: 9px; font-weight: 800; color: var(--miniso-red); text-transform: uppercase; }
         .item-bc { font-size: 11px; color: #999; }
         .item-price { font-size: 14px; font-weight: 800; color: var(--miniso-red); margin-top: 2px; }
 
         /* --- DETAIL CARD --- */
-        #detailContainer { display: none; padding: 20px 0 80px 0; width: 100%; max-width: 600px; margin: 0 auto; }
-        .product-card { background: white; border-radius: 20px; overflow: hidden; border: 1px solid #eee; width: 100%; }
-        .image-box { background: #fff; text-align: center; padding: 20px; position: relative; }
-        .image-box img { max-width: 100%; height: 220px; object-fit: contain; }
-        .price-comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
-        .price-item { padding: 12px; border-radius: 12px; background: var(--bg-gray); border-bottom: 3px solid #ddd; }
-        .price-item.reg { background: var(--miniso-soft); border-bottom-color: var(--miniso-red); }
-        .price-val { font-size: 16px; font-weight: 800; }
+        #detailContainer { display: none; padding: 20px 0 80px 0; width: 100%; max-width: 600px; margin: 0 auto; box-sizing: border-box; }
+        .product-card { background: white; border-radius: 20px; overflow: hidden; border: 1px solid #eee; width: 100%; box-sizing: border-box; }
         
-        .floating-back { position: fixed; top: 20px; left: 20px; width: 42px; height: 42px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 8000; }
-
+        /* --- MEDIA QUERY REPAIR --- */
         @media (min-width: 768px) {
-            #listContainer { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
-            .search-item { flex-direction: column; align-items: flex-start; }
-            .thumb-wrapper { width: 100%; height: 150px; }
+            #listContainer { 
+                display: grid; 
+                /* Menggunakan repeat auto-fill dengan kalkulasi gap agar pas 100% */
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+                gap: 20px;
+            }
+            .search-item { 
+                flex-direction: column; 
+                align-items: flex-start; 
+                height: 100%; /* Menyamakan tinggi card di grid */
+            }
+            .thumb-wrapper { width: 100%; height: 180px; }
+            .item-info { width: 100%; }
         }
     </style>
 </head>

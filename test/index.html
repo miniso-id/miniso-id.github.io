@@ -243,11 +243,12 @@
     scanning = true; 
     document.getElementById("reader").style.display = "block";
     
-    // Resolusi tinggi membantu ketajaman barcode miring
+    // Settingan Kamera
     const constraints = { 
-        width: { ideal: 1920 }, 
-        height: { ideal: 1080 }, 
-        facingMode: "environment" 
+        width: { min: 640, ideal: 1280, max: 1920 }, // Resolusi fleksibel
+        height: { min: 480, ideal: 720, max: 1080 }, 
+        facingMode: "environment",
+        focusMode: "continuous" // Mencoba memaksa autofocus
     };
     
     if (deviceId) constraints.deviceId = { exact: deviceId };
@@ -256,20 +257,37 @@
         inputStream: { 
             type: "LiveStream", 
             target: document.getElementById("reader"), 
-            constraints: constraints 
+            constraints: constraints,
+            // PENTING: Batasi area scan hanya di tengah (kotak merah)
+            // Ini membantu menghindari distorsi di pinggir botol
+            area: { 
+                top: "25%",    // Abaikan 25% atas
+                right: "15%",  // Abaikan 15% kanan
+                left: "15%",   // Abaikan 15% kiri
+                bottom: "25%"  // Abaikan 25% bawah
+            },
         },
+        locator: {
+            patchSize: "medium", // "medium" lebih baik untuk barcode standar drpd "small"
+            halfSample: false,   // JANGAN dikompres, butuh ketajaman penuh
+        },
+        numOfWorkers: 4,      // Gunakan 4 core CPU (lebih ngebut)
+        frequency: 10,        // Scan 10x per detik
         decoder: { 
-            readers: ["ean_reader", "code_128_reader"],
-            // Tambahkan flag untuk membantu barcode yang sulit terbaca
+            readers: [
+                "ean_reader",      // Wajib untuk produk retail (899...)
+                "code_128_reader"  // Cadangan untuk barcode logistik
+            ],
             multiple: false
         },
-        locate: true, // Wajib TRUE untuk deteksi lokasi barcode miring
-        halfSample: false, // Set false agar resolusi tetap tinggi saat diproses
-        // --- TAMBAHKAN BAGIAN INI UNTUK SCAN 360 DERAJAT ---
-        patchSize: "small", // "small" membuat pencarian area barcode lebih rapat/detail
-        frequency: 10,      // Meningkatkan kecepatan pemindaian per detik
+        locate: true
     }, (err) => {
-        if (err) { if(deviceId) startScan(null); return; }
+        if (err) { 
+            console.error(err);
+            // Jika error resolusi, coba restart tanpa deviceId spesifik
+            if(deviceId) startScan(null); 
+            return; 
+        }
         Quagga.start(); 
         updateCameraList();
     });

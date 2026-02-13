@@ -20,12 +20,11 @@
             --sidebar-width: 280px;
         }
 
-        /* RESET & ANTI-OVERFLOW */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html, body { 
             margin: 0; padding: 0; 
             width: 100%; 
-            overflow-x: hidden; /* Kunci horizontal scroll */
+            overflow-x: hidden; 
             font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto; 
             background: #ffffff; color: var(--text-dark); 
             height: 100vh; display: flex; flex-direction: column; 
@@ -53,7 +52,7 @@
         #reader { display:none; width:100%; max-width:340px; aspect-ratio:1/1; margin:15px auto; background:#000; border-radius:20px; overflow:hidden; position:relative; border: 4px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         #reader video { width: 100%; height: 100%; object-fit: cover; }
 
-        /* --- PERBAIKAN LIST (MOBILE & DESKTOP) --- */
+        /* --- LIST CONTAINER --- */
         .main-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0 16px; width: 100%; }
         #listContainer { width: 100%; max-width: 1200px; margin: 15px auto; display: flex; flex-direction: column; gap: 12px; }
         
@@ -68,7 +67,6 @@
             width: 100%; 
             box-shadow: 0 2px 6px rgba(0,0,0,0.03); 
             cursor: pointer;
-            overflow: hidden; /* Mencegah konten meluber keluar kartu */
         }
 
         .thumb-wrapper { width: 65px; height: 65px; border-radius: 10px; background: #f9f9f9; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
@@ -88,18 +86,27 @@
         .item-bc { font-size: 11px; color: #999; margin: 2px 0; }
         .item-price { font-size: 14px; font-weight: 800; color: var(--miniso-red); }
 
-        /* Responsive Desktop */
+        /* --- DESKTOP GRID FIX --- */
         @media (min-width: 768px) {
-            #listContainer { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
-            .search-item { flex-direction: column; align-items: flex-start; padding: 15px; height: 100%; }
+            #listContainer { 
+                display: grid; 
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
+                gap: 20px;
+            }
+            .search-item { 
+                flex-direction: column; 
+                align-items: flex-start; 
+                padding: 15px; 
+                height: 100%;
+            }
             .thumb-wrapper { width: 100%; height: 160px; margin-bottom: 10px; }
             .item-name { 
-                white-space: normal; /* Biarkan teks turun ke bawah di desktop */
+                white-space: normal; /* Mengizinkan pindah baris di desktop */
                 display: -webkit-box;
-                -webkit-line-clamp: 2; /* Batasi 2 baris agar tidak keluar bingkai */
+                -webkit-line-clamp: 2; /* Batasi maksimal 2 baris */
                 -webkit-box-orient: vertical;
-                height: 40px; /* Jaga tinggi konsisten */
-                text-overflow: ellipsis;
+                height: 38px; /* Pastikan tinggi konsisten agar grid rapi */
+                line-height: 1.4;
             }
         }
 

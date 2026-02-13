@@ -1,246 +1,365 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<link rel="manifest" href="manifest.json">
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>MMS-X</title>
+    <link rel="manifest" href="manifest.json">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MMS-X</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
+    
+    <style>
+        :root {
+            --miniso-red: #e61523;
+            --miniso-soft: #fff1f2;
+            --text-dark: #1a1a1a;
+            --promo-blue: #007bff;
+            --promo-green: #28a745;
+            --bg-gray: #f4f4f4;
+            --sidebar-width: 280px;
+        }
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { 
+            margin: 0; padding: 0; 
+            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto; 
+            background: #ffffff; color: var(--text-dark); 
+            height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+        }
 
-<style>
-:root{
---miniso-red:#e61523;
---miniso-soft:#fff1f2;
---text-dark:#1a1a1a;
---promo-blue:#007bff;
---promo-green:#28a745;
---bg-gray:#f4f4f4;
-}
+        /* --- SIDEBAR --- */
+        .sidebar { width: var(--sidebar-width); background: var(--miniso-red); color: #fff; position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 9500; padding: 25px; }
+        .sidebar.active { transform: translateX(0); }
+        .sidebar a { color: #fff; text-decoration: none; display: block; padding: 15px; border-radius: 12px; margin-bottom: 10px; font-weight: 600; background: rgba(255,255,255,0.1); }
+        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 9000; display: none; backdrop-filter: blur(4px); }
 
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{
-margin:0;
-font-family:-apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto;
-background:#fff;color:var(--text-dark);
-height:100vh;display:flex;flex-direction:column;overflow:hidden;
-}
+        /* --- HEADER & SCANNER --- */
+        #ui-header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); padding: 16px 16px 8px 16px; border-bottom: 1px solid #eee; z-index: 1000; position: sticky; top: 0; }
+        .top-bar { display: flex; flex-direction: column; gap: 10px; max-width: 1200px; margin-inline: auto; }
+        .search-row { display: flex; gap: 10px; align-items: center; width: 100%; }
+        .search-container { position: relative; flex: 1; }
+        #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
+        #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        
+        /* Category Filter */
+        #categoryFilter { width: 100%; padding: 10px; border-radius: 10px; border: 1.5px solid #eee; background: #fff; font-size: 14px; outline: none; cursor: pointer; }
 
-/* HEADER */
-#ui-header{
-background:rgba(255,255,255,.95);
-backdrop-filter:blur(14px);
-padding:16px;
-border-bottom:1px solid #eee;
-position:sticky;top:0;z-index:1000
-}
-.top-bar{
-display:flex;gap:10px;align-items:center;
-max-width:1200px;margin:auto
-}
-.search-container{flex:1;position:relative}
-#searchInput{
-width:100%;height:46px;border-radius:14px;
-border:1.5px solid #eee;padding:0 50px 0 15px;
-background:#f2f2f7;font-size:15px
-}
-#scanBtn{
-position:absolute;right:6px;top:6px;
-width:38px;height:34px;border:none;
-background:var(--miniso-red);color:#fff;
-border-radius:10px
-}
-#categoryFilter{
-margin-top:10px;width:100%;
-padding:10px;border-radius:12px;
-border:1.5px solid #eee;
-background:#f2f2f7;font-weight:600
-}
+        /* --- LIST & GRID SYSTEM --- */
+        #listContainer { 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 12px; 
+            padding: 10px 0;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
 
-/* MAIN */
-.main-content{
-flex:1;overflow-y:auto;
-padding:0 16px
-}
+        /* Desktop Grid */
+        @media (min-width: 768px) {
+            #listContainer { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        }
 
-/* PRODUCT LIST */
-#listContainer{
-display:grid;
-gap:12px;
-padding:15px 0 80px;
-}
+        .list-item { 
+            background: #fff; 
+            border: 1px solid #eee; 
+            border-radius: 16px; 
+            padding: 12px; 
+            display: flex; 
+            gap: 15px; 
+            align-items: center; 
+            cursor: pointer; 
+            transition: transform 0.2s;
+            overflow: hidden; /* Prevent horizontal overflow */
+        }
+        .list-item:active { transform: scale(0.98); }
+        .list-item img { width: 70px; height: 70px; object-fit: contain; border-radius: 8px; background: #f9f9f9; }
+        .list-info { flex: 1; min-width: 0; }
+        .list-title { font-weight: 700; font-size: 15px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .list-cat { font-size: 11px; color: var(--miniso-red); font-weight: 800; text-transform: uppercase; }
+        .list-barcode { font-size: 12px; color: #888; }
 
-.product-list-item{
-display:flex;
-gap:12px;
-padding:14px;
-border-radius:16px;
-background:#fff;
-box-shadow:0 3px 12px rgba(0,0,0,.06);
-cursor:pointer;
-transition:.2s;
-overflow:hidden;
-}
+        /* --- SCANNER UI --- */
+        #reader { 
+            display:none; width:100%; max-width:340px; aspect-ratio:1/1; 
+            margin:15px auto; background:#000; border-radius:20px; 
+            overflow:hidden; position:relative; border: 4px solid white; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
+        }
+        #reader video { width: 100%; height: 100%; object-fit: cover; }
+        .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
+        .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; }
+        #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
+        #videoSource { padding: 10px; border-radius: 8px; border: 2px solid var(--miniso-red); width: 100%; max-width: 300px; font-weight: 600; }
 
-.product-list-item:hover{transform:translateY(-2px)}
+        /* --- PRODUCT DETAIL --- */
+        .product-card { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; animation: slideUp 0.3s ease-out; }
+        .image-box { background: #fff; text-align: center; padding: 15px; position: relative; border-bottom: 1px solid #f9f9f9; cursor: zoom-in; }
+        .image-box img { max-width: 100%; height: 250px; object-fit: contain; }
+        .promo-badge { position: absolute; top: 12px; left: 12px; background: #ff9800; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; z-index: 10; }
+        .p-info { padding: 20px; }
+        .p-cat { font-size: 11px; font-weight: 700; color: var(--miniso-red); text-transform: uppercase; margin-bottom: 5px; display: block; }
+        .p-title { font-size: 20px; font-weight: 700; margin: 0 0 5px 0; color: #111; }
+        .p-desc { font-size: 13px; color: #666; margin-bottom: 15px; }
+        
+        .price-comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+        .price-item { padding: 12px; border-radius: 12px; border-bottom: 4px solid #ddd; display: flex; flex-direction: column; background: var(--bg-gray); }
+        .price-item.reg { border-bottom-color: var(--miniso-red); background: var(--miniso-soft); }
+        .price-item.str { border-bottom-color: var(--promo-green); }
+        .price-label { font-size: 10px; font-weight: 800; color: #888; margin-bottom: 4px; text-transform: uppercase; }
+        .price-val { font-size: 18px; font-weight: 800; color: #333; }
+        .price-item.reg .price-val { color: var(--miniso-red); }
+        
+        .p-meta { border-top: 1px solid #eee; padding-top: 15px; }
+        .meta-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; align-items: center; }
+        .meta-label { color: #888; display: flex; align-items: center; gap: 5px; }
+        .meta-val { font-weight: 700; color: #333; }
+        .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; }
 
-.product-list-img{
-width:70px;height:70px;
-object-fit:contain;
-border-radius:12px;
-background:#f8f8f8;
-flex-shrink:0;
-}
+        .main-content { flex: 1; overflow-y: auto; padding: 0 16px; overflow-x: hidden; }
+        #detailContainer { display: none; padding-top: 20px; padding-bottom: 80px; max-width: 800px; margin: 0 auto; }
+        #detailContainer.active { display: block; }
+        .floating-back { position: fixed; top: 20px; left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 8000; cursor: pointer; }
 
-.product-list-content{flex:1;min-width:0}
+        /* --- IMAGE MODAL --- */
+        #imageModal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; padding: 20px; }
+        #imageModal.active { display: flex; opacity: 1; }
+        #imageModal img { max-width: 100%; max-height: 80vh; border-radius: 12px; transform: scale(0.8); transition: transform 0.3s ease; }
+        #imageModal.active img { transform: scale(1); }
 
-.product-list-title{
-font-weight:700;font-size:14px;
-white-space:nowrap;overflow:hidden;text-overflow:ellipsis
-}
-.product-list-barcode{font-size:11px;color:#888}
-.product-list-category{
-font-size:11px;font-weight:700;
-color:var(--miniso-red)
-}
-.product-list-category-detail{
-font-size:11px;color:#666;
-white-space:nowrap;overflow:hidden;text-overflow:ellipsis
-}
-
-/* GRID DESKTOP */
-@media(min-width:768px){
-#listContainer{
-grid-template-columns:repeat(auto-fill,minmax(320px,1fr))
-}
-}
-
-/* DETAIL CARD */
-.product-card{
-background:#fff;border-radius:18px;
-box-shadow:0 4px 15px rgba(0,0,0,.08);
-overflow:hidden;max-width:800px;margin:auto
-}
-.image-box{text-align:center;padding:15px;position:relative}
-.image-box img{max-width:100%;height:260px;object-fit:contain}
-.p-info{padding:20px}
-.p-cat{font-size:11px;font-weight:700;color:var(--miniso-red)}
-.p-title{font-size:20px;font-weight:700;margin:5px 0}
-.p-desc{font-size:13px;color:#666;margin-bottom:15px}
-.price-comparison-grid{
-display:grid;grid-template-columns:1fr 1fr;gap:10px
-}
-.price-item{
-padding:12px;border-radius:12px;
-background:var(--bg-gray);border-bottom:4px solid #ddd
-}
-.price-item.reg{border-bottom-color:var(--miniso-red);background:var(--miniso-soft)}
-.price-item.str{border-bottom-color:var(--promo-green)}
-.price-label{font-size:10px;font-weight:800;color:#888}
-.price-val{font-size:18px;font-weight:800}
-.price-item.reg .price-val{color:var(--miniso-red)}
-.p-meta{border-top:1px solid #eee;padding-top:15px;margin-top:15px}
-.meta-row{display:flex;justify-content:space-between;font-size:12px}
-
-/* IMAGE MODAL */
-#imgModal{
-position:fixed;inset:0;
-background:rgba(0,0,0,.6);
-backdrop-filter:blur(6px);
-display:flex;align-items:center;justify-content:center;
-opacity:0;visibility:hidden;
-transition:.25s;z-index:9999
-}
-#imgModal.active{opacity:1;visibility:visible}
-#imgModal img{
-max-width:90%;max-height:90%;
-border-radius:18px;background:#fff;
-padding:10px;transform:scale(.85);
-transition:.25s
-}
-#imgModal.active img{transform:scale(1)}
-</style>
+        @keyframes slideUp { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    </style>
 </head>
-
 <body>
 
-<header id="ui-header">
-<div class="top-bar">
-<div class="search-container">
-<input id="searchInput" placeholder="Cari nama / barcode...">
-<button id="scanBtn">📷</button>
+<div id="sidebar" class="sidebar">
+    <h2>MMS-X</h2>
+    <a href="https://miniso-id.github.io/app/">Home</a>
 </div>
-</div>
-<select id="categoryFilter">
-<option value="">Semua Kategori</option>
-</select>
-</header>
+<div id="overlay" onclick="toggleSidebar()"></div>
 
-<main class="main-content" id="scrollContainer">
-<div id="listContainer"></div>
-<div id="detailContainer"></div>
-</main>
-
-<div id="imgModal" onclick="closeImgModal()">
-<img id="modalImage">
+<div id="imageModal" onclick="closeModal()">
+    <img id="modalImg" src="">
 </div>
+
+<div id="btnBackFloating" class="floating-back" onclick="back()">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+</div>
+
+<div id="appContent" style="display:flex; height: 100vh; flex-direction: column;">
+    <header id="ui-header">
+        <div class="top-bar">
+            <div class="search-row">
+                <button onclick="toggleSidebar()" style="background:none; border:none; padding:10px 5px; cursor:pointer;">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                </button>
+                <div class="search-container">
+                    <input id="searchInput" placeholder="Cari nama / barcode...">
+                    <button id="scanBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <select id="categoryFilter">
+                <option value="">Semua Kategori</option>
+            </select>
+        </div>
+        
+        <div id="reader">
+            <div class="focus-guide"></div>
+            <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK FOKUS</div>
+        </div>
+        <div id="cameraControl"><select id="videoSource"></select></div>
+    </header>
+
+    <main class="main-content" id="scrollContainer">
+        <div id="listContainer"></div>
+        <div id="detailContainer"></div>
+    </main>
+</div>
+
+<audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
-const SUPABASE_URL="https://uesupubktkxfjsylcwwr.supabase.co";
-const SUPABASE_KEY="PASTE_KEY_MU";
-const _supabase=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+    const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let timer;
+    let scanning = false, lastScroll = 0, timer;
+    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
 
-document.getElementById("searchInput").oninput=()=>{
-clearTimeout(timer);
-timer=setTimeout(search,500);
-};
+    // Initialize Categories
+    async function fetchCategories() {
+        const { data } = await _supabase.from('export').select('Category');
+        if (data) {
+            const uniqueCats = [...new Set(data.map(i => i.Category))].filter(Boolean).sort();
+            const filter = document.getElementById("categoryFilter");
+            uniqueCats.forEach(cat => {
+                const opt = document.createElement("option");
+                opt.value = cat;
+                opt.textContent = cat;
+                filter.appendChild(opt);
+            });
+        }
+    }
+    fetchCategories();
 
-async function loadCategories(){
-const {data}=await _supabase.from('export').select('Category');
-if(!data)return;
-const unique=[...new Set(data.map(i=>i.Category).filter(Boolean))];
-const sel=document.getElementById("categoryFilter");
-unique.forEach(c=>sel.innerHTML+=`<option value="${c}">${c}</option>`);
-}
-loadCategories();
-document.getElementById("categoryFilter").onchange=search;
+    function toggleSidebar() { 
+        document.getElementById("sidebar").classList.toggle("active");
+        document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none";
+    }
 
-async function search(){
-const q=searchInput.value.trim();
-const cat=categoryFilter.value;
-if(!q&&!cat){listContainer.innerHTML="";return;}
+    function cleanPrice(val) {
+        if(!val) return 0;
+        return parseInt(String(val).replace(/[^0-9]/g, "")) || 0;
+    }
 
-let query=_supabase.from('export').select('*');
-if(q)query=query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
-if(cat)query=query.eq('Category',cat);
+    document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 500); };
+    document.getElementById("categoryFilter").onchange = () => search();
 
-const {data}=await query.limit(50);
-if(!data)return;
+    async function search() {
+        const q = document.getElementById("searchInput").value.trim();
+        const cat = document.getElementById("categoryFilter").value;
+        const list = document.getElementById("listContainer");
+        
+        if(!q && !cat) { list.innerHTML = ""; return; }
+        
+        let query = _supabase.from('export').select('*');
+        
+        if(q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
+        if(cat) query = query.eq('Category', cat);
 
-listContainer.innerHTML=data.map(p=>`
-<div class="product-list-item" onclick="showDetail('${p.Barcode}')">
-<img class="product-list-img" src="${p.Image||''}" onclick="event.stopPropagation();openImgModal('${p.Image}')">
-<div class="product-list-content">
-<div class="product-list-title">${p.Name}</div>
-<div class="product-list-barcode">${p.Barcode}</div>
-<div class="product-list-category">${p.Category||''}</div>
-<div class="product-list-category-detail">${p["Category Detail"]||''}</div>
-</div>
-</div>
-`).join('');
-}
+        let { data } = await query.limit(40);
 
-function openImgModal(src){
-if(!src)return;
-modalImage.src=src;
-imgModal.classList.add("active");
-}
-function closeImgModal(){
-imgModal.classList.remove("active");
-}
+        if(data) {
+            list.innerHTML = data.map(p => `
+                <div class="list-item" onclick="showDetail('${p.Barcode}')">
+                    <img src="${p.Image || 'https://via.placeholder.com/100?text=No+Img'}" onerror="this.src='https://via.placeholder.com/100'">
+                    <div class="list-info">
+                        <div class="list-cat">${p.Category || 'GENERAL'}</div>
+                        <div class="list-title">${p.Name}</div>
+                        <div class="list-barcode">${p.Barcode}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+
+    // Modal Image Functions
+    function openModal(src) {
+        const modal = document.getElementById("imageModal");
+        const img = document.getElementById("modalImg");
+        img.src = src;
+        modal.style.display = "flex";
+        setTimeout(() => modal.classList.add("active"), 10);
+    }
+
+    function closeModal() {
+        const modal = document.getElementById("imageModal");
+        modal.classList.remove("active");
+        setTimeout(() => modal.style.display = "none", 300);
+    }
+
+    document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
+
+    async function startScan(deviceId = null) {
+        scanning = true; document.getElementById("reader").style.display = "block";
+        const constraints = { width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: "environment" };
+        if (deviceId) constraints.deviceId = { exact: deviceId };
+
+        Quagga.init({
+            inputStream: { type: "LiveStream", target: document.getElementById("reader"), constraints: constraints, area: { top: "20%", right: "20%", left: "20%", bottom: "20%" } },
+            decoder: { readers: ["ean_reader", "code_128_reader"] }
+        }, (err) => {
+            if (err) { if(deviceId) startScan(null); return; }
+            Quagga.start(); updateCameraList();
+        });
+    }
+
+    async function updateCameraList() {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        const final = videoDevices.filter(d => !d.label.toLowerCase().includes('front'));
+        const source = document.getElementById("videoSource");
+        if (final.length <= 1) { document.getElementById("cameraControl").style.display = "none"; }
+        else {
+            document.getElementById("cameraControl").style.display = "block";
+            source.innerHTML = final.map(d => `<option value="${d.deviceId}" ${d.deviceId === lastSelectedDeviceId ? 'selected' : ''}>${d.label || 'Kamera'}</option>`).join("");
+        }
+    }
+
+    document.getElementById("videoSource").onchange = (e) => { lastSelectedDeviceId = e.target.value; localStorage.setItem('preferredCameraId', lastSelectedDeviceId); Quagga.stop(); startScan(lastSelectedDeviceId); };
+    function stopScan() { Quagga.stop(); scanning = false; document.getElementById("reader").style.display = "none"; document.getElementById("cameraControl").style.display = "none"; }
+
+    Quagga.onDetected(async res => {
+        const code = res.codeResult.code;
+        const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
+        if(data) { document.getElementById("beepOk").play(); stopScan(); document.getElementById("searchInput").value = code; showDetail(code); }
+    });
+
+    async function showDetail(fullBarcode) {
+        lastScroll = document.getElementById("scrollContainer").scrollTop;
+        const { data: p } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();
+        if(!p) return;
+
+        document.getElementById("listContainer").style.display = "none";
+        document.getElementById("ui-header").style.display = "none";
+
+        const regPrice = cleanPrice(p["Regular Store Price"]);
+        const strPrice = cleanPrice(p["Street Store Price"]);
+        const discountLabel = (p["Regular Store Promo"] && p["Regular Store Promo"] !== "NORMAL") ? `<div class="promo-badge">${p["Regular Store Promo"]}</div>` : "";
+
+        const det = document.getElementById("detailContainer");
+        det.innerHTML = `
+            <div class="product-card">
+                <div class="image-box" onclick="openModal('${p.Image || ''}')">
+                    ${discountLabel}
+                    <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/300x300?text=Miniso+Product'">
+                </div>
+                <div class="p-info">
+                    <span class="p-cat">${p.Category || 'GENERAL'}</span>
+                    <h3 class="p-title">${p.Name}</h3>
+                    <p class="p-desc">${p.Description || ''}</p>
+                    
+                    <div class="price-comparison-grid">
+                        <div class="price-item reg">
+                            <span class="price-label">Regular Price</span>
+                            <span class="price-val">Rp${regPrice.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div class="price-item str">
+                            <span class="price-label">Street Store</span>
+                            <span class="price-val">Rp${strPrice.toLocaleString('id-ID')}</span>
+                        </div>
+                    </div>
+
+                    <div class="p-meta">
+                        <div class="meta-row"><span class="meta-label">Barcode</span><span class="meta-val">${p.Barcode}</span></div>
+                        <div class="meta-row">
+                            <span class="meta-label"><span class="dot" style="background:var(--promo-blue)"></span> Regular Promo</span>
+                            <span class="meta-val" style="color:var(--promo-blue)">${p["Regular Store Promo"] || '-'}</span>
+                        </div>
+                        <div class="meta-row">
+                            <span class="meta-label"><span class="dot" style="background:var(--promo-green)"></span> Street Promo</span>
+                            <span class="meta-val" style="color:var(--promo-green)">${p["Street Store Promo"] || '-'}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        det.style.display = "block";
+        det.classList.add('active');
+        document.getElementById("btnBackFloating").style.display = "flex";
+        document.getElementById("scrollContainer").scrollTo(0, 0);
+    }
+
+    function back() {
+        document.getElementById("detailContainer").style.display = "none";
+        document.getElementById("ui-header").style.display = "block";
+        document.getElementById("listContainer").style.display = "grid";
+        document.getElementById("btnBackFloating").style.display = "none";
+        document.getElementById("scrollContainer").scrollTop = lastScroll;
+    }
 </script>
 </body>
 </html>

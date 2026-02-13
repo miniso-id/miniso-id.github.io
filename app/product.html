@@ -35,26 +35,20 @@
         #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 9000; display: none; backdrop-filter: blur(4px); }
 
         /* --- HEADER & SCANNER --- */
-        #ui-header { background: rgba(255, 255, 255, 0.98); box-shadow: 0 1px 10px rgba(0,0,0,0.05); padding: 16px 16px 5px 16px; z-index: 1000; position: sticky; top: 0; }
-        .header-content { max-width: 800px; margin: 0 auto; width: 100%; }
-        
-        .top-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+        #ui-header { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(15px); padding: 10px 16px; border-bottom: 1px solid #eee; z-index: 1000; position: sticky; top: 0; display: flex; flex-direction: column; gap: 10px; }
+        .top-bar { display: flex; gap: 10px; align-items: center; max-width: 1200px; margin-inline: auto; width: 100%; }
         .search-container { position: relative; flex: 1; }
-        #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; transition: 0.3s; }
+        #searchInput { width: 100%; height: 44px; padding: 0 50px 0 15px; border-radius: 12px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; transition: border 0.3s; }
         #searchInput:focus { border-color: var(--miniso-red); background: #fff; }
-        #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s; }
-        #scanBtn:active { transform: scale(0.9); }
+        #scanBtn { position: absolute; right: 6px; top: 5px; width: 34px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
-        /* --- CATEGORY FILTER (NEW) --- */
+        /* --- CATEGORY FILTER --- */
         .category-scroll {
-            display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; 
-            scrollbar-width: none; /* Firefox */
+            display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; -webkit-overflow-scrolling: touch; scrollbar-width: none;
         }
-        .category-scroll::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+        .category-scroll::-webkit-scrollbar { display: none; }
         .cat-chip {
-            padding: 6px 14px; background: #f0f0f0; border-radius: 20px; 
-            font-size: 13px; font-weight: 600; color: #555; white-space: nowrap; cursor: pointer;
-            border: 1px solid transparent; transition: all 0.3s ease;
+            white-space: nowrap; padding: 6px 14px; background: #f0f0f0; border-radius: 20px; font-size: 12px; font-weight: 600; color: #555; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;
         }
         .cat-chip.active { background: var(--miniso-soft); color: var(--miniso-red); border-color: var(--miniso-red); }
 
@@ -71,48 +65,75 @@
         #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
         #videoSource { padding: 10px; border-radius: 8px; border: 2px solid var(--miniso-red); width: 100%; max-width: 300px; font-weight: 600; }
 
-        /* --- LIST LAYOUT (IMPROVED) --- */
-        .main-content { flex: 1; overflow-y: auto; padding: 0 16px; scroll-behavior: smooth; }
-        #listContainer { 
-            display: grid; 
-            grid-template-columns: 1fr; 
-            gap: 12px; 
-            padding-bottom: 80px; 
-            max-width: 800px; 
-            margin: 10px auto 0;
-        }
+        /* --- MAIN LIST LAYOUT (RESPONSIVE GRID/LIST) --- */
+        .main-content { flex: 1; overflow-y: auto; padding: 10px 16px; background: #fff; }
         
-        /* Desktop/Tablet Grid View */
-        @media (min-width: 768px) {
-            #listContainer { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+        #listContainer {
+            display: grid;
+            gap: 12px;
+            padding-bottom: 80px;
         }
 
-        .list-item {
-            background: #fff; border-radius: 12px; padding: 12px;
-            display: flex; align-items: center; gap: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #f0f0f0;
-            cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
-            animation: fadeInItem 0.4s ease-out forwards;
+        /* Default: List View untuk Mobile */
+        @media (max-width: 768px) {
+            #listContainer {
+                grid-template-columns: 1fr; /* Satu kolom ke bawah */
+            }
+            .list-card {
+                display: flex; align-items: center; gap: 12px; padding: 12px;
+                border: 1px solid #f0f0f0; border-radius: 12px; background: white;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            }
+            .list-card img {
+                width: 60px; height: 60px; object-fit: contain; border-radius: 6px; background: #f9f9f9; flex-shrink: 0;
+            }
+            .list-card-content { flex: 1; min-width: 0; }
         }
-        .list-item:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
-        .list-item img { 
-            width: 60px; height: 60px; object-fit: contain; border-radius: 8px; background: #fff; 
-            border: 1px solid #f9f9f9; flex-shrink: 0;
-        }
-        .list-info { flex: 1; overflow: hidden; }
-        .list-name { font-weight: 700; font-size: 14px; margin-bottom: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-        .list-code { font-size: 12px; color: #888; display: flex; align-items: center; gap: 5px; }
 
-        /* --- PRODUCT DETAIL CARD --- */
+        /* Desktop: Grid View */
+        @media (min-width: 769px) {
+            #listContainer {
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); /* Grid otomatis */
+                gap: 20px;
+            }
+            .list-card {
+                display: flex; flex-direction: column; padding: 0;
+                border: 1px solid #eee; border-radius: 12px; background: white;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.05); overflow: hidden;
+                transition: transform 0.2s;
+            }
+            .list-card:hover { transform: translateY(-3px); }
+            .list-card img {
+                width: 100%; height: 180px; object-fit: contain; background: #f9f9f9; padding: 10px; border-bottom: 1px solid #f0f0f0;
+            }
+            .list-card-content { padding: 12px; }
+        }
+
+        /* Common List Styles */
+        .list-card-cat { font-size: 10px; font-weight: 700; color: var(--miniso-red); text-transform: uppercase; margin-bottom: 2px; display: block; }
+        .list-card-title { font-size: 14px; font-weight: 600; color: #333; margin: 0 0 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .list-card-code { font-size: 11px; color: #888; font-family: monospace; }
+        
+        /* --- IMAGE MODAL POPUP --- */
+        .img-modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        .img-modal.open { opacity: 1; pointer-events: auto; }
+        .img-modal img { max-width: 90%; max-height: 90vh; object-fit: contain; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .img-modal.open img { transform: scale(1); }
+        .img-modal-close { position: absolute; top: 20px; right: 20px; color: white; font-size: 30px; cursor: pointer; background: rgba(255,255,255,0.2); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+
+        /* --- PRODUCT DETAIL STYLES --- */
         .product-card { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; animation: slideUp 0.3s ease-out; }
         .image-box { background: #fff; text-align: center; padding: 15px; position: relative; border-bottom: 1px solid #f9f9f9; }
-        .image-box img { max-width: 100%; height: 250px; object-fit: contain; cursor: zoom-in; transition: opacity 0.2s; }
-        .image-box img:active { opacity: 0.7; }
+        .image-box img { max-width: 100%; height: 250px; object-fit: contain; }
         .promo-badge { position: absolute; top: 12px; left: 12px; background: #ff9800; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; z-index: 10; }
         .p-info { padding: 20px; }
         .p-cat { font-size: 11px; font-weight: 700; color: var(--miniso-red); text-transform: uppercase; margin-bottom: 5px; display: block; }
         .p-title { font-size: 20px; font-weight: 700; margin: 0 0 5px 0; color: #111; }
-        .p-desc { font-size: 13px; color: #666; margin-bottom: 15px; line-height: 1.4; }
+        .p-desc { font-size: 13px; color: #666; margin-bottom: 15px; }
         .price-comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
         .price-item { padding: 12px; border-radius: 12px; border-bottom: 4px solid #ddd; display: flex; flex-direction: column; background: var(--bg-gray); }
         .price-item.reg { border-bottom-color: var(--miniso-red); background: var(--miniso-soft); }
@@ -126,24 +147,11 @@
         .meta-val { font-weight: 700; color: #333; }
         .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; }
 
-        #detailContainer { display: none; padding-top: 20px; padding-bottom: 80px; max-width: 800px; margin: 0 auto; }
+        #detailContainer { display: none; padding-top: 10px; padding-bottom: 80px; max-width: 800px; margin: 0 auto; }
         #detailContainer.active { display: block; }
-        .floating-back { position: fixed; top: 20px; left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 8000; cursor: pointer; transition: transform 0.2s; }
-        .floating-back:active { transform: scale(0.9); }
-
-        /* --- LIGHTBOX (NEW) --- */
-        #imgLightbox {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 9999;
-            display: none; align-items: center; justify-content: center;
-            opacity: 0; transition: opacity 0.3s ease; backdrop-filter: blur(5px);
-        }
-        #imgLightbox.show { display: flex; opacity: 1; }
-        #imgLightbox img { max-width: 95%; max-height: 90%; border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.5); transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        #imgLightbox.show img { transform: scale(1); }
-        .close-lb { position: absolute; top: 20px; right: 20px; color: white; font-size: 30px; cursor: pointer; padding: 10px; }
-
+        .floating-back { position: fixed; top: 20px; left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 8000; cursor: pointer; }
+        
         @keyframes slideUp { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        @keyframes fadeInItem { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
@@ -154,9 +162,9 @@
 </div>
 <div id="overlay" onclick="toggleSidebar()"></div>
 
-<div id="imgLightbox" onclick="closeLightbox()">
-    <div class="close-lb">&times;</div>
-    <img id="lbImage" src="">
+<div id="imgModal" class="img-modal" onclick="closeImgModal()">
+    <div class="img-modal-close">&times;</div>
+    <img id="imgModalSrc" src="" onclick="event.stopPropagation()">
 </div>
 
 <div id="btnBackFloating" class="floating-back" onclick="back()">
@@ -165,35 +173,27 @@
 
 <div id="appContent" style="display:flex; height: 100vh; flex-direction: column;">
     <header id="ui-header">
-        <div class="header-content">
-            <div class="top-bar">
-                <button onclick="toggleSidebar()" style="background:none; border:none; padding:10px 5px; cursor:pointer;">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        <div class="top-bar">
+            <button onclick="toggleSidebar()" style="background:none; border:none; padding:10px 5px; cursor:pointer;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            <div class="search-container">
+                <input id="searchInput" placeholder="Cari nama / barcode...">
+                <button id="scanBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                 </button>
-                <div class="search-container">
-                    <input id="searchInput" placeholder="Cari nama / barcode...">
-                    <button id="scanBtn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                    </button>
-                </div>
             </div>
-            
-            <div id="catFilters" class="category-scroll">
-                <div class="cat-chip active" onclick="setCategory('ALL', this)">Semua</div>
-                <div class="cat-chip" onclick="setCategory('Household', this)">Household</div>
-                <div class="cat-chip" onclick="setCategory('Digital', this)">Digital</div>
-                <div class="cat-chip" onclick="setCategory('Creative', this)">Creative</div>
-                <div class="cat-chip" onclick="setCategory('Toy', this)">Toy</div>
-                <div class="cat-chip" onclick="setCategory('Bag', this)">Bag</div>
-                <div class="cat-chip" onclick="setCategory('Accessory', this)">Accessory</div>
-            </div>
-
-            <div id="reader">
-                <div class="focus-guide"></div>
-                <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK FOKUS</div>
-            </div>
-            <div id="cameraControl"><select id="videoSource"></select></div>
         </div>
+
+        <div id="categoryFilter" class="category-scroll">
+            <div class="cat-chip active" onclick="setCategory('ALL', this)">ALL</div>
+            </div>
+        
+        <div id="reader">
+            <div class="focus-guide"></div>
+            <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK FOKUS</div>
+        </div>
+        <div id="cameraControl"><select id="videoSource"></select></div>
     </header>
 
     <main class="main-content" id="scrollContainer">
@@ -213,6 +213,11 @@
     let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
     let currentCategory = 'ALL';
 
+    // -- INIT --
+    window.onload = () => {
+        loadCategories();
+    };
+
     function toggleSidebar() { 
         document.getElementById("sidebar").classList.toggle("active");
         document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none";
@@ -223,7 +228,37 @@
         return parseInt(String(val).replace(/[^0-9]/g, "")) || 0;
     }
 
-    /* --- CATEGORY LOGIC --- */
+    // -- IMAGE POPUP LOGIC --
+    function openImgModal(src) {
+        if(!src) return;
+        const modal = document.getElementById("imgModal");
+        document.getElementById("imgModalSrc").src = src;
+        modal.classList.add("open");
+    }
+    function closeImgModal() {
+        document.getElementById("imgModal").classList.remove("open");
+        setTimeout(() => { document.getElementById("imgModalSrc").src = ""; }, 300);
+    }
+
+    // -- CATEGORY LOGIC --
+    async function loadCategories() {
+        // Ambil sample data untuk mendapatkan kategori unik (workaround karena rpc/view mungkin terbatas)
+        // Kita ambil 200 produk pertama untuk sampling kategori
+        const { data } = await _supabase.from('export').select('Category').limit(200);
+        if(data) {
+            const uniqueCats = [...new Set(data.map(item => item.Category).filter(c => c))].sort();
+            const container = document.getElementById("categoryFilter");
+            
+            uniqueCats.forEach(cat => {
+                const chip = document.createElement("div");
+                chip.className = "cat-chip";
+                chip.innerText = cat;
+                chip.onclick = function() { setCategory(cat, this); };
+                container.appendChild(chip);
+            });
+        }
+    }
+
     function setCategory(cat, el) {
         currentCategory = cat;
         // Update UI Active State
@@ -233,61 +268,46 @@
         search();
     }
 
-    /* --- LIGHTBOX LOGIC --- */
-    function openLightbox(src) {
-        const lb = document.getElementById("imgLightbox");
-        const img = document.getElementById("lbImage");
-        img.src = src;
-        lb.classList.add("show");
-    }
-    
-    function closeLightbox() {
-        const lb = document.getElementById("imgLightbox");
-        lb.classList.remove("show");
-        setTimeout(() => { document.getElementById("lbImage").src = ""; }, 300);
-    }
-
+    // -- SEARCH LOGIC MODIFIED --
     document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 500); };
 
     async function search() {
         const q = document.getElementById("searchInput").value.trim();
         const list = document.getElementById("listContainer");
         
-        // Show empty state if no query and no category (optional, kept similar to original but allowing cat filter)
-        if(!q && currentCategory === 'ALL') { list.innerHTML = ""; return; }
-        
-        list.innerHTML = '<div style="text-align:center; padding:20px; color:#999; width:100%;">Memuat...</div>';
-
+        // Base Query
         let query = _supabase.from('export').select('*');
-        
-        // Apply Text Search
+
+        // Apply Category Filter if not ALL
+        if (currentCategory !== 'ALL') {
+            query = query.eq('Category', currentCategory);
+        }
+
+        // Apply Text Search if exists
         if (q) {
             query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
         }
-        
-        // Apply Category Filter
-        if (currentCategory !== 'ALL') {
-            // Note: Gunakan ilike agar case-insensitive (misal: "toy" match "Toy")
-            query = query.ilike('Category', `%${currentCategory}%`);
+
+        // Jika tidak ada search text dan kategori ALL, kosongkan (atau load default jika diinginkan)
+        if (!q && currentCategory === 'ALL') {
+             list.innerHTML = ""; return; 
         }
 
-        let { data } = await query.limit(30);
+        const { data } = await query.limit(30);
 
-        if(data && data.length > 0) {
+        if(data) {
             list.innerHTML = data.map(p => `
-                <div class="list-item" onclick="showDetail('${p.Barcode}')">
-                    <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/60?text=IMG'" onclick="event.stopPropagation(); openLightbox(this.src)">
-                    <div class="list-info">
-                        <div class="list-name">${p.Name}</div>
-                        <div class="list-code">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                            ${p.Barcode}
-                        </div>
+                <div class="list-card" onclick="showDetail('${p.Barcode}')">
+                    <img src="${p.Image || ''}" 
+                         onerror="this.src='https://via.placeholder.com/150?text=No+Img'"
+                         onclick="event.stopPropagation(); openImgModal('${p.Image}')">
+                    <div class="list-card-content">
+                        <span class="list-card-cat">${p.Category || 'General'}</span>
+                        <div class="list-card-title">${p.Name}</div>
+                        <div class="list-card-code">${p.Barcode}</div>
                     </div>
                 </div>
             `).join('');
-        } else {
-            list.innerHTML = '<div style="text-align:center; padding:20px; color:#999; width:100%;">Produk tidak ditemukan</div>';
         }
     }
 
@@ -330,7 +350,6 @@
 
     async function showDetail(fullBarcode) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;
-        // Fetch detail, keep logic safe
         const { data: p } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();
         if(!p) return;
 
@@ -346,7 +365,7 @@
             <div class="product-card">
                 <div class="image-box">
                     ${discountLabel}
-                    <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/300x300?text=Miniso+Product'" onclick="openLightbox(this.src)">
+                    <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/300x300?text=Miniso+Product'" onclick="openImgModal('${p.Image}')">
                 </div>
                 <div class="p-info">
                     <span class="p-cat">${p.Category || 'GENERAL'}</span>
@@ -386,8 +405,8 @@
 
     function back() {
         document.getElementById("detailContainer").style.display = "none";
-        document.getElementById("ui-header").style.display = "block";
-        document.getElementById("listContainer").style.display = "grid"; // Restore to grid
+        document.getElementById("ui-header").style.display = "flex"; // Changed from block to flex
+        document.getElementById("listContainer").style.display = "grid"; // Restore Grid
         document.getElementById("btnBackFloating").style.display = "none";
         document.getElementById("scrollContainer").scrollTop = lastScroll;
     }

@@ -330,18 +330,40 @@
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
     async function startScan(deviceId = null) {
-        scanning = true; document.getElementById("reader").style.display = "block";
-        const constraints = { width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: "environment" };
-        if (deviceId) constraints.deviceId = { exact: deviceId };
-        Quagga.init({
-            inputStream: { type: "LiveStream", target: document.getElementById("reader"), constraints: constraints },
-            decoder: { readers: ["ean_reader", "code_128_reader"] },
-            locate: true
-        }, (err) => {
-            if (err) { if(deviceId) startScan(null); return; }
-            Quagga.start(); updateCameraList();
-        });
-    }
+    scanning = true; 
+    document.getElementById("reader").style.display = "block";
+    
+    // Resolusi tinggi membantu ketajaman barcode miring
+    const constraints = { 
+        width: { ideal: 1920 }, 
+        height: { ideal: 1080 }, 
+        facingMode: "environment" 
+    };
+    
+    if (deviceId) constraints.deviceId = { exact: deviceId };
+
+    Quagga.init({
+        inputStream: { 
+            type: "LiveStream", 
+            target: document.getElementById("reader"), 
+            constraints: constraints 
+        },
+        decoder: { 
+            readers: ["ean_reader", "code_128_reader"],
+            // Tambahkan flag untuk membantu barcode yang sulit terbaca
+            multiple: false
+        },
+        locate: true, // Wajib TRUE untuk deteksi lokasi barcode miring
+        halfSample: false, // Set false agar resolusi tetap tinggi saat diproses
+        // --- TAMBAHKAN BAGIAN INI UNTUK SCAN 360 DERAJAT ---
+        patchSize: "small", // "small" membuat pencarian area barcode lebih rapat/detail
+        frequency: 10,      // Meningkatkan kecepatan pemindaian per detik
+    }, (err) => {
+        if (err) { if(deviceId) startScan(null); return; }
+        Quagga.start(); 
+        updateCameraList();
+    });
+}
 
     async function updateCameraList() {
         const devices = await navigator.mediaDevices.enumerateDevices();

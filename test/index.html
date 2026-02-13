@@ -358,10 +358,20 @@
     function stopScan() { Quagga.stop(); scanning = false; document.getElementById("reader").style.display = "none"; document.getElementById("cameraControl").style.display = "none"; }
 
     Quagga.onDetected(async res => {
-        const code = res.codeResult.code;
-        const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
-        if(data) { document.getElementById("beepOk").play(); stopScan(); document.getElementById("searchInput").value = code; showDetail(code); }
-    });
+    const code = res.codeResult.code;
+    const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
+    
+    if(data) { 
+        document.getElementById("beepOk").play(); 
+        stopScan(); 
+        
+        // Tambahkan ini agar keyboard menutup dan layar tidak goyang
+        document.getElementById("searchInput").blur(); 
+        
+        document.getElementById("searchInput").value = code; 
+        showDetail(code); 
+    }
+});
 
     async function showDetail(fullBarcode) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;

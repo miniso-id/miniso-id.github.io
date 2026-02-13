@@ -14,16 +14,21 @@
             --miniso-red: #e61523;
             --miniso-soft: #fff1f2;
             --text-dark: #1a1a1a;
-            --bg-gray: #f2f2f7;
+            --promo-blue: #007bff;
+            --promo-green: #28a745;
+            --bg-gray: #f4f4f4;
             --sidebar-width: 280px;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { 
+        
+        html, body { 
             margin: 0; padding: 0; 
+            width: 100%;
+            overflow-x: hidden; /* Mengunci scroll horizontal */
             font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto; 
             background: #ffffff; color: var(--text-dark); 
-            height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+            height: 100vh; display: flex; flex-direction: column;
         }
 
         /* --- LOGIN --- */
@@ -38,129 +43,100 @@
         #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 9000; display: none; backdrop-filter: blur(4px); }
 
         /* --- HEADER --- */
-        #ui-header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); padding: 16px 16px 8px 16px; border-bottom: 1px solid #eee; z-index: 1000; position: sticky; top: 0; }
-        .top-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; max-width: 1200px; margin-inline: auto; }
+        #ui-header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); padding: 16px; border-bottom: 1px solid #eee; z-index: 1000; width: 100%; }
+        .top-bar { display: flex; gap: 10px; align-items: center; max-width: 1200px; margin: 0 auto; width: 100%; }
         .search-container { position: relative; flex: 1; }
-        #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; transition: border 0.3s; }
-        #searchInput:focus { border-color: var(--miniso-red); background: #fff; }
+        #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
+        #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
 
-        /* --- SCAN BUTTON ICON (Sesuai script scanner asli) --- */
-        #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 6px rgba(230, 21, 35, 0.3); }
-        #scanBtn svg { width: 22px; height: 22px; }
-
-        /* --- SCANNER UI (DIAMBIL DARI SCRIPT PERTAMA) --- */
-        #reader { 
-            display:none; width:100%; max-width:340px; aspect-ratio:1/1; 
-            margin:15px auto; background:#000; border-radius:20px; 
-            overflow:hidden; position:relative; border: 4px solid white; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15); cursor: pointer; 
-        }
+        /* --- SCANNER --- */
+        #reader { display:none; width:100%; max-width:340px; aspect-ratio:1/1; margin:15px auto; background:#000; border-radius:20px; overflow:hidden; position:relative; border: 4px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         #reader video { width: 100%; height: 100%; object-fit: cover; }
-        .focus-guide { 
-            position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); 
-            border-radius: 15px; pointer-events: none; z-index: 2; 
-            box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); 
-        }
-        .tap-hint { 
-            position: absolute; bottom: 10px; width: 100%; text-align: center; 
-            color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; 
-        }
-        #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
-        #videoSource { padding: 10px; border-radius: 8px; border: 2px solid var(--miniso-red); width: 100%; max-width: 300px; font-weight: 600; }
 
-        /* --- CONTENT AREA & GALLERY GRID --- */
-        .main-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0 16px; position: relative; }
-        #listContainer { max-width: 1200px; margin: 0 auto; display: block; }
+        /* --- IMPROVED LIST (FIXED WIDTH) --- */
+        .main-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0 16px; width: 100%; }
+        #listContainer { width: 100%; max-width: 1200px; margin: 15px auto; display: flex; flex-direction: column; gap: 12px; }
         
-        .search-item { display: flex; align-items: center; gap: 12px; padding: 15px 0; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: 0.2s; }
-        .thumb-img { width: 65px; height: 65px; border-radius: 10px; flex-shrink: 0; object-fit: contain; background: #f9f9f9; }
-        .barcode-text-list { font-size: 11px; color: #666; word-break: break-all; display: block; margin-top: 2px; }
+        .search-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            padding: 10px; 
+            background: #fff; 
+            border-radius: 16px; 
+            border: 1px solid #f0f0f0; 
+            width: 100%; /* Pastikan tidak melebihi container */
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03); 
+        }
+
+        .thumb-wrapper { width: 65px; height: 65px; border-radius: 10px; background: #f9f9f9; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .thumb-img { width: 85%; height: 85%; object-fit: contain; }
+        
+        .item-info { flex: 1; min-width: 0; } /* min-width 0 penting agar text-overflow jalan */
+        .item-name { font-size: 14px; font-weight: 700; color: #111; margin: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .item-cat { font-size: 9px; font-weight: 800; color: var(--miniso-red); text-transform: uppercase; }
+        .item-bc { font-size: 11px; color: #999; }
+        .item-price { font-size: 14px; font-weight: 800; color: var(--miniso-red); margin-top: 2px; }
+
+        /* --- DETAIL CARD --- */
+        #detailContainer { display: none; padding: 20px 0 80px 0; width: 100%; max-width: 600px; margin: 0 auto; }
+        .product-card { background: white; border-radius: 20px; overflow: hidden; border: 1px solid #eee; width: 100%; }
+        .image-box { background: #fff; text-align: center; padding: 20px; position: relative; }
+        .image-box img { max-width: 100%; height: 220px; object-fit: contain; }
+        .price-comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
+        .price-item { padding: 12px; border-radius: 12px; background: var(--bg-gray); border-bottom: 3px solid #ddd; }
+        .price-item.reg { background: var(--miniso-soft); border-bottom-color: var(--miniso-red); }
+        .price-val { font-size: 16px; font-weight: 800; }
+        
+        .floating-back { position: fixed; top: 20px; left: 20px; width: 42px; height: 42px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 8000; }
 
         @media (min-width: 768px) {
-            #listContainer { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; padding: 20px 0; }
-            .search-item { flex-direction: column; align-items: flex-start; background: #fff; border: 1px solid #eee; border-radius: 18px; padding: 15px; height: 100%; border-bottom: 1px solid #eee; }
-            .search-item:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
-            .thumb-img { width: 100%; height: 180px; margin-bottom: 10px; }
-            .search-item div { margin-left: 0 !important; width: 100%; }
+            #listContainer { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+            .search-item { flex-direction: column; align-items: flex-start; }
+            .thumb-wrapper { width: 100%; height: 150px; }
         }
-
-        /* --- MODAL & DETAIL --- */
-        #imgModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; backdrop-filter: blur(15px); align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; }
-        #imgModal.active { display: flex; opacity: 1; }
-        #modalImg { max-width: 90%; max-height: 80%; border-radius: 15px; transform: scale(0.8); transition: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        #imgModal.active #modalImg { transform: scale(1); }
-        .product-detail-card { display: none; padding-bottom: 100px; max-width: 800px; margin: 0 auto; }
-        .product-detail-card.active { display: block; animation: slideUp 0.3s ease both; }
-        .barcode-img-container { background: white; padding: 15px; border-radius: 18px; border: 1px dashed #ccc; text-align: center; margin-top: 20px; }
-        .barcode-img-container img { max-width: 100%; height: auto; margin: 0 auto; }
-        .price-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
-        .price-item { padding: 15px; border-radius: 18px; text-align: center; }
-        .price-item.reg { background: var(--miniso-soft); border: 1px solid rgba(230,21,35,0.1); }
-        .price-item.str { background: var(--bg-gray); border: 1px solid #e5e5ea; }
-        .floating-back { position: fixed; top: 20px; left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 8000; cursor: pointer; }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
 
 <div id="sidebar" class="sidebar">
     <h2>MMS-X</h2>
-    <a href="https://miniso-id.github.io/app/">Home</a>
-    <a href="#" onclick="handleLogout()" style="margin-top: 50px; opacity: 0.7; background:none; border:1px solid rgba(255,255,255,0.3);">Logout</a>
+    <a href="#" onclick="location.reload()">Home</a>
+    <a href="#" onclick="handleLogout()" style="margin-top: 50px; opacity: 0.7;">Logout</a>
 </div>
 <div id="overlay" onclick="toggleSidebar()"></div>
 
-<div id="imgModal" onclick="closeImgModal()">
-    <img id="modalImg" src="">
-</div>
-
 <div id="btnBackFloating" class="floating-back" onclick="back()">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
 </div>
 
 <div id="loginScreen">
-    <h1 style="color:var(--miniso-red); font-size: 3.5rem; margin-bottom: 0; letter-spacing: -3px; font-weight: 900;">MINISO</h1>
-    <p style="color:#888; margin-bottom: 30px; font-weight: 500;">Inventory System v5.7</p>
+    <h1 style="color:var(--miniso-red); font-size: 3rem; font-weight: 900; margin: 0;">MINISO</h1>
+    <p style="color:#999; margin-bottom: 25px;">MMS-X System</p>
     <input type="text" id="username" class="login-input" placeholder="Username">
     <input type="password" id="password" class="login-input" placeholder="Password">
-    <button class="btn-login" onclick="handleLogin()">MASUK</button>
+    <button class="btn-login" onclick="handleLogin()">LOGIN</button>
 </div>
 
-<div id="appContent" style="display:none; height: 100vh; flex-direction: column;">
+<div id="appContent" style="display:none; flex-direction: column; width: 100%;">
     <header id="ui-header">
         <div class="top-bar">
-            <button onclick="toggleSidebar()" style="background:none; border:none; padding:10px 5px; cursor:pointer;">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            <button onclick="toggleSidebar()" style="background:none; border:none;">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             <div class="search-container">
                 <input id="searchInput" placeholder="Cari nama / barcode...">
                 <button id="scanBtn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path>
-                        <line x1="8" y1="12" x2="16" y2="12"></line>
-                    </svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path></svg>
                 </button>
             </div>
         </div>
-        
-        <div id="reader">
-            <div class="focus-guide"></div>
-            <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK FOKUS</div>
-        </div>
-        <div id="cameraControl">
-            <select id="videoSource"></select>
-        </div>
-
-        <div style="max-width: 1200px; margin-inline: auto; margin-top:10px;">
-            <select id="catFilter" style="width:100%; padding:12px; border-radius:12px; border:1px solid #eee; background: #fff; font-weight: bold;">
-                <option value="">Semua Kategori</option>
-            </select>
-        </div>
+        <div id="reader"></div>
     </header>
 
     <main class="main-content" id="scrollContainer">
         <div id="listContainer"></div>
-        <div id="detailContainer" class="product-detail-card"></div>
+        <div id="detailContainer"></div>
     </main>
 </div>
 
@@ -172,32 +148,15 @@
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let scanning = false, lastScroll = 0, timer;
-    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
 
     function toggleSidebar() { 
-        document.getElementById("sidebar").classList.toggle("active");
-        document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none";
-    }
-
-    function openImgModal(src) {
-        if(!src || src.includes('placehold.co')) return;
-        const modal = document.getElementById('imgModal');
-        document.getElementById('modalImg').src = src;
-        modal.style.display = 'flex';
-        setTimeout(() => modal.classList.add('active'), 10);
-        if(window.event) window.event.stopPropagation();
-    }
-
-    function closeImgModal() {
-        const modal = document.getElementById('imgModal');
-        modal.classList.remove('active');
-        setTimeout(() => modal.style.display = 'none', 300);
+        const s = document.getElementById("sidebar");
+        s.classList.toggle("active");
+        document.getElementById("overlay").style.display = s.classList.contains("active") ? "block" : "none";
     }
 
     function handleLogin() {
-        const u = document.getElementById("username").value;
-        const p = document.getElementById("password").value;
-        if((u === "admin" && p === "miniso123") || (u === "ID12" && p === "12121212")) {
+        if(document.getElementById("username").value === "admin") {
             sessionStorage.setItem("logged", "true");
             init();
         } else { alert("Login Gagal"); }
@@ -208,194 +167,106 @@
         if(sessionStorage.getItem("logged") !== "true") return;
         document.getElementById("loginScreen").style.display = "none";
         document.getElementById("appContent").style.display = "flex";
-        loadCategories();
     }
 
     function cleanPrice(val) {
-        if(!val) return "Rp0";
-        let num = parseInt(String(val).replace(/[^0-9]/g, "")) || 0;
-        return "Rp" + num.toLocaleString('id-ID');
-    }
-
-    async function loadCategories() {
-        const { data } = await _supabase.from('export').select('Category');
-        if(data) {
-            const cats = [...new Set(data.map(i => i.Category))].filter(Boolean).sort();
-            const filter = document.getElementById("catFilter");
-            cats.forEach(c => {
-                const opt = document.createElement("option");
-                opt.value = opt.textContent = c;
-                filter.appendChild(opt);
-            });
-        }
+        return parseInt(String(val || 0).replace(/[^0-9]/g, "")) || 0;
     }
 
     document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 500); };
-    document.getElementById("catFilter").onchange = search;
 
     async function search() {
         const q = document.getElementById("searchInput").value.trim();
-        const c = document.getElementById("catFilter").value;
         const list = document.getElementById("listContainer");
-        if(!q && !c) { list.innerHTML = ""; return; }
+        if(!q) { list.innerHTML = ""; return; }
         
-        let query = _supabase.from('export').select('*');
-        if(q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
-        if(c) query = query.eq('Category', c);
-        
-        const { data } = await query.limit(1000);
+        let { data } = await _supabase.from('export').select('*').or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`).limit(15);
         if(data) {
             list.innerHTML = data.map(p => `
                 <div class="search-item" onclick="showDetail('${p.Barcode}')">
-                    <img class="thumb-img" src="${p.Image || ''}" onclick="openImgModal(this.src)" onerror="this.src='https://placehold.co/200x200?text=No+Img'">
-                    <div style="flex:1; min-width: 0;">
-                        <small style="color:var(--miniso-red); font-weight:bold;">${p.Category || 'GENERAL'}</small>
-                        <div style="font-weight:bold; font-size:14px; margin: 4px 0;">${p.Name}</div>
-                        <span class="barcode-text-list">${p.Barcode}</span>
-                        <div style="font-weight:900; color:var(--miniso-red); font-size: 16px; margin-top:8px;">${cleanPrice(p["Regular Store Price"])}</div>
+                    <div class="thumb-wrapper">
+                        <img class="thumb-img" src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/100'">
+                    </div>
+                    <div class="item-info">
+                        <span class="item-cat">${p.Category || 'GENERAL'}</span>
+                        <div class="item-name">${p.Name}</div>
+                        <div class="item-bc">${p.Barcode}</div>
+                        <div class="item-price">Rp${cleanPrice(p["Regular Store Price"]).toLocaleString('id-ID')}</div>
                     </div>
                 </div>
             `).join('');
         }
     }
 
-    /* --- LOGIKA SCANNER ASLI (IDENTIK) --- */
-    document.getElementById("scanBtn").onclick = () => { if (scanning) { stopScan(); } else { startScan(lastSelectedDeviceId); } };
+    document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(); };
 
-    async function startScan(deviceId = null) {
+    function startScan() {
         scanning = true; document.getElementById("reader").style.display = "block";
-        const constraints = { width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: "environment" };
-        if (deviceId) { constraints.deviceId = { exact: deviceId }; }
-
         Quagga.init({
-            inputStream: { 
-                type: "LiveStream", 
-                target: document.getElementById("reader"), 
-                constraints: constraints, 
-                area: { top: "20%", right: "20%", left: "20%", bottom: "20%" } 
-            },
+            inputStream: { type: "LiveStream", target: document.getElementById("reader"), constraints: { facingMode: "environment" } },
             decoder: { readers: ["ean_reader", "code_128_reader"] }
-        }, (err) => {
-            if (err) { console.error(err); if(deviceId) startScan(null); return; }
-            Quagga.start(); updateCameraList();
-        });
+        }, (err) => { if(!err) Quagga.start(); });
     }
 
-    async function updateCameraList() {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(d => d.kind === 'videoinput');
-        const backCameras = videoDevices.filter(d => {
-            const label = d.label.toLowerCase();
-            return !label.includes('front') && !label.includes('user') && !label.includes('depan');
-        });
-        const finalDevices = backCameras.length > 0 ? backCameras : videoDevices;
-        const source = document.getElementById("videoSource");
-        if (finalDevices.length <= 1) { 
-            document.getElementById("cameraControl").style.display = "none"; 
-        } else {
-            document.getElementById("cameraControl").style.display = "block";
-            source.innerHTML = finalDevices.map(d => `<option value="${d.deviceId}" ${d.deviceId === lastSelectedDeviceId ? 'selected' : ''}>${d.label || 'Kamera Belakang'}</option>`).join("");
-        }
-    }
+    function stopScan() { Quagga.stop(); scanning = false; document.getElementById("reader").style.display = "none"; }
 
-    document.getElementById("videoSource").onchange = () => { 
-        lastSelectedDeviceId = document.getElementById("videoSource").value; 
-        localStorage.setItem('preferredCameraId', lastSelectedDeviceId); 
-        Quagga.stop(); startScan(lastSelectedDeviceId); 
-    };
-
-    function stopScan() { Quagga.stop(); scanning = false; document.getElementById("reader").style.display = "none"; document.getElementById("cameraControl").style.display = "none"; }
-
-    Quagga.onDetected(async res => {
+    Quagga.onDetected(res => {
         const code = res.codeResult.code;
-        // Integrasi dengan Supabase: Cari apakah barcode ada di DB
-        const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
-        if(data) { 
-            document.getElementById("beepOk").play(); 
-            stopScan(); 
-            document.getElementById("searchInput").value = code; 
-            showDetail(code); 
-        }
+        document.getElementById("beepOk").play();
+        stopScan();
+        document.getElementById("searchInput").value = code;
+        showDetail(code);
     });
 
-    /* --- DETAIL VIEW --- */
-    async function showDetail(fullBarcode) {
+    async function showDetail(bc) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;
-        const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();
-        if(!data) return;
+        const { data: p } = await _supabase.from('export').select('*').ilike('Barcode', `%${bc}%`).maybeSingle();
+        if(!p) return;
 
-        document.getElementById("listContainer").style.display = "none";
         document.getElementById("ui-header").style.display = "none";
-
-        const firstBc = String(data.Barcode).split('/')[0].trim();
-        const bcType = firstBc.length >= 12 ? 'ean13' : 'code128';
+        document.getElementById("listContainer").style.display = "none";
         
+        const reg = cleanPrice(p["Regular Store Price"]);
+        const str = cleanPrice(p["Street Store Price"]);
+
         const det = document.getElementById("detailContainer");
         det.innerHTML = `
-            <div style="text-align:center;">
-                <img src="${data.Image || ''}" 
-                     style="width:100%; max-height:400px; object-fit:contain; background:#fff;" 
-                     onclick="openImgModal(this.src)" 
-                     onerror="this.src='https://placehold.co/400x400?text=No+Image'">
-            </div>
-            <div style="padding:20px;">
-                <div style="margin-bottom: 15px;">
-                    <span style="display: inline-block; padding: 4px 10px; background: var(--miniso-red); color: #fff; border-radius: 6px; font-size: 11px; font-weight: 800; text-transform: uppercase;">
-                        ${data.Category || 'GENERAL'}
-                    </span>
+            <div class="product-card">
+                <div class="image-box">
+                    <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/300'">
                 </div>
-                
-                <h2 style="margin:0 0 20px 0; font-size: 28px; font-weight: 800; line-height:1.2; color: var(--text-dark);">
-                    ${data.Name}
-                </h2>
-                
-                <div class="price-box">
-                    <div class="price-item reg">
-                        <small style="color: #666; font-weight: 600;">Regular Store</small>
-                        <div style="color:var(--miniso-red); font-size:22px; font-weight:900;">${cleanPrice(data["Regular Store Price"])}</div>
+                <div style="padding: 20px;">
+                    <span class="item-cat">${p.Category}</span>
+                    <h2 style="margin: 5px 0 15px 0; font-size: 18px;">${p.Name}</h2>
+                    <div class="price-comparison-grid">
+                        <div class="price-item reg">
+                            <small>REGULAR</small>
+                            <div class="price-val">Rp${reg.toLocaleString('id-ID')}</div>
+                        </div>
+                        <div class="price-item">
+                            <small>STREET</small>
+                            <div class="price-val">Rp${str.toLocaleString('id-ID')}</div>
+                        </div>
                     </div>
-                    <div class="price-item str">
-                        <small style="color: #666; font-weight: 600;">Street Store</small>
-                        <div style="font-size:22px; font-weight:900;">${cleanPrice(data["Street Store Price"])}</div>
-                    </div>
-                </div>
-
-                <div class="promo-banner" style="padding:20px; border-radius:24px; background:#f9f9f9; border:1px solid #eee; margin-bottom: 25px;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:12px; border-bottom:1px solid #eee; padding-bottom:12px;">
-                        <span style="color: #666; font-weight: 600; font-size: 13px;">REGULAR PROMO</span> 
-                        <b style="color: var(--miniso-red);">${data["Regular Store Promo"] || "NORMAL"}</b>
-                    </div>
-                    <div style="display:flex; justify-content:space-between;">
-                        <span style="color: #666; font-weight: 600; font-size: 13px;">STREET PROMO</span> 
-                        <b style="color: #28a745;">${data["Street Store Promo"] || "NORMAL"}</b>
-                    </div>
-                </div>
-
-                <div class="barcode-img-container">
-                    <img src="https://bwipjs-api.metafloor.com/?bcid=${bcType}&text=${firstBc}&scale=3&rotate=N&includetext">
-                    <div style="margin-top:10px; font-weight:bold; font-size:13px; color:#555; word-break:break-all;">
-                        ${data.Barcode}
+                    <div style="font-size: 12px; border-top: 1px solid #eee; padding-top: 15px; color: #666;">
+                        <p>Barcode: <b>${p.Barcode}</b></p>
+                        <p>Promo Reg: <b style="color:var(--promo-blue)">${p["Regular Store Promo"] || '-'}</b></p>
+                        <p>Promo Str: <b style="color:var(--promo-green)">${p["Street Store Promo"] || '-'}</b></p>
                     </div>
                 </div>
             </div>
         `;
         det.style.display = "block";
-        setTimeout(() => { 
-            det.classList.add('active'); 
-            document.getElementById("btnBackFloating").style.display = "flex"; 
-        }, 10);
+        document.getElementById("btnBackFloating").style.display = "flex";
         document.getElementById("scrollContainer").scrollTo(0, 0);
     }
 
     function back() {
-        document.getElementById("detailContainer").classList.remove('active');
+        document.getElementById("detailContainer").style.display = "none";
+        document.getElementById("ui-header").style.display = "block";
+        document.getElementById("listContainer").style.display = "flex";
         document.getElementById("btnBackFloating").style.display = "none";
-        setTimeout(() => { 
-            document.getElementById("detailContainer").style.display = "none"; 
-            document.getElementById("ui-header").style.display = "block"; 
-            document.getElementById("listContainer").style.display = window.innerWidth >= 768 ? "grid" : "block"; 
-            document.getElementById("scrollContainer").scrollTop = lastScroll; 
-        }, 300);
+        document.getElementById("scrollContainer").scrollTop = lastScroll;
     }
 
     window.onload = init;

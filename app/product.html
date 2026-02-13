@@ -35,22 +35,57 @@
         #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 9000; display: none; backdrop-filter: blur(4px); }
 
         /* --- HEADER & SCANNER --- */
-        #ui-header { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(15px); padding: 10px 16px; border-bottom: 1px solid #eee; z-index: 1000; position: sticky; top: 0; display: flex; flex-direction: column; gap: 10px; }
-        .top-bar { display: flex; gap: 10px; align-items: center; max-width: 1200px; margin-inline: auto; width: 100%; }
+        #ui-header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); padding: 16px 16px 8px 16px; border-bottom: 1px solid #eee; z-index: 1000; position: sticky; top: 0; }
+        .top-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; max-width: 1200px; margin-inline: auto; }
         .search-container { position: relative; flex: 1; }
-        #searchInput { width: 100%; height: 44px; padding: 0 50px 0 15px; border-radius: 12px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; transition: border 0.3s; }
-        #searchInput:focus { border-color: var(--miniso-red); background: #fff; }
-        #scanBtn { position: absolute; right: 6px; top: 5px; width: 34px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
+        #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
         /* --- CATEGORY FILTER --- */
-        .category-scroll {
-            display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+        .filter-wrapper { display: flex; gap: 8px; overflow-x: auto; padding: 5px 0 10px 0; scrollbar-width: none; }
+        .filter-wrapper::-webkit-scrollbar { display: none; }
+        .cat-pill { white-space: nowrap; padding: 6px 16px; background: #f0f0f0; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.3s; border: 1px solid transparent; }
+        .cat-pill.active { background: var(--miniso-red); color: white; }
+
+        /* --- LIST CONTAINER RESPONSIVE --- */
+        #listContainer { 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 12px; 
+            padding: 10px 0;
+            max-width: 1200px;
+            margin: 0 auto;
         }
-        .category-scroll::-webkit-scrollbar { display: none; }
-        .cat-chip {
-            white-space: nowrap; padding: 6px 14px; background: #f0f0f0; border-radius: 20px; font-size: 12px; font-weight: 600; color: #555; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;
+        @media (min-width: 768px) {
+            #listContainer { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
         }
-        .cat-chip.active { background: var(--miniso-soft); color: var(--miniso-red); border-color: var(--miniso-red); }
+
+        .list-item { 
+            padding: 12px; 
+            background: #fff;
+            border: 1px solid #eee; 
+            border-radius: 14px;
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .list-item:active { transform: scale(0.98); }
+        .list-item img { width: 60px; height: 60px; object-fit: contain; border-radius: 8px; background: #f9f9f9; }
+        .list-item-info { flex: 1; overflow: hidden; }
+        .list-item-name { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .list-item-cat { font-size: 10px; color: var(--miniso-red); font-weight: 800; text-transform: uppercase; }
+
+        /* --- LIGHTBOX POPUP --- */
+        #lightbox { 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 10000; 
+            display: none; align-items: center; justify-content: center; 
+            opacity: 0; transition: opacity 0.3s ease; 
+        }
+        #lightbox.active { display: flex; opacity: 1; }
+        #lightbox img { max-width: 90%; max-height: 80%; border-radius: 12px; transform: scale(0.8); transition: transform 0.3s ease; }
+        #lightbox.active img { transform: scale(1); }
 
         /* --- SCANNER UI --- */
         #reader { 
@@ -65,69 +100,9 @@
         #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
         #videoSource { padding: 10px; border-radius: 8px; border: 2px solid var(--miniso-red); width: 100%; max-width: 300px; font-weight: 600; }
 
-        /* --- MAIN LIST LAYOUT (RESPONSIVE GRID/LIST) --- */
-        .main-content { flex: 1; overflow-y: auto; padding: 10px 16px; background: #fff; }
-        
-        #listContainer {
-            display: grid;
-            gap: 12px;
-            padding-bottom: 80px;
-        }
-
-        /* Default: List View untuk Mobile */
-        @media (max-width: 768px) {
-            #listContainer {
-                grid-template-columns: 1fr; /* Satu kolom ke bawah */
-            }
-            .list-card {
-                display: flex; align-items: center; gap: 12px; padding: 12px;
-                border: 1px solid #f0f0f0; border-radius: 12px; background: white;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.03);
-            }
-            .list-card img {
-                width: 60px; height: 60px; object-fit: contain; border-radius: 6px; background: #f9f9f9; flex-shrink: 0;
-            }
-            .list-card-content { flex: 1; min-width: 0; }
-        }
-
-        /* Desktop: Grid View */
-        @media (min-width: 769px) {
-            #listContainer {
-                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); /* Grid otomatis */
-                gap: 20px;
-            }
-            .list-card {
-                display: flex; flex-direction: column; padding: 0;
-                border: 1px solid #eee; border-radius: 12px; background: white;
-                box-shadow: 0 4px 10px rgba(0,0,0,0.05); overflow: hidden;
-                transition: transform 0.2s;
-            }
-            .list-card:hover { transform: translateY(-3px); }
-            .list-card img {
-                width: 100%; height: 180px; object-fit: contain; background: #f9f9f9; padding: 10px; border-bottom: 1px solid #f0f0f0;
-            }
-            .list-card-content { padding: 12px; }
-        }
-
-        /* Common List Styles */
-        .list-card-cat { font-size: 10px; font-weight: 700; color: var(--miniso-red); text-transform: uppercase; margin-bottom: 2px; display: block; }
-        .list-card-title { font-size: 14px; font-weight: 600; color: #333; margin: 0 0 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .list-card-code { font-size: 11px; color: #888; font-family: monospace; }
-        
-        /* --- IMAGE MODAL POPUP --- */
-        .img-modal {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999;
-            display: flex; align-items: center; justify-content: center;
-            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
-        }
-        .img-modal.open { opacity: 1; pointer-events: auto; }
-        .img-modal img { max-width: 90%; max-height: 90vh; object-fit: contain; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .img-modal.open img { transform: scale(1); }
-        .img-modal-close { position: absolute; top: 20px; right: 20px; color: white; font-size: 30px; cursor: pointer; background: rgba(255,255,255,0.2); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
-
-        /* --- PRODUCT DETAIL STYLES --- */
+        /* --- PRODUCT CARD STYLES --- */
         .product-card { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; animation: slideUp 0.3s ease-out; }
-        .image-box { background: #fff; text-align: center; padding: 15px; position: relative; border-bottom: 1px solid #f9f9f9; }
+        .image-box { background: #fff; text-align: center; padding: 15px; position: relative; border-bottom: 1px solid #f9f9f9; cursor: zoom-in; }
         .image-box img { max-width: 100%; height: 250px; object-fit: contain; }
         .promo-badge { position: absolute; top: 12px; left: 12px; background: #ff9800; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; z-index: 10; }
         .p-info { padding: 20px; }
@@ -147,7 +122,8 @@
         .meta-val { font-weight: 700; color: #333; }
         .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; }
 
-        #detailContainer { display: none; padding-top: 10px; padding-bottom: 80px; max-width: 800px; margin: 0 auto; }
+        .main-content { flex: 1; overflow-y: auto; padding: 0 16px; }
+        #detailContainer { display: none; padding-top: 20px; padding-bottom: 80px; max-width: 800px; margin: 0 auto; }
         #detailContainer.active { display: block; }
         .floating-back { position: fixed; top: 20px; left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 8000; cursor: pointer; }
         
@@ -162,13 +138,12 @@
 </div>
 <div id="overlay" onclick="toggleSidebar()"></div>
 
-<div id="imgModal" class="img-modal" onclick="closeImgModal()">
-    <div class="img-modal-close">&times;</div>
-    <img id="imgModalSrc" src="" onclick="event.stopPropagation()">
-</div>
-
 <div id="btnBackFloating" class="floating-back" onclick="back()">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+</div>
+
+<div id="lightbox" onclick="closeLightbox()">
+    <img id="lightboxImg" src="" alt="Zoomed">
 </div>
 
 <div id="appContent" style="display:flex; height: 100vh; flex-direction: column;">
@@ -185,9 +160,9 @@
             </div>
         </div>
 
-        <div id="categoryFilter" class="category-scroll">
-            <div class="cat-chip active" onclick="setCategory('ALL', this)">ALL</div>
-            </div>
+        <div class="filter-wrapper" id="catFilter">
+            <div class="cat-pill active" onclick="filterByCat('ALL', this)">Semua</div>
+        </div>
         
         <div id="reader">
             <div class="focus-guide"></div>
@@ -210,13 +185,32 @@
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let scanning = false, lastScroll = 0, timer;
-    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
     let currentCategory = 'ALL';
+    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
 
-    // -- INIT --
-    window.onload = () => {
-        loadCategories();
-    };
+    // Load Categories for Filter
+    async function loadCategories() {
+        const { data } = await _supabase.from('export').select('Category');
+        if (data) {
+            const uniqueCats = [...new Set(data.map(i => i.Category).filter(Boolean))];
+            const container = document.getElementById('catFilter');
+            uniqueCats.forEach(cat => {
+                const pill = document.createElement('div');
+                pill.className = 'cat-pill';
+                pill.innerText = cat;
+                pill.onclick = () => filterByCat(cat, pill);
+                container.appendChild(pill);
+            });
+        }
+    }
+    loadCategories();
+
+    function filterByCat(cat, el) {
+        document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        currentCategory = cat;
+        search();
+    }
 
     function toggleSidebar() { 
         document.getElementById("sidebar").classList.toggle("active");
@@ -228,83 +222,41 @@
         return parseInt(String(val).replace(/[^0-9]/g, "")) || 0;
     }
 
-    // -- IMAGE POPUP LOGIC --
-    function openImgModal(src) {
-        if(!src) return;
-        const modal = document.getElementById("imgModal");
-        document.getElementById("imgModalSrc").src = src;
-        modal.classList.add("open");
-    }
-    function closeImgModal() {
-        document.getElementById("imgModal").classList.remove("open");
-        setTimeout(() => { document.getElementById("imgModalSrc").src = ""; }, 300);
+    function openLightbox(src) {
+        const lb = document.getElementById('lightbox');
+        document.getElementById('lightboxImg').src = src;
+        lb.classList.add('active');
     }
 
-    // -- CATEGORY LOGIC --
-    async function loadCategories() {
-        // Ambil sample data untuk mendapatkan kategori unik (workaround karena rpc/view mungkin terbatas)
-        // Kita ambil 200 produk pertama untuk sampling kategori
-        const { data } = await _supabase.from('export').select('Category').limit(200);
-        if(data) {
-            const uniqueCats = [...new Set(data.map(item => item.Category).filter(c => c))].sort();
-            const container = document.getElementById("categoryFilter");
-            
-            uniqueCats.forEach(cat => {
-                const chip = document.createElement("div");
-                chip.className = "cat-chip";
-                chip.innerText = cat;
-                chip.onclick = function() { setCategory(cat, this); };
-                container.appendChild(chip);
-            });
-        }
+    function closeLightbox() {
+        document.getElementById('lightbox').classList.remove('active');
     }
 
-    function setCategory(cat, el) {
-        currentCategory = cat;
-        // Update UI Active State
-        document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
-        el.classList.add('active');
-        // Trigger Search
-        search();
-    }
-
-    // -- SEARCH LOGIC MODIFIED --
     document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 500); };
 
     async function search() {
         const q = document.getElementById("searchInput").value.trim();
         const list = document.getElementById("listContainer");
+        if(!q && currentCategory === 'ALL') { list.innerHTML = ""; return; }
         
-        // Base Query
         let query = _supabase.from('export').select('*');
-
-        // Apply Category Filter if not ALL
-        if (currentCategory !== 'ALL') {
+        
+        if(q) {
+            query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
+        }
+        if(currentCategory !== 'ALL') {
             query = query.eq('Category', currentCategory);
         }
 
-        // Apply Text Search if exists
-        if (q) {
-            query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
-        }
-
-        // Jika tidak ada search text dan kategori ALL, kosongkan (atau load default jika diinginkan)
-        if (!q && currentCategory === 'ALL') {
-             list.innerHTML = ""; return; 
-        }
-
-        const { data } = await query.limit(30);
-
+        let { data } = await query.limit(40);
         if(data) {
             list.innerHTML = data.map(p => `
-                <div class="list-card" onclick="showDetail('${p.Barcode}')">
-                    <img src="${p.Image || ''}" 
-                         onerror="this.src='https://via.placeholder.com/150?text=No+Img'"
-                         onclick="event.stopPropagation(); openImgModal('${p.Image}')">
-                    <div class="list-card-content">
-                        <span class="list-card-cat">${p.Category || 'General'}</span>
-                        <div class="list-card-title">${p.Name}</div>
-                        <div class="list-card-code">${p.Barcode}</div>
+                <div class="list-item" onclick="showDetail('${p.Barcode}')">
+                    <img src="${p.Image || 'https://via.placeholder.com/100'}" onerror="this.src='https://via.placeholder.com/100'">
+                    <div class="list-item-info">
+                        <div class="list-item-cat">${p.Category || 'GENERAL'}</div>
+                        <div class="list-item-name">${p.Name}</div>
+                        <small style="color:#888; font-family: monospace;">${p.Barcode}</small>
                     </div>
                 </div>
             `).join('');
@@ -363,9 +315,9 @@
         const det = document.getElementById("detailContainer");
         det.innerHTML = `
             <div class="product-card">
-                <div class="image-box">
+                <div class="image-box" onclick="openLightbox('${p.Image || ''}')">
                     ${discountLabel}
-                    <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/300x300?text=Miniso+Product'" onclick="openImgModal('${p.Image}')">
+                    <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/300x300?text=Miniso+Product'">
                 </div>
                 <div class="p-info">
                     <span class="p-cat">${p.Category || 'GENERAL'}</span>
@@ -405,8 +357,8 @@
 
     function back() {
         document.getElementById("detailContainer").style.display = "none";
-        document.getElementById("ui-header").style.display = "flex"; // Changed from block to flex
-        document.getElementById("listContainer").style.display = "grid"; // Restore Grid
+        document.getElementById("ui-header").style.display = "block";
+        document.getElementById("listContainer").style.display = currentCategory === 'ALL' && !document.getElementById("searchInput").value ? "none" : "grid";
         document.getElementById("btnBackFloating").style.display = "none";
         document.getElementById("scrollContainer").scrollTop = lastScroll;
     }

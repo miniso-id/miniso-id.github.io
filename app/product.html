@@ -35,7 +35,16 @@
         #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 9000; display: none; backdrop-filter: blur(4px); }
 
         /* --- HEADER & SCANNER --- */
-        #ui-header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); padding: 12px 16px; border-bottom: 1px solid #eee; z-index: 1000; width: 100%; flex-shrink: 0; }
+#ui-header { 
+    background: rgba(255, 255, 255, 0.95); 
+    backdrop-filter: blur(15px); 
+    /* Tambahkan atau ubah bagian ini */
+    padding: calc(12px + env(safe-area-inset-top)) 16px 12px 16px; 
+    border-bottom: 1px solid #eee; 
+    z-index: 1000; 
+    width: 100%; 
+    flex-shrink: 0; 
+}
         .top-bar { display: flex; gap: 10px; align-items: center; max-width: 1200px; margin-inline: auto; width: 100%; }
         .search-container { position: relative; flex: 1; }
         #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
@@ -161,8 +170,15 @@
             transform: scale(1) translateY(0); 
         }
 
-        .floating-back { position: fixed; top: 20px; left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 8000; cursor: pointer; border: 1px solid #eee; }
-        
+        .floating-back { 
+    position: fixed; 
+    /* Ubah dari 20px menjadi lebih besar atau gunakan safe-area */
+    top: calc(15px + env(safe-area-inset-top)); 
+    left: 20px; 
+    width: 45px; 
+    height: 45px; 
+    /* ... sisa kode lainnya tetap sama ... */
+}
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>

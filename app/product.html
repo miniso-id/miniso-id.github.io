@@ -42,68 +42,59 @@
         #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
         /* --- CATEGORY FILTER --- */
-        .filter-wrapper { display: flex; gap: 8px; overflow-x: auto; padding: 5px 0 10px 0; scrollbar-width: none; }
-        .filter-wrapper::-webkit-scrollbar { display: none; }
-        .cat-pill { white-space: nowrap; padding: 6px 16px; background: #f0f0f0; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.3s; border: 1px solid transparent; }
+        .category-filter { display: flex; gap: 8px; overflow-x: auto; padding: 5px 0 10px 0; scrollbar-width: none; }
+        .category-filter::-webkit-scrollbar { display: none; }
+        .cat-pill { padding: 6px 16px; background: #f2f2f7; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer; border: 1px solid transparent; transition: 0.2s; }
         .cat-pill.active { background: var(--miniso-red); color: white; }
 
-        /* --- LIST CONTAINER RESPONSIVE --- */
+        /* --- LIST & GRID SYSTEM --- */
         #listContainer { 
             display: grid; 
-            grid-template-columns: 1fr; 
+            grid-template-columns: 1fr; /* Mobile: 1 kolom */
             gap: 12px; 
             padding: 10px 0;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        @media (min-width: 768px) {
-            #listContainer { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+            width: 100%;
         }
 
-        .list-item { 
+        @media (min-width: 768px) {
+            #listContainer {
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Desktop: Grid */
+            }
+        }
+
+        .list-card { 
+            background: #fff; 
+            border: 1px solid #f0f0f0; 
+            border-radius: 16px; 
             padding: 12px; 
-            background: #fff;
-            border: 1px solid #eee; 
-            border-radius: 14px;
             display: flex; 
+            gap: 12px; 
             align-items: center; 
-            gap: 15px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
             cursor: pointer;
             transition: transform 0.2s;
         }
-        .list-item:active { transform: scale(0.98); }
-        .list-item img { width: 60px; height: 60px; object-fit: contain; border-radius: 8px; background: #f9f9f9; }
-        .list-item-info { flex: 1; overflow: hidden; }
-        .list-item-name { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .list-item-cat { font-size: 10px; color: var(--miniso-red); font-weight: 800; text-transform: uppercase; }
+        .list-card:active { transform: scale(0.98); }
+        .list-img { width: 70px; height: 70px; object-fit: contain; background: #f9f9f9; border-radius: 10px; flex-shrink: 0; }
+        .list-info { flex: 1; min-width: 0; }
+        .list-info b { display: block; font-size: 14px; color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .list-info span { display: block; font-size: 11px; color: var(--miniso-red); font-weight: 700; margin-bottom: 2px; }
+        .list-info small { color: #888; font-size: 12px; }
 
-        /* --- LIGHTBOX POPUP --- */
-        #lightbox { 
-            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 10000; 
-            display: none; align-items: center; justify-content: center; 
-            opacity: 0; transition: opacity 0.3s ease; 
+        /* --- LIGHTBOX (IMAGE POPUP) --- */
+        #imageLightbox {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 10000;
+            display: none; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.3s ease;
         }
-        #lightbox.active { display: flex; opacity: 1; }
-        #lightbox img { max-width: 90%; max-height: 80%; border-radius: 12px; transform: scale(0.8); transition: transform 0.3s ease; }
-        #lightbox.active img { transform: scale(1); }
+        #imageLightbox.active { display: flex; opacity: 1; }
+        #imageLightbox img { max-width: 90%; max-height: 80%; border-radius: 12px; transform: scale(0.8); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #imageLightbox.active img { transform: scale(1); }
 
-        /* --- SCANNER UI --- */
-        #reader { 
-            display:none; width:100%; max-width:340px; aspect-ratio:1/1; 
-            margin:15px auto; background:#000; border-radius:20px; 
-            overflow:hidden; position:relative; border: 4px solid white; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
-        }
-        #reader video { width: 100%; height: 100%; object-fit: cover; }
-        .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
-        .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; }
-        #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
-        #videoSource { padding: 10px; border-radius: 8px; border: 2px solid var(--miniso-red); width: 100%; max-width: 300px; font-weight: 600; }
-
-        /* --- PRODUCT CARD STYLES --- */
+        /* --- EXISTING PRODUCT CARD --- */
         .product-card { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; animation: slideUp 0.3s ease-out; }
-        .image-box { background: #fff; text-align: center; padding: 15px; position: relative; border-bottom: 1px solid #f9f9f9; cursor: zoom-in; }
-        .image-box img { max-width: 100%; height: 250px; object-fit: contain; }
+        .image-box { background: #fff; text-align: center; padding: 15px; position: relative; border-bottom: 1px solid #f9f9f9; }
+        .image-box img { max-width: 100%; height: 250px; object-fit: contain; cursor: zoom-in; }
         .promo-badge { position: absolute; top: 12px; left: 12px; background: #ff9800; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; z-index: 10; }
         .p-info { padding: 20px; }
         .p-cat { font-size: 11px; font-weight: 700; color: var(--miniso-red); text-transform: uppercase; margin-bottom: 5px; display: block; }
@@ -126,11 +117,15 @@
         #detailContainer { display: none; padding-top: 20px; padding-bottom: 80px; max-width: 800px; margin: 0 auto; }
         #detailContainer.active { display: block; }
         .floating-back { position: fixed; top: 20px; left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 8000; cursor: pointer; }
-        
+
         @keyframes slideUp { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
+
+<div id="imageLightbox" onclick="closeLightbox()">
+    <img id="lightboxImg" src="">
+</div>
 
 <div id="sidebar" class="sidebar">
     <h2>MMS-X</h2>
@@ -140,10 +135,6 @@
 
 <div id="btnBackFloating" class="floating-back" onclick="back()">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-</div>
-
-<div id="lightbox" onclick="closeLightbox()">
-    <img id="lightboxImg" src="" alt="Zoomed">
 </div>
 
 <div id="appContent" style="display:flex; height: 100vh; flex-direction: column;">
@@ -160,9 +151,9 @@
             </div>
         </div>
 
-        <div class="filter-wrapper" id="catFilter">
-            <div class="cat-pill active" onclick="filterByCat('ALL', this)">Semua</div>
-        </div>
+        <div class="category-filter" id="catFilter">
+            <div class="cat-pill active" onclick="filterByCat('', this)">Semua</div>
+            </div>
         
         <div id="reader">
             <div class="focus-guide"></div>
@@ -185,21 +176,21 @@
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let scanning = false, lastScroll = 0, timer;
-    let currentCategory = 'ALL';
     let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
+    let currentCategory = "";
 
-    // Load Categories for Filter
+    // Load Categories on Startup
     async function loadCategories() {
-        const { data } = await _supabase.from('export').select('Category');
-        if (data) {
+        let { data } = await _supabase.from('export').select('Category');
+        if(data) {
             const uniqueCats = [...new Set(data.map(i => i.Category).filter(Boolean))];
-            const container = document.getElementById('catFilter');
+            const filterBox = document.getElementById("catFilter");
             uniqueCats.forEach(cat => {
-                const pill = document.createElement('div');
-                pill.className = 'cat-pill';
+                const pill = document.createElement("div");
+                pill.className = "cat-pill";
                 pill.innerText = cat;
                 pill.onclick = () => filterByCat(cat, pill);
-                container.appendChild(pill);
+                filterBox.appendChild(pill);
             });
         }
     }
@@ -223,13 +214,16 @@
     }
 
     function openLightbox(src) {
-        const lb = document.getElementById('lightbox');
-        document.getElementById('lightboxImg').src = src;
-        lb.classList.add('active');
+        const lb = document.getElementById("imageLightbox");
+        document.getElementById("lightboxImg").src = src;
+        lb.style.display = "flex";
+        setTimeout(() => lb.classList.add("active"), 10);
     }
 
     function closeLightbox() {
-        document.getElementById('lightbox').classList.remove('active');
+        const lb = document.getElementById("imageLightbox");
+        lb.classList.remove("active");
+        setTimeout(() => lb.style.display = "none", 300);
     }
 
     document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 500); };
@@ -237,26 +231,27 @@
     async function search() {
         const q = document.getElementById("searchInput").value.trim();
         const list = document.getElementById("listContainer");
-        if(!q && currentCategory === 'ALL') { list.innerHTML = ""; return; }
+        
+        if(!q && !currentCategory) { list.innerHTML = ""; return; }
         
         let query = _supabase.from('export').select('*');
         
-        if(q) {
-            query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
-        }
-        if(currentCategory !== 'ALL') {
-            query = query.eq('Category', currentCategory);
-        }
-
-        let { data } = await query.limit(40);
+        if(q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
+        if(currentCategory) query = query.eq('Category', currentCategory);
+        
+        let { data } = await query.limit(24);
+        
         if(data) {
             list.innerHTML = data.map(p => `
-                <div class="list-item" onclick="showDetail('${p.Barcode}')">
-                    <img src="${p.Image || 'https://via.placeholder.com/100'}" onerror="this.src='https://via.placeholder.com/100'">
-                    <div class="list-item-info">
-                        <div class="list-item-cat">${p.Category || 'GENERAL'}</div>
-                        <div class="list-item-name">${p.Name}</div>
-                        <small style="color:#888; font-family: monospace;">${p.Barcode}</small>
+                <div class="list-card" onclick="showDetail('${p.Barcode}')">
+                    <img src="${p.Image || 'https://via.placeholder.com/100'}" class="list-img">
+                    <div class="list-info">
+                        <span>${p.Category || 'GENERAL'}</span>
+                        <b>${p.Name}</b>
+                        <small>${p.Barcode}</small>
+                    </div>
+                    <div style="text-align:right">
+                         <div style="font-weight:800; color:var(--miniso-red); font-size:13px;">Rp${cleanPrice(p["Regular Store Price"]).toLocaleString('id-ID')}</div>
                     </div>
                 </div>
             `).join('');
@@ -315,9 +310,9 @@
         const det = document.getElementById("detailContainer");
         det.innerHTML = `
             <div class="product-card">
-                <div class="image-box" onclick="openLightbox('${p.Image || ''}')">
+                <div class="image-box">
                     ${discountLabel}
-                    <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/300x300?text=Miniso+Product'">
+                    <img src="${p.Image || ''}" onclick="openLightbox('${p.Image}')" onerror="this.src='https://via.placeholder.com/300x300?text=Miniso+Product'">
                 </div>
                 <div class="p-info">
                     <span class="p-cat">${p.Category || 'GENERAL'}</span>
@@ -358,7 +353,7 @@
     function back() {
         document.getElementById("detailContainer").style.display = "none";
         document.getElementById("ui-header").style.display = "block";
-        document.getElementById("listContainer").style.display = currentCategory === 'ALL' && !document.getElementById("searchInput").value ? "none" : "grid";
+        document.getElementById("listContainer").style.display = "grid";
         document.getElementById("btnBackFloating").style.display = "none";
         document.getElementById("scrollContainer").scrollTop = lastScroll;
     }

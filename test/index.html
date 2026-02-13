@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X</title>
+    <title>MMS-X Scanner</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
@@ -19,29 +19,6 @@
             --bg-gray: #f4f4f4;
             --sidebar-width: 280px;
         }
-
-        /* --- LOGIN OVERLAY (TEMA SEPADAN) --- */
-        #loginOverlay {
-            position: fixed; inset: 0; background: var(--bg-gray); 
-            z-index: 20000; display: flex; align-items: center; justify-content: center;
-        }
-        .login-box {
-            background: white; width: 90%; max-width: 350px; padding: 35px 25px; 
-            border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); text-align: center;
-        }
-        .login-box h2 { color: var(--miniso-red); margin: 0 0 10px 0; font-weight: 800; font-size: 28px; }
-        .login-box p { color: #666; font-size: 14px; margin-bottom: 25px; }
-        .login-box label { display: block; text-align: left; font-size: 11px; font-weight: 800; color: #999; margin: 0 0 5px 5px; text-transform: uppercase; }
-        .login-box input, .login-box select { 
-            width: 100%; height: 48px; margin-bottom: 15px; padding: 0 15px; 
-            border-radius: 12px; border: 1.5px solid #eee; background: #f9f9f9; outline: none; font-size: 15px; transition: 0.3s;
-        }
-        .login-box input:focus { border-color: var(--miniso-red); background: white; }
-        .btn-login { 
-            width: 100%; height: 50px; background: var(--miniso-red); color: white; 
-            border: none; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 10px;
-        }
-        .btn-login:active { transform: scale(0.98); }
 
         /* --- STYLE ASLI (TIDAK BERUBAH) --- */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -130,34 +107,10 @@
 </head>
 <body>
 
-<div id="loginOverlay">
-    <div class="login-box">
-        <h2>MMS-X</h2>
-        <p>Silakan masuk ke akun Anda</p>
-        
-        <label>Login As</label>
-        <select id="loginAs">
-            <option value="Administrator">Administrator</option>
-            <option value="Area">Area</option>
-            <option value="Store">Store</option>
-        </select>
-        
-        <label>Username</label>
-        <input type="text" id="username" placeholder="Username" autocomplete="off">
-        
-        <label>Password</label>
-        <input type="password" id="password" placeholder="••••••••">
-        
-        <button class="btn-login" onclick="checkLogin()">MASUK</button>
-        <p id="loginError" style="color:var(--miniso-red); font-size:12px; margin-top:15px; font-weight:700; display:none;">Login Gagal! Periksa data Anda.</p>
-    </div>
-</div>
-
 <div id="sidebar" class="sidebar">
     <h2>MMS-X</h2>
     <a href="https://miniso-id.github.io/app/" onclick="toggleSidebar()">Home</a>
-    <a href="#" onclick="logout()" style="background:rgba(0,0,0,0.2); margin-top:20px;">Logout</a>
-</div>
+    </div>
 <div id="overlay" onclick="toggleSidebar()"></div>
 
 <div id="btnBackFloating" class="floating-back" onclick="back()">
@@ -175,7 +128,7 @@
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             <div class="search-container">
-                <input id="searchInput" placeholder="Cari nama / barcode..." autocomplete="off">
+                <input id="searchInput" placeholder="Scan / Input Barcode..." autocomplete="off">
                 <button id="scanBtn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                 </button>
@@ -200,62 +153,16 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
-    /* --- KONFIGURASI SUPABASE (DIBEDAKAN) --- */
+    /* --- KONFIGURASI SUPABASE (Database User Dihapus) --- */
     
-    // 1. Database Produk (Data Asli Anda)
+    // Database Produk (Data Asli)
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // 2. Database User (GANTI LINK API DI BAWAH INI DENGAN LINK BARU ANDA)
-    const USER_SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co"; 
-    const USER_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
-    const _userSupabase = supabase.createClient(USER_SUPABASE_URL, USER_SUPABASE_KEY);
+    /* --- LOGIKA LOGIN DIHAPUS --- */
 
-    /* --- LOGIKA LOGIN --- */
-    async function checkLogin() {
-        const role = document.getElementById('loginAs').value;
-        const user = document.getElementById('username').value;
-        const pass = document.getElementById('password').value;
-        const err = document.getElementById('loginError');
-        const btn = document.querySelector('.btn-login');
-
-        btn.innerText = "LOADING...";
-        err.style.display = 'none';
-
-        try {
-            // Memanggil database user menggunakan link API berbeda
-            const { data } = await _userSupabase
-                .from('users') // Nama tabel user di supabase baru Anda
-                .select('*')
-                .eq('login as', role)
-                .eq('username', user)
-                .eq('password', pass)
-                .maybeSingle();
-
-            if (data) {
-                document.getElementById('loginOverlay').style.display = 'none';
-                localStorage.setItem('mmsx_auth', 'true');
-            } else {
-                err.style.display = 'block';
-            }
-        } catch (e) {
-            alert("Error Koneksi Database User");
-        } finally {
-            btn.innerText = "MASUK";
-        }
-    }
-
-    if(localStorage.getItem('mmsx_auth') === 'true') {
-        document.getElementById('loginOverlay').style.display = 'none';
-    }
-
-    function logout() {
-        localStorage.removeItem('mmsx_auth');
-        location.reload();
-    }
-
-    /* --- SCRIPT ASLI (TIDAK DIRUBAH SAMA SEKALI) --- */
+    /* --- SCRIPT ASLI --- */
     let scanning = false, lastScroll = 0, timer;
     let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
     let currentCategory = 'All';
@@ -309,7 +216,10 @@
         const list = document.getElementById("listContainer");
         let query = _supabase.from('export').select('*');
         if (currentCategory !== 'All') query = query.eq('Category', currentCategory);
-        if (q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
+        
+        // MODIFIKASI: Hanya mencari berdasarkan Barcode
+        if (q) query = query.ilike('Barcode', `%${q}%`);
+        
         let { data } = await query.limit(5000);
         if(data) {
             list.innerHTML = data.map(p => `
@@ -452,7 +362,12 @@
         document.getElementById("listContainer").style.display = "grid";
         document.getElementById("btnBackFloating").style.display = "none";
         document.getElementById("scrollContainer").scrollTop = lastScroll;
+        // Opsional: Nyalakan scanner lagi saat kembali
+        startScan(lastSelectedDeviceId);
     }
+
+    // MODIFIKASI: Langsung jalankan scanner saat halaman dibuka
+    startScan(lastSelectedDeviceId);
 </script>
 </body>
 </html>

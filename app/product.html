@@ -344,7 +344,7 @@
 
         const regPrice = cleanPrice(p["Regular Store Price"]);
         const strPrice = cleanPrice(p["Street Store Price"]);
-        const discountLabel = (p["Regular Store Promo"] && p["Regular Store Promo"] !== "NORMAL") ? `<div class="promo-badge">${p["Regular Store Promo"]}</div>` : "";
+        const discountLabel = (p["Regular Store Promo"] && p["Regular Store Promo"] !== "NORMAL") ? `<div class="promo-badge">${p["Extra Promo"]}</div>` : "";
 
         const det = document.getElementById("detailContainer");
         det.innerHTML = `

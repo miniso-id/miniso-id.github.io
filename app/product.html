@@ -331,7 +331,7 @@
 
     async function startScan(deviceId = null) {
         scanning = true; document.getElementById("reader").style.display = "block";
-        const constraints = { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "environment" };
+        const constraints = { width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: "environment" };
         if (deviceId) constraints.deviceId = { exact: deviceId };
         Quagga.init({
             inputStream: { type: "LiveStream", target: document.getElementById("reader"), constraints: constraints },

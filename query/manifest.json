@@ -8,5 +8,19 @@
   "short_name": "F11",
   "start_url": "https://miniso-id.github.io/query/",
   "theme_color": "#ffffff",
-  "description": "Miniso F11 App"
+  "description": "Miniso F11 App",
+  "icons": [
+    {
+      "src": "https://miniso-id.github.io/query/scan192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://miniso-id.github.io/query/scan512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
 }

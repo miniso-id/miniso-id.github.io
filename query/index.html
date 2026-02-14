@@ -4,13 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>MMS-X Supabase</title>
-
     <link rel="stylesheet" href="style.css">
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <style>
-        /* CSS tambahan untuk memastikan tampilan rapi */
         .grid { display: grid; grid-template-columns: 1fr; gap: 15px; padding: 10px; }
         .card { border: 1px solid #ddd; border-radius: 8px; display: flex; padding: 10px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .card img { width: 100px; height: 100px; object-fit: cover; border-radius: 4px; margin-right: 15px; }
@@ -18,7 +14,6 @@
         #history span { display: inline-block; background: #eee; padding: 2px 8px; margin: 3px; border-radius: 4px; font-size: 12px; }
     </style>
 </head>
-
 <body>
 
 <center>
@@ -42,7 +37,7 @@
 
 <script>
 /* ================= CONFIG SUPABASE ================= */
-// Ganti dengan URL dan Anon Key dari Dashboard Supabase Anda (Project Settings > API)
+// JANGAN LUPA GANTI KEDUA VARIABEL INI
 const SUPABASE_URL = 'https://uesupubktkxfjsylcwwr.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k';
 const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -55,10 +50,9 @@ const historyDiv = document.getElementById("history");
 const beepOk = document.getElementById("beepOk");
 const beepErr = document.getElementById("beepErr");
 
-/* ================= STATE ================= */
 let historyData = [];
 
-/* ================= SEARCH (ASYNCHRONOUS) ================= */
+/* ================= SEARCH (UPDATED LOGIC) ================= */
 async function search(q) {
     q = q.trim();
     if (!q) {
@@ -66,27 +60,36 @@ async function search(q) {
         return;
     }
 
-    // Query ke Supabase berdasarkan kolom 'Barcode'
-    const { data, error } = await supabase
-        .from('export')
-        .select('*')
-        .eq('Barcode', q) // Mencari yang persis sama dengan scan
-        .single();
+    console.log("Mencari barcode:", q); // Cek di console browser (F12)
 
-    if (data && !error) {
+    // Gunakan .ilike agar jika di database barcode-nya "123 / 456" tetap ketemu saat scan "123"
+    const { data, error } = await supabase
+        .from(‘export’)
+        .select('*')
+        .ilike('Barcode', `%${q}%`) 
+        .limit(1);
+
+    if (error) {
+        console.error("Supabase Error:", error);
+        beepErr.play();
+        result.innerHTML = `<div style="text-align:center; color:red; margin-top:20px;">Error: ${error.message}</div>`;
+        return;
+    }
+
+    if (data && data.length > 0) {
+        const item = data[0];
         beepOk.play();
         addHistory(q);
-        render([data]);
+        render([item]);
     } else {
         beepErr.play();
-        result.innerHTML = `<div style="text-align:center; color:red; margin-top:20px;">Barcode "${q}" tidak terdaftar!</div>`;
+        result.innerHTML = `<div style="text-align:center; color:red; margin-top:20px;">Barcode "${q}" tidak ditemukan!</div>`;
     }
 }
 
-/* ================= RENDER (Sesuai Struktur Screenshot) ================= */
+/* ================= RENDER ================= */
 function render(list) {
     result.innerHTML = list.map(p => {
-        // Logika menyembunyikan tulisan "NORMAL PRICE"
         const showRegPromo = p["Regular Store Promo"] !== "NORMAL PRICE" ? p["Regular Store Promo"] : "";
         const showStrPromo = p["Street Store Promo"] !== "NORMAL PRICE" ? p["Street Store Promo"] : "";
         const showExtra = p["Extra Promo"] !== "NORMAL PRICE" ? p["Extra Promo"] : "";
@@ -97,21 +100,9 @@ function render(list) {
             <div class="info">
                 <b style="font-size:1.1em;">${p["Name"]}</b>
                 <small style="color:#666;">Barcode: ${p["Barcode"]}</small>
-                
-                <div style="margin:8px 0; font-size:12px; color:#555;">
-                    ${p["Category"]} / ${p["Detail Category"]}
-                </div>
-                
-                <div style="margin:2px 0;">
-                    Regular: <b>${p["Regular Store Price"]}</b> 
-                    ${showRegPromo ? `<span style="color:red;">(${showRegPromo})</span>` : ""}
-                </div>
-                
-                <div style="margin:2px 0;">
-                    Street: <b style="color:#2c3e50;">${p["Street Store Price"]}</b> 
-                    ${showStrPromo ? `<span style="color:red;">(${showStrPromo})</span>` : ""}
-                </div>
-                
+                <div style="margin:8px 0; font-size:12px; color:#555;">${p["Category"]} / ${p["Detail Category"]}</div>
+                <div style="margin:2px 0;">Regular: <b>${p["Regular Store Price"]}</b> ${showRegPromo ? `<span style="color:red;">(${showRegPromo})</span>` : ""}</div>
+                <div style="margin:2px 0;">Street: <b style="color:#2c3e50;">${p["Street Store Price"]}</b> ${showStrPromo ? `<span style="color:red;">(${showStrPromo})</span>` : ""}</div>
                 ${showExtra ? `<div style="margin-top:5px; color:#d9534f; font-weight:bold;">Extra: ${showExtra}</div>` : ""}
             </div>
         </div>
@@ -119,33 +110,20 @@ function render(list) {
     }).join("");
 }
 
-/* ================= LOGIKA LAMA (TIDAK DIUBAH) ================= */
-
-// Handler Scan
+/* ================= LOGIKA INPUT & SCANNER ================= */
 function handleScan(code) {
     if (!code) return;
     input.value = code;
     search(code);
-
-    // Auto clear + siap scan ulang
     setTimeout(() => {
         input.value = "";
         input.focus();
     }, 200);
 }
 
-// Tombol silang
-input.oninput = e => {
-    clearBtn.style.display = e.target.value ? "block" : "none";
-};
+input.oninput = e => { clearBtn.style.display = e.target.value ? "block" : "none"; };
+clearBtn.onclick = () => { input.value = ""; result.innerHTML = ""; input.focus(); };
 
-clearBtn.onclick = () => {
-    input.value = "";
-    result.innerHTML = "";
-    input.focus();
-};
-
-// Scanner Enter Key
 input.addEventListener("keydown", e => {
     if (e.key === "Enter") {
         e.preventDefault();
@@ -153,14 +131,8 @@ input.addEventListener("keydown", e => {
     }
 });
 
-// Jaga cursor selalu standby
-setInterval(() => {
-    if (document.activeElement !== input) {
-        input.focus();
-    }
-}, 1500);
+setInterval(() => { if (document.activeElement !== input) input.focus(); }, 1500);
 
-// History
 function addHistory(code) {
     if (historyData.includes(code)) return;
     historyData.unshift(code);
@@ -168,10 +140,7 @@ function addHistory(code) {
     historyDiv.innerHTML = historyData.map(h => `<span>${h}</span>`).join("");
 }
 
-// Langsung fokus saat buka
 window.onload = () => input.focus();
-
 </script>
-
 </body>
 </html>

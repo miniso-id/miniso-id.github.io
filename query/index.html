@@ -7,16 +7,21 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --primary: #2563eb; --danger: #dc2626; --bg: #f8fafc; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; cursor: pointer; /* Memberi hint bahwa bisa diklik */ }
         
         /* State Standby */
         .standby-msg { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #cbd5e1; z-index: -1; }
         .standby-msg h1 { font-size: 3rem; margin: 0; letter-spacing: -1px; }
         .standby-msg p { font-size: 1.2rem; margin: 5px 0; }
 
-        /* Search Box Hidden (tetap ada untuk fungsi scan) */
-        /* Opacity 0 agar tak terlihat tapi tetap bisa menerima fokus */
-        .search-container { opacity: 0; position: absolute; top: 0; left: 0; height: 0; overflow: hidden; }
+        /* --- PERUBAHAN PENTING DI SINI --- */
+        /* Jangan opacity 0 atau display none. Lempar keluar layar saja */
+        .search-container { 
+            position: fixed; 
+            top: -5000px; 
+            left: 0; 
+        }
+        /* -------------------------------- */
 
         /* Result Display */
         #result { width: 100%; max-width: 500px; padding: 20px; box-sizing: border-box; }
@@ -92,13 +97,13 @@ async function search(q) {
         if (error) throw error;
 
         if (data && data.length > 0) {
-            beepOk.play();
+            beepOk.play().catch(e => console.log("Audio play blocked until interaction"));
             render(data[0]);
         } else {
             throw new Error("Not Found");
         }
     } catch (err) {
-        beepErr.play();
+        beepErr.play().catch(e => console.log("Audio play blocked until interaction"));
         resultDiv.innerHTML = `<div style="text-align:center; color:white; background:#dc2626; padding:15px; border-radius:10px;">Produk tidak ditemukan!</div>`;
         setTimeout(() => { if(!input.value) resetUI(); }, 3000);
     }
@@ -160,32 +165,39 @@ function render(p) {
     `;
 }
 
-/* ================= SCANNER HANDLER & AUTO FOCUS ================= */
-// 1. Fokus saat halaman siap
-document.addEventListener("DOMContentLoaded", () => {
+/* ================= AGGRESSIVE FOCUS LOGIC ================= */
+
+// Fungsi untuk memaksa fokus
+const forceFocus = () => {
     input.focus();
-});
+};
 
-// 2. Jika fokus lepas (klik sembarang atau blur), kembalikan ke input
-input.addEventListener("blur", () => {
-    // Delay kecil sangat penting agar tidak error di beberapa browser
-    setTimeout(() => {
-        input.focus();
-    }, 10);
-});
+// 1. Fokus saat halaman load
+window.onload = forceFocus;
 
-// 3. Backup click listener
-document.addEventListener("click", () => {
-    input.focus();
-});
+// 2. Klik DIMANAPUN di halaman akan melempar fokus ke input
+// Ini mengatasi masalah jika scanner ter-unfocus
+document.addEventListener('click', forceFocus);
+document.addEventListener('touchstart', forceFocus);
 
+// 3. Interval "Pencuri Fokus"
+// Cek setiap 1 detik, kalau fokus hilang, rebut kembali
+setInterval(() => {
+    if (document.activeElement !== input) {
+        console.log("Re-focusing scanner input...");
+        forceFocus();
+    }
+}, 1000);
+
+// 4. Input Handler
 input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
         const val = input.value.trim();
         if(val) search(val);
         input.value = "";
-        // Pastikan fokus kembali setelah enter
-        setTimeout(() => input.focus(), 10);
+        
+        // Jaga-jaga, paksa fokus lagi setelah enter
+        setTimeout(forceFocus, 10);
     }
 });
 

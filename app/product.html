@@ -422,8 +422,11 @@
         document.getElementById("ui-header").style.display = "none";
         const regPrice = cleanPrice(p["Regular Store Price"]);
         const strPrice = cleanPrice(p["Street Store Price"]);
-        const discountLabel = (p["Regular Store Promo"] && p["Regular Store Promo"] !== "NORMAL") ? `<div class="promo-badge">${p["Extra Promo"]}</div>` : "";
-        const det = document.getElementById("detailContainer");
+        const promoText = (p["Extra Promo"] || "").trim();
+        const discountLabel = (promoText !== "" && promoText !== "NORMAL PRICE" && p["Regular Store Promo"] !== "NORMAL") 
+        ? `<div class="promo-badge">${promoText}</div>` 
+        : "";
+             const det = document.getElementById("detailContainer");
         det.innerHTML = `
             <div class="product-card">
                 <div class="image-box">

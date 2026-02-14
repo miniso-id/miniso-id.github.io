@@ -3,176 +3,178 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>MMS-X</title>
+    <title>MMS-X Scan</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 20px; }
-        .search-box { max-width: 400px; margin: 0 auto 20px; position: relative; }
-        .input-wrap { display: flex; align-items: center; background: white; border: 2px solid #ddd; border-radius: 25px; padding: 5px 15px; }
-        input { border: none; outline: none; width: 100%; padding: 10px; font-size: 16px; }
-        .grid { display: grid; grid-template-columns: 1fr; gap: 15px; max-width: 600px; margin: 0 auto; }
-        .card { border: 1px solid #ddd; border-radius: 12px; display: flex; padding: 15px; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .card img { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; margin-right: 15px; border: 1px solid #eee; }
-        .info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-        #history span { display: inline-block; background: #007bff; color: white; padding: 4px 10px; margin: 3px; border-radius: 15px; font-size: 12px; }
-        .promo-tag { color: #d9534f; font-weight: bold; font-size: 0.9em; }
+        :root { --primary: #2563eb; --danger: #dc2626; --bg: #f8fafc; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        
+        /* State Standby */
+        .standby-msg { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #cbd5e1; z-index: -1; }
+        .standby-msg h1 { font-size: 3rem; margin: 0; letter-spacing: -1px; }
+        .standby-msg p { font-size: 1.2rem; margin: 5px 0; }
+
+        /* Search Box Hidden (tetap ada untuk fungsi scan) */
+        .search-container { opacity: 0; position: absolute; pointer-events: none; }
+
+        /* Result Display */
+        #result { width: 100%; max-width: 500px; padding: 20px; box-sizing: border-box; }
+        .card { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1); animation: slideUp 0.3s ease-out; }
+        
+        .card-header { position: relative; width: 100%; height: 250px; background: #eee; }
+        .card-header img { width: 100%; height: 100%; object-fit: contain; }
+        
+        .card-body { padding: 20px; }
+        .category { font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: var(--primary); margin-bottom: 5px; letter-spacing: 1px; }
+        .product-name { font-size: 1.4rem; color: #1e293b; margin: 0 0 10px 0; line-height: 1.2; }
+        .barcode-text { font-family: monospace; background: #f1f5f9; padding: 2px 8px; border-radius: 4px; color: #64748b; font-size: 0.9rem; }
+
+        .price-section { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .price-box { padding: 12px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; }
+        .price-label { font-size: 0.7rem; color: #64748b; margin-bottom: 4px; text-transform: uppercase; }
+        .price-value { font-size: 1.1rem; font-weight: 800; color: #1e293b; }
+        
+        .promo-banner { margin-top: 15px; padding: 12px; background: #fef2f2; border-left: 4px solid var(--danger); border-radius: 4px; }
+        .promo-text { color: var(--danger); font-weight: bold; font-size: 0.9rem; }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-<center>
-    <h2 style="margin-bottom: 5px;">Price Check</h2>
-    <h3 style="color: #666; margin-top: 0;">MMS-X (PDT Version)</h3>
-</center>
-
-<div class="search-box">
-    <div class="input-wrap">
-        <input id="searchInput" placeholder="Siap scan barcode..." autocomplete="off">
-        <span id="clearBtn" style="display:none; cursor:pointer; font-weight:bold;">✕</span>
+    <div class="standby-msg" id="standby">
+        <h1>READY TO SCAN</h1>
+        <p>Arahkan scanner ke barcode produk</p>
+        <div id="status-db" style="font-size: 0.8rem; color: #94a3b8; margin-top: 20px;">Menghubungkan ke Database...</div>
     </div>
-</div>
 
-<center><h4>Scan History (Last 5)</h4></center>
-<div id="history" style="text-align:center; margin-bottom: 20px;"></div>
+    <div class="search-container">
+        <input id="searchInput" type="text" autocomplete="off">
+    </div>
 
-<div id="result" class="grid"></div>
+    <div id="result"></div>
 
-<audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
-<audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
+    <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
+    <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
 <script>
-/* ================= CONFIG SUPABASE ================= */
+/* ================= CONFIG ================= */
 const SUPABASE_URL = 'https://uesupubktkxfjsylcwwr.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-/* ================= ELEMENTS ================= */
 const input = document.getElementById("searchInput");
-const clearBtn = document.getElementById("clearBtn");
-const result = document.getElementById("result");
-const historyDiv = document.getElementById("history");
+const resultDiv = document.getElementById("result");
+const standbyDiv = document.getElementById("standby");
+const statusDb = document.getElementById("status-db");
 const beepOk = document.getElementById("beepOk");
 const beepErr = document.getElementById("beepErr");
 
-let historyData = [];
+// Cek Koneksi
+async function checkConn() {
+    const { error } = await supabaseClient.from('export').select('count', { count: 'exact', head: true });
+    statusDb.innerText = error ? "Koneksi Bermasalah!" : "Database Online - MMS-X";
+}
+checkConn();
 
-/* ================= SEARCH LOGIC ================= */
+/* ================= SEARCH ================= */
 async function search(q) {
-    if (!q) {
-        result.innerHTML = "";
-        return;
-    }
-
-    console.log("Mencari barcode:", q);
-
+    standbyDiv.style.opacity = "0.1";
+    
     try {
         const { data, error } = await supabaseClient
-            .from('export') // Memastikan tanda kutip lurus
+            .from('export')
             .select('*')
-            .ilike('Barcode', `%${q}%`) 
+            .or(`Barcode.ilike.%${q}%,Name.ilike.%${q}%`) // Bisa scan barcode atau ketik nama
             .limit(1);
 
         if (error) throw error;
 
         if (data && data.length > 0) {
-            const item = data[0];
             beepOk.play();
-            addHistory(q);
-            render([item]);
+            render(data[0]);
         } else {
-            handleNotFound(q);
+            throw new Error("Not Found");
         }
     } catch (err) {
-        console.error("Kesalahan Sistem:", err.message);
         beepErr.play();
-        result.innerHTML = `<div style="text-align:center; color:red; padding:20px;">Error: ${err.message}</div>`;
+        resultDiv.innerHTML = `<div style="text-align:center; color:white; background:#dc2626; padding:15px; border-radius:10px;">Produk tidak ditemukan!</div>`;
+        setTimeout(() => { if(!input.value) resetUI(); }, 3000);
     }
 }
 
-function handleNotFound(q) {
-    beepErr.play();
-    result.innerHTML = `
-        <div style="text-align:center; background:#ffebee; color:#c62828; padding:20px; border-radius:8px; border:1px solid #ef9a9a;">
-            Barcode <b>"${q}"</b> tidak terdaftar di database!
-        </div>`;
+function resetUI() {
+    resultDiv.innerHTML = "";
+    standbyDiv.style.opacity = "1";
 }
 
-/* ================= RENDER CARD ================= */
-function render(list) {
-    result.innerHTML = list.map(p => {
-        const isNormal = (val) => !val || val === "NORMAL PRICE" || val === "NORMAL";
-        
-        const showRegPromo = !isNormal(p["Regular Store Promo"]) ? p["Regular Store Promo"] : "";
-        const showStrPromo = !isNormal(p["Street Store Promo"]) ? p["Street Store Promo"] : "";
-        const showExtra = !isNormal(p["Extra Promo"]) ? p["Extra Promo"] : "";
+/* ================= RENDER ================= */
+function render(p) {
+    // Fungsi pembersih jika data null atau "NORMAL"
+    const clean = (val) => (!val || val === "NORMAL PRICE" || val === "NORMAL") ? "" : val;
 
-        return `
+    // Ambil data dengan fallback jika kolom beda huruf besar/kecil
+    const name = p.Name || p.name || "Produk Tanpa Nama";
+    const barcode = p.Barcode || p.barcode || "N/A";
+    const cat = p.Category || p.category || "-";
+    const subCat = p["Detail Category"] || p.detail_category || "-";
+    const img = p.Image || p.image || 'https://placehold.co/400x400?text=No+Image';
+    
+    const regPrice = p["Regular Store Price"] || p.regular_price || "0";
+    const strPrice = p["Street Store Price"] || p.street_price || "0";
+    
+    const promoReg = clean(p["Regular Store Promo"]);
+    const promoStr = clean(p["Street Store Promo"]);
+    const extra = clean(p["Extra Promo"]);
+
+    resultDiv.innerHTML = `
         <div class="card">
-            <img src="${p["Image"]}" alt="Product" onerror="this.src='https://placehold.co/100x100?text=No+Image'">
-            <div class="info">
-                <b style="font-size:1.2em; color:#2c3e50;">${p["Name"] || 'Tanpa Nama'}</b>
-                <code style="color:#7f8c8d; margin-bottom:8px;">${p["Barcode"]}</code>
-                
-                <div style="font-size:0.85em; color:#95a5a6; margin-bottom:10px;">
-                    ${p["Category"] || '-'} / ${p["Detail Category"] || '-'}
+            <div class="card-header">
+                <img src="${img}" onerror="this.src='https://placehold.co/400x400?text=Image+Not+Found'">
+            </div>
+            <div class="card-body">
+                <div class="category">${cat} / ${subCat}</div>
+                <h2 class="product-name">${name}</h2>
+                <span class="barcode-text">ID: ${barcode}</span>
+
+                <div class="price-section">
+                    <div class="price-box">
+                        <div class="price-label">Regular Price</div>
+                        <div class="price-value">Rp ${regPrice}</div>
+                        ${promoReg ? `<div class="promo-text" style="font-size:0.7rem;">${promoReg}</div>` : ""}
+                    </div>
+                    <div class="price-box" style="border-color: #bae6fd; background: #f0f9ff;">
+                        <div class="price-label" style="color:#0369a1;">Street Price</div>
+                        <div class="price-value" style="color:#0369a1;">Rp ${strPrice}</div>
+                        ${promoStr ? `<div class="promo-text" style="font-size:0.7rem; color:#0369a1;">${promoStr}</div>` : ""}
+                    </div>
                 </div>
 
-                <div style="margin:2px 0;">Regular: <b>${p["Regular Store Price"] || '0'}</b> 
-                    ${showRegPromo ? `<span class="promo-tag">(${showRegPromo})</span>` : ""}
+                ${extra ? `
+                <div class="promo-banner">
+                    <div class="price-label" style="color:var(--danger)">Special Promo</div>
+                    <div class="promo-text">${extra}</div>
                 </div>
-                
-                <div style="margin:2px 0;">Street: <b style="color:#2980b9;">${p["Street Store Price"] || '0'}</b> 
-                    ${showStrPromo ? `<span class="promo-tag">(${showStrPromo})</span>` : ""}
-                </div>
-
-                ${showExtra ? `<div style="margin-top:10px; padding-top:5px; border-top:1px dashed #ddd;" class="promo-tag">Extra: ${showExtra}</div>` : ""}
+                ` : ""}
             </div>
         </div>
-        `;
-    }).join("");
+    `;
 }
 
-/* ================= CONTROLS ================= */
-function processInput() {
-    const val = input.value.trim();
-    if(val) {
-        search(val);
-        input.value = ""; // Bersihkan setelah pencarian dipicu
-    }
-}
-
+/* ================= SCANNER HANDLER ================= */
 input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
-        e.preventDefault();
-        processInput();
+        const val = input.value.trim();
+        if(val) search(val);
+        input.value = "";
     }
 });
 
-input.oninput = () => {
-    clearBtn.style.display = input.value ? "block" : "none";
-};
-
-clearBtn.onclick = () => {
-    input.value = "";
-    result.innerHTML = "";
-    clearBtn.style.display = "none";
-    input.focus();
-};
-
-function addHistory(code) {
-    if (historyData.includes(code)) return;
-    historyData.unshift(code);
-    if (historyData.length > 5) historyData.pop();
-    historyDiv.innerHTML = historyData.map(h => `<span>${h}</span>`).join("");
-}
-
-// Auto focus scanner
-setInterval(() => {
-    if (document.activeElement !== input) input.focus();
-}, 2000);
-
+// Paksa fokus ke input tersembunyi agar scanner selalu terbaca
+document.addEventListener("click", () => input.focus());
+setInterval(() => input.focus(), 1000);
 window.onload = () => input.focus();
-</script>
 
+</script>
 </body>
 </html>

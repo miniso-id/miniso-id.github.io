@@ -68,7 +68,7 @@ async function search(q) {
 
     // Query ke Supabase berdasarkan kolom 'Barcode'
     const { data, error } = await supabase
-        .from('products')
+        .from('export')
         .select('*')
         .eq('Barcode', q) // Mencari yang persis sama dengan scan
         .single();

@@ -9,43 +9,50 @@
         :root { --primary: #2563eb; --danger: #dc2626; --bg: #f8fafc; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
-        /* State Standby */
         .standby-msg { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #cbd5e1; z-index: -1; }
-        .standby-msg h1 { font-size: 3rem; margin: 0; letter-spacing: -1px; }
-        .standby-msg p { font-size: 1.2rem; margin: 5px 0; }
+        .standby-msg h1 { font-size: 3.5rem; margin: 0; letter-spacing: -2px; text-shadow: 1px 1px 0px #fff; }
+        .standby-msg p { font-size: 1.1rem; margin: 5px 0; font-weight: 300; }
 
-        /* Search Box Hidden (tetap ada untuk fungsi scan) */
         .search-container { opacity: 0; position: absolute; pointer-events: none; }
 
-        /* Result Display */
-        #result { width: 100%; max-width: 500px; padding: 20px; box-sizing: border-box; }
-        .card { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1); animation: slideUp 0.3s ease-out; }
+        #result { width: 100%; max-width: 480px; padding: 20px; box-sizing: border-box; margin-top: 5vh; }
+        .card { background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.08); animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         
-        .card-header { position: relative; width: 100%; height: 250px; background: #eee; }
-        .card-header img { width: 100%; height: 100%; object-fit: contain; }
+        /* HEADER FOTO PUTIH */
+        .card-header { 
+            position: relative; 
+            width: 100%; 
+            height: 300px; 
+            background: #ffffff; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid #f8fafc;
+        }
+        .card-header img { width: 85%; height: 85%; object-fit: contain; }
         
-        .card-body { padding: 20px; }
-        .category { font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: var(--primary); margin-bottom: 5px; letter-spacing: 1px; }
-        .product-name { font-size: 1.4rem; color: #1e293b; margin: 0 0 10px 0; line-height: 1.2; }
-        .barcode-text { font-family: monospace; background: #f1f5f9; padding: 2px 8px; border-radius: 4px; color: #64748b; font-size: 0.9rem; }
+        .card-body { padding: 25px; }
+        .category { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--primary); margin-bottom: 8px; letter-spacing: 1.5px; opacity: 0.8; }
+        .product-name { font-size: 1.5rem; color: #0f172a; margin: 0 0 12px 0; line-height: 1.3; font-weight: 700; }
+        .barcode-text { font-family: 'Courier New', monospace; background: #f1f5f9; padding: 4px 10px; border-radius: 6px; color: #475569; font-size: 0.85rem; }
 
-        .price-section { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .price-box { padding: 12px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; }
-        .price-label { font-size: 0.7rem; color: #64748b; margin-bottom: 4px; text-transform: uppercase; }
-        .price-value { font-size: 1.1rem; font-weight: 800; color: #1e293b; }
+        .price-section { margin-top: 25px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .price-box { padding: 15px; border-radius: 16px; background: #f8fafc; border: 1px solid #f1f5f9; }
+        .price-label { font-size: 0.65rem; color: #94a3b8; margin-bottom: 6px; text-transform: uppercase; font-weight: 700; }
+        .price-value { font-size: 1.25rem; font-weight: 800; color: #1e293b; }
         
-        .promo-banner { margin-top: 15px; padding: 12px; background: #fef2f2; border-left: 4px solid var(--danger); border-radius: 4px; }
-        .promo-text { color: var(--danger); font-weight: bold; font-size: 0.9rem; }
+        .promo-banner { margin-top: 15px; padding: 15px; background: #fff1f2; border-radius: 12px; display: flex; flex-direction: column; gap: 4px; }
+        .promo-text { color: var(--danger); font-weight: 700; font-size: 0.95rem; }
 
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
     </style>
 </head>
 <body>
 
     <div class="standby-msg" id="standby">
         <h1>READY TO SCAN</h1>
-        <p>Arahkan scanner ke barcode produk</p>
-        <div id="status-db" style="font-size: 0.8rem; color: #94a3b8; margin-top: 20px;">Menghubungkan ke Database...</div>
+        <p>MMS-X Cloud Database Standby</p>
+        <div id="status-db" style="font-size: 0.75rem; color: #94a3b8; margin-top: 30px; letter-spacing: 2px; text-transform: uppercase;">Checking Connection...</div>
     </div>
 
     <div class="search-container">
@@ -58,7 +65,6 @@
     <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
 <script>
-/* ================= CONFIG ================= */
 const SUPABASE_URL = 'https://uesupubktkxfjsylcwwr.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -70,26 +76,24 @@ const statusDb = document.getElementById("status-db");
 const beepOk = document.getElementById("beepOk");
 const beepErr = document.getElementById("beepErr");
 
-// Cek Koneksi
 async function checkConn() {
     const { error } = await supabaseClient.from('export').select('count', { count: 'exact', head: true });
-    statusDb.innerText = error ? "Koneksi Bermasalah!" : "Database Online - MMS-X";
+    statusDb.innerText = error ? "OFFLINE" : "System Online";
+    statusDb.style.color = error ? "#ef4444" : "#10b981";
 }
 checkConn();
 
-/* ================= SEARCH ================= */
 async function search(q) {
-    standbyDiv.style.opacity = "0.1";
+    standbyDiv.style.opacity = "0.05";
     
     try {
         const { data, error } = await supabaseClient
             .from('export')
             .select('*')
-            .or(`Barcode.ilike.%${q}%,Name.ilike.%${q}%`) // Bisa scan barcode atau ketik nama
+            .or(`Barcode.ilike.%${q}%,Name.ilike.%${q}%`) 
             .limit(1);
 
         if (error) throw error;
-
         if (data && data.length > 0) {
             beepOk.play();
             render(data[0]);
@@ -98,8 +102,8 @@ async function search(q) {
         }
     } catch (err) {
         beepErr.play();
-        resultDiv.innerHTML = `<div style="text-align:center; color:white; background:#dc2626; padding:15px; border-radius:10px;">Produk tidak ditemukan!</div>`;
-        setTimeout(() => { if(!input.value) resetUI(); }, 3000);
+        resultDiv.innerHTML = `<div style="text-align:center; color:white; background:#ef4444; padding:20px; border-radius:16px; font-weight:bold; box-shadow: 0 10px 20px rgba(239,68,68,0.2);">BARCODE TIDAK ADA</div>`;
+        setTimeout(() => { if(!input.value) resetUI(); }, 2500);
     }
 }
 
@@ -108,21 +112,16 @@ function resetUI() {
     standbyDiv.style.opacity = "1";
 }
 
-/* ================= RENDER ================= */
 function render(p) {
-    // Fungsi pembersih jika data null atau "NORMAL"
     const clean = (val) => (!val || val === "NORMAL PRICE" || val === "NORMAL") ? "" : val;
-
-    // Ambil data dengan fallback jika kolom beda huruf besar/kecil
+    
     const name = p.Name || p.name || "Produk Tanpa Nama";
     const barcode = p.Barcode || p.barcode || "N/A";
     const cat = p.Category || p.category || "-";
     const subCat = p["Detail Category"] || p.detail_category || "-";
     const img = p.Image || p.image || 'https://placehold.co/400x400?text=No+Image';
-    
     const regPrice = p["Regular Store Price"] || p.regular_price || "0";
     const strPrice = p["Street Store Price"] || p.street_price || "0";
-    
     const promoReg = clean(p["Regular Store Promo"]);
     const promoStr = clean(p["Street Store Promo"]);
     const extra = clean(p["Extra Promo"]);
@@ -139,14 +138,14 @@ function render(p) {
 
                 <div class="price-section">
                     <div class="price-box">
-                        <div class="price-label">Regular Price</div>
+                        <div class="price-label">Reguler</div>
                         <div class="price-value">Rp ${regPrice}</div>
-                        ${promoReg ? `<div class="promo-text" style="font-size:0.7rem;">${promoReg}</div>` : ""}
+                        ${promoReg ? `<div class="promo-text" style="font-size:0.75rem; margin-top:5px;">${promoReg}</div>` : ""}
                     </div>
-                    <div class="price-box" style="border-color: #bae6fd; background: #f0f9ff;">
-                        <div class="price-label" style="color:#0369a1;">Street Price</div>
+                    <div class="price-box" style="border-color: #e0f2fe; background: #f0f9ff;">
+                        <div class="price-label" style="color:#0369a1;">Street</div>
                         <div class="price-value" style="color:#0369a1;">Rp ${strPrice}</div>
-                        ${promoStr ? `<div class="promo-text" style="font-size:0.7rem; color:#0369a1;">${promoStr}</div>` : ""}
+                        ${promoStr ? `<div class="promo-text" style="font-size:0.75rem; margin-top:5px; color:#0369a1;">${promoStr}</div>` : ""}
                     </div>
                 </div>
 
@@ -161,7 +160,6 @@ function render(p) {
     `;
 }
 
-/* ================= SCANNER HANDLER ================= */
 input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
         const val = input.value.trim();
@@ -170,11 +168,9 @@ input.addEventListener("keydown", (e) => {
     }
 });
 
-// Paksa fokus ke input tersembunyi agar scanner selalu terbaca
 document.addEventListener("click", () => input.focus());
-setInterval(() => input.focus(), 1000);
+setInterval(() => { if (document.activeElement !== input) input.focus(); }, 1000);
 window.onload = () => input.focus();
-
 </script>
 </body>
 </html>

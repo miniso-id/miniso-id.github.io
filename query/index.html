@@ -3,33 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>MMS-X Supabase</title>
-    <link rel="stylesheet" href="style.css">
+    <title>MMS-X</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        .grid { display: grid; grid-template-columns: 1fr; gap: 15px; padding: 10px; }
-        .card { border: 1px solid #ddd; border-radius: 8px; display: flex; padding: 10px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .card img { width: 100px; height: 100px; object-fit: cover; border-radius: 4px; margin-right: 15px; }
+        body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 20px; }
+        .search-box { max-width: 400px; margin: 0 auto 20px; position: relative; }
+        .input-wrap { display: flex; align-items: center; background: white; border: 2px solid #ddd; border-radius: 25px; padding: 5px 15px; }
+        input { border: none; outline: none; width: 100%; padding: 10px; font-size: 16px; }
+        .grid { display: grid; grid-template-columns: 1fr; gap: 15px; max-width: 600px; margin: 0 auto; }
+        .card { border: 1px solid #ddd; border-radius: 12px; display: flex; padding: 15px; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .card img { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; margin-right: 15px; border: 1px solid #eee; }
         .info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-        #history span { display: inline-block; background: #eee; padding: 2px 8px; margin: 3px; border-radius: 4px; font-size: 12px; }
+        #history span { display: inline-block; background: #007bff; color: white; padding: 4px 10px; margin: 3px; border-radius: 15px; font-size: 12px; }
+        .promo-tag { color: #d9534f; font-weight: bold; font-size: 0.9em; }
     </style>
 </head>
 <body>
 
 <center>
-    <h2>Price Check</h2>
-    <h3>MMS-X (Supabase Cloud)</h3>
+    <h2 style="margin-bottom: 5px;">Price Check</h2>
+    <h3 style="color: #666; margin-top: 0;">MMS-X (PDT Version)</h3>
 </center>
 
 <div class="search-box">
     <div class="input-wrap">
-        <input id="searchInput" placeholder="Siap scan..." autocomplete="off">
-        <span id="clearBtn" style="display:none; cursor:pointer;">✕</span>
+        <input id="searchInput" placeholder="Siap scan barcode..." autocomplete="off">
+        <span id="clearBtn" style="display:none; cursor:pointer; font-weight:bold;">✕</span>
     </div>
 </div>
 
-<center><h3>Scan History</h3></center>
+<center><h4>Scan History (Last 5)</h4></center>
 <div id="history" style="text-align:center; margin-bottom: 20px;"></div>
+
 <div id="result" class="grid"></div>
 
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
@@ -37,10 +42,9 @@
 
 <script>
 /* ================= CONFIG SUPABASE ================= */
-// JANGAN LUPA GANTI KEDUA VARIABEL INI
 const SUPABASE_URL = 'https://uesupubktkxfjsylcwwr.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k';
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* ================= ELEMENTS ================= */
 const input = document.getElementById("searchInput");
@@ -52,86 +56,108 @@ const beepErr = document.getElementById("beepErr");
 
 let historyData = [];
 
-/* ================= SEARCH (UPDATED LOGIC) ================= */
+/* ================= SEARCH LOGIC ================= */
 async function search(q) {
-    q = q.trim();
     if (!q) {
         result.innerHTML = "";
         return;
     }
 
-    console.log("Mencari barcode:", q); // Cek di console browser (F12)
+    console.log("Mencari barcode:", q);
 
-    // Gunakan .ilike agar jika di database barcode-nya "123 / 456" tetap ketemu saat scan "123"
-    const { data, error } = await supabase
-        .from(‘export’)
-        .select('*')
-        .ilike('Barcode', `%${q}%`) 
-        .limit(1);
+    try {
+        const { data, error } = await supabaseClient
+            .from('export') // Memastikan tanda kutip lurus
+            .select('*')
+            .ilike('Barcode', `%${q}%`) 
+            .limit(1);
 
-    if (error) {
-        console.error("Supabase Error:", error);
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+            const item = data[0];
+            beepOk.play();
+            addHistory(q);
+            render([item]);
+        } else {
+            handleNotFound(q);
+        }
+    } catch (err) {
+        console.error("Kesalahan Sistem:", err.message);
         beepErr.play();
-        result.innerHTML = `<div style="text-align:center; color:red; margin-top:20px;">Error: ${error.message}</div>`;
-        return;
-    }
-
-    if (data && data.length > 0) {
-        const item = data[0];
-        beepOk.play();
-        addHistory(q);
-        render([item]);
-    } else {
-        beepErr.play();
-        result.innerHTML = `<div style="text-align:center; color:red; margin-top:20px;">Barcode "${q}" tidak ditemukan!</div>`;
+        result.innerHTML = `<div style="text-align:center; color:red; padding:20px;">Error: ${err.message}</div>`;
     }
 }
 
-/* ================= RENDER ================= */
+function handleNotFound(q) {
+    beepErr.play();
+    result.innerHTML = `
+        <div style="text-align:center; background:#ffebee; color:#c62828; padding:20px; border-radius:8px; border:1px solid #ef9a9a;">
+            Barcode <b>"${q}"</b> tidak terdaftar di database!
+        </div>`;
+}
+
+/* ================= RENDER CARD ================= */
 function render(list) {
     result.innerHTML = list.map(p => {
-        const showRegPromo = p["Regular Store Promo"] !== "NORMAL PRICE" ? p["Regular Store Promo"] : "";
-        const showStrPromo = p["Street Store Promo"] !== "NORMAL PRICE" ? p["Street Store Promo"] : "";
-        const showExtra = p["Extra Promo"] !== "NORMAL PRICE" ? p["Extra Promo"] : "";
+        const isNormal = (val) => !val || val === "NORMAL PRICE" || val === "NORMAL";
+        
+        const showRegPromo = !isNormal(p["Regular Store Promo"]) ? p["Regular Store Promo"] : "";
+        const showStrPromo = !isNormal(p["Street Store Promo"]) ? p["Street Store Promo"] : "";
+        const showExtra = !isNormal(p["Extra Promo"]) ? p["Extra Promo"] : "";
 
         return `
         <div class="card">
-            <img src="${p["Image"]}" alt="${p["Name"]}" onerror="this.src='https://placehold.co/100x100?text=No+Image'">
+            <img src="${p["Image"]}" alt="Product" onerror="this.src='https://placehold.co/100x100?text=No+Image'">
             <div class="info">
-                <b style="font-size:1.1em;">${p["Name"]}</b>
-                <small style="color:#666;">Barcode: ${p["Barcode"]}</small>
-                <div style="margin:8px 0; font-size:12px; color:#555;">${p["Category"]} / ${p["Detail Category"]}</div>
-                <div style="margin:2px 0;">Regular: <b>${p["Regular Store Price"]}</b> ${showRegPromo ? `<span style="color:red;">(${showRegPromo})</span>` : ""}</div>
-                <div style="margin:2px 0;">Street: <b style="color:#2c3e50;">${p["Street Store Price"]}</b> ${showStrPromo ? `<span style="color:red;">(${showStrPromo})</span>` : ""}</div>
-                ${showExtra ? `<div style="margin-top:5px; color:#d9534f; font-weight:bold;">Extra: ${showExtra}</div>` : ""}
+                <b style="font-size:1.2em; color:#2c3e50;">${p["Name"] || 'Tanpa Nama'}</b>
+                <code style="color:#7f8c8d; margin-bottom:8px;">${p["Barcode"]}</code>
+                
+                <div style="font-size:0.85em; color:#95a5a6; margin-bottom:10px;">
+                    ${p["Category"] || '-'} / ${p["Detail Category"] || '-'}
+                </div>
+
+                <div style="margin:2px 0;">Regular: <b>${p["Regular Store Price"] || '0'}</b> 
+                    ${showRegPromo ? `<span class="promo-tag">(${showRegPromo})</span>` : ""}
+                </div>
+                
+                <div style="margin:2px 0;">Street: <b style="color:#2980b9;">${p["Street Store Price"] || '0'}</b> 
+                    ${showStrPromo ? `<span class="promo-tag">(${showStrPromo})</span>` : ""}
+                </div>
+
+                ${showExtra ? `<div style="margin-top:10px; padding-top:5px; border-top:1px dashed #ddd;" class="promo-tag">Extra: ${showExtra}</div>` : ""}
             </div>
         </div>
         `;
     }).join("");
 }
 
-/* ================= LOGIKA INPUT & SCANNER ================= */
-function handleScan(code) {
-    if (!code) return;
-    input.value = code;
-    search(code);
-    setTimeout(() => {
-        input.value = "";
-        input.focus();
-    }, 200);
+/* ================= CONTROLS ================= */
+function processInput() {
+    const val = input.value.trim();
+    if(val) {
+        search(val);
+        input.value = ""; // Bersihkan setelah pencarian dipicu
+    }
 }
 
-input.oninput = e => { clearBtn.style.display = e.target.value ? "block" : "none"; };
-clearBtn.onclick = () => { input.value = ""; result.innerHTML = ""; input.focus(); };
-
-input.addEventListener("keydown", e => {
+input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
         e.preventDefault();
-        handleScan(input.value.trim());
+        processInput();
     }
 });
 
-setInterval(() => { if (document.activeElement !== input) input.focus(); }, 1500);
+input.oninput = () => {
+    clearBtn.style.display = input.value ? "block" : "none";
+};
+
+clearBtn.onclick = () => {
+    input.value = "";
+    result.innerHTML = "";
+    clearBtn.style.display = "none";
+    input.focus();
+};
 
 function addHistory(code) {
     if (historyData.includes(code)) return;
@@ -140,7 +166,13 @@ function addHistory(code) {
     historyDiv.innerHTML = historyData.map(h => `<span>${h}</span>`).join("");
 }
 
+// Auto focus scanner
+setInterval(() => {
+    if (document.activeElement !== input) input.focus();
+}, 2000);
+
 window.onload = () => input.focus();
 </script>
+
 </body>
 </html>

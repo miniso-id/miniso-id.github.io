@@ -15,7 +15,8 @@
         .standby-msg p { font-size: 1.2rem; margin: 5px 0; }
 
         /* Search Box Hidden (tetap ada untuk fungsi scan) */
-        .search-container { opacity: 0; position: absolute; pointer-events: none; }
+        /* Opacity 0 agar tak terlihat tapi tetap bisa menerima fokus */
+        .search-container { opacity: 0; position: absolute; top: 0; left: 0; height: 0; overflow: hidden; }
 
         /* Result Display */
         #result { width: 100%; max-width: 500px; padding: 20px; box-sizing: border-box; }
@@ -49,7 +50,7 @@
     </div>
 
     <div class="search-container">
-        <input id="searchInput" type="text" autocomplete="off">
+        <input id="searchInput" type="text" autocomplete="off" autofocus>
     </div>
 
     <div id="result"></div>
@@ -85,7 +86,7 @@ async function search(q) {
         const { data, error } = await supabaseClient
             .from('export')
             .select('*')
-            .or(`Barcode.ilike.%${q}%,Name.ilike.%${q}%`) // Bisa scan barcode atau ketik nama
+            .or(`Barcode.ilike.%${q}%,Name.ilike.%${q}%`) 
             .limit(1);
 
         if (error) throw error;
@@ -110,10 +111,8 @@ function resetUI() {
 
 /* ================= RENDER ================= */
 function render(p) {
-    // Fungsi pembersih jika data null atau "NORMAL"
     const clean = (val) => (!val || val === "NORMAL PRICE" || val === "NORMAL") ? "" : val;
 
-    // Ambil data dengan fallback jika kolom beda huruf besar/kecil
     const name = p.Name || p.name || "Produk Tanpa Nama";
     const barcode = p.Barcode || p.barcode || "N/A";
     const cat = p.Category || p.category || "-";
@@ -161,19 +160,34 @@ function render(p) {
     `;
 }
 
-/* ================= SCANNER HANDLER ================= */
+/* ================= SCANNER HANDLER & AUTO FOCUS ================= */
+// 1. Fokus saat halaman siap
+document.addEventListener("DOMContentLoaded", () => {
+    input.focus();
+});
+
+// 2. Jika fokus lepas (klik sembarang atau blur), kembalikan ke input
+input.addEventListener("blur", () => {
+    // Delay kecil sangat penting agar tidak error di beberapa browser
+    setTimeout(() => {
+        input.focus();
+    }, 10);
+});
+
+// 3. Backup click listener
+document.addEventListener("click", () => {
+    input.focus();
+});
+
 input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
         const val = input.value.trim();
         if(val) search(val);
         input.value = "";
+        // Pastikan fokus kembali setelah enter
+        setTimeout(() => input.focus(), 10);
     }
 });
-
-// Paksa fokus ke input tersembunyi agar scanner selalu terbaca
-document.addEventListener("click", () => input.focus());
-setInterval(() => input.focus(), 1000);
-window.onload = () => input.focus();
 
 </script>
 </body>

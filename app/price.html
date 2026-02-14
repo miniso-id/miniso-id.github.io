@@ -287,13 +287,7 @@
         document.getElementById("ui-header").style.display = "none";
         const regPrice = cleanPrice(p["Regular Store Price"]);
         const strPrice = cleanPrice(p["Street Store Price"]);
-        // Ambil teks promo dan hapus spasi di awal/akhir agar pengecekan akurat
 const promoText = (p["Extra Promo"] || "").trim();
-
-// Syarat tampil: 
-// 1. Teks tidak kosong
-// 2. Teks bukan "NORMAL PRICE"
-// 3. Status promo bukan "NORMAL"
 const discountLabel = (promoText !== "" && promoText !== "NORMAL PRICE" && p["Regular Store Promo"] !== "NORMAL") 
     ? `<div class="promo-badge">${promoText}</div>` 
     : "";

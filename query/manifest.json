@@ -1,0 +1,12 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "F11",
+  "orientation": "portrait",
+  "scope": "/",
+  "short_name": "F11",
+  "start_url": "https://miniso-id.github.io/query/",
+  "theme_color": "#ffffff",
+  "description": "Miniso F11 App"
+}

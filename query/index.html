@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>MMS-X Supabase</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        /* CSS tambahan untuk memastikan tampilan rapi */
+        .grid { display: grid; grid-template-columns: 1fr; gap: 15px; padding: 10px; }
+        .card { border: 1px solid #ddd; border-radius: 8px; display: flex; padding: 10px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .card img { width: 100px; height: 100px; object-fit: cover; border-radius: 4px; margin-right: 15px; }
+        .info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        #history span { display: inline-block; background: #eee; padding: 2px 8px; margin: 3px; border-radius: 4px; font-size: 12px; }
+    </style>
+</head>
+
+<body>
+
+<center>
+    <h2>Price Check</h2>
+    <h3>MMS-X (Supabase Cloud)</h3>
+</center>
+
+<div class="search-box">
+    <div class="input-wrap">
+        <input id="searchInput" placeholder="Siap scan..." autocomplete="off">
+        <span id="clearBtn" style="display:none; cursor:pointer;">✕</span>
+    </div>
+</div>
+
+<center><h3>Scan History</h3></center>
+<div id="history" style="text-align:center; margin-bottom: 20px;"></div>
+<div id="result" class="grid"></div>
+
+<audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
+<audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
+
+<script>
+/* ================= CONFIG SUPABASE ================= */
+// Ganti dengan URL dan Anon Key dari Dashboard Supabase Anda (Project Settings > API)
+const SUPABASE_URL = 'https://URL_PROYEK_ANDA.supabase.co';
+const SUPABASE_KEY = 'YOUR_ANON_KEY_HERE';
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ================= ELEMENTS ================= */
+const input = document.getElementById("searchInput");
+const clearBtn = document.getElementById("clearBtn");
+const result = document.getElementById("result");
+const historyDiv = document.getElementById("history");
+const beepOk = document.getElementById("beepOk");
+const beepErr = document.getElementById("beepErr");
+
+/* ================= STATE ================= */
+let historyData = [];
+
+/* ================= SEARCH (ASYNCHRONOUS) ================= */
+async function search(q) {
+    q = q.trim();
+    if (!q) {
+        result.innerHTML = "";
+        return;
+    }
+
+    // Query ke Supabase berdasarkan kolom 'Barcode'
+    const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('Barcode', q) // Mencari yang persis sama dengan scan
+        .single();
+
+    if (data && !error) {
+        beepOk.play();
+        addHistory(q);
+        render([data]);
+    } else {
+        beepErr.play();
+        result.innerHTML = `<div style="text-align:center; color:red; margin-top:20px;">Barcode "${q}" tidak terdaftar!</div>`;
+    }
+}
+
+/* ================= RENDER (Sesuai Struktur Screenshot) ================= */
+function render(list) {
+    result.innerHTML = list.map(p => {
+        // Logika menyembunyikan tulisan "NORMAL PRICE"
+        const showRegPromo = p["Regular Store Promo"] !== "NORMAL PRICE" ? p["Regular Store Promo"] : "";
+        const showStrPromo = p["Street Store Promo"] !== "NORMAL PRICE" ? p["Street Store Promo"] : "";
+        const showExtra = p["Extra Promo"] !== "NORMAL PRICE" ? p["Extra Promo"] : "";
+
+        return `
+        <div class="card">
+            <img src="${p["Image"]}" alt="${p["Name"]}" onerror="this.src='https://placehold.co/100x100?text=No+Image'">
+            <div class="info">
+                <b style="font-size:1.1em;">${p["Name"]}</b>
+                <small style="color:#666;">Barcode: ${p["Barcode"]}</small>
+                
+                <div style="margin:8px 0; font-size:12px; color:#555;">
+                    ${p["Category"]} / ${p["Detail Category"]}
+                </div>
+                
+                <div style="margin:2px 0;">
+                    Regular: <b>${p["Regular Store Price"]}</b> 
+                    ${showRegPromo ? `<span style="color:red;">(${showRegPromo})</span>` : ""}
+                </div>
+                
+                <div style="margin:2px 0;">
+                    Street: <b style="color:#2c3e50;">${p["Street Store Price"]}</b> 
+                    ${showStrPromo ? `<span style="color:red;">(${showStrPromo})</span>` : ""}
+                </div>
+                
+                ${showExtra ? `<div style="margin-top:5px; color:#d9534f; font-weight:bold;">Extra: ${showExtra}</div>` : ""}
+            </div>
+        </div>
+        `;
+    }).join("");
+}
+
+/* ================= LOGIKA LAMA (TIDAK DIUBAH) ================= */
+
+// Handler Scan
+function handleScan(code) {
+    if (!code) return;
+    input.value = code;
+    search(code);
+
+    // Auto clear + siap scan ulang
+    setTimeout(() => {
+        input.value = "";
+        input.focus();
+    }, 200);
+}
+
+// Tombol silang
+input.oninput = e => {
+    clearBtn.style.display = e.target.value ? "block" : "none";
+};
+
+clearBtn.onclick = () => {
+    input.value = "";
+    result.innerHTML = "";
+    input.focus();
+};
+
+// Scanner Enter Key
+input.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        handleScan(input.value.trim());
+    }
+});
+
+// Jaga cursor selalu standby
+setInterval(() => {
+    if (document.activeElement !== input) {
+        input.focus();
+    }
+}, 1500);
+
+// History
+function addHistory(code) {
+    if (historyData.includes(code)) return;
+    historyData.unshift(code);
+    if (historyData.length > 5) historyData.pop();
+    historyDiv.innerHTML = historyData.map(h => `<span>${h}</span>`).join("");
+}
+
+// Langsung fokus saat buka
+window.onload = () => input.focus();
+
+</script>
+
+</body>
+</html>

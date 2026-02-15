@@ -179,7 +179,7 @@
         
         if (q) query = query.ilike('Barcode', `%${q}%`);
         
-        let { data } = await query.limit(0);
+        let { data } = await query.limit(1);
         if(data) {
             list.innerHTML = data.map(p => `
                 <div class="list-item" onclick="showDetail('${p.Barcode}')">

@@ -123,6 +123,7 @@
                 <option value="Administrator">Administrator</option>
                 <option value="Area">Area</option>
                 <option value="Store">Store</option>
+                <option value="Staff">Staff</option>
             </select>
         </div>
         <div class="input-group">
@@ -176,13 +177,13 @@
                 <p>Cek Harga & Promo</p>
             </div>
 
-            <div class="menu-card" id="menuSO" onclick="window.location.href='https://miniso-id.github.io/app/so.html'" style="display: none;">
+            <div class="menu-card" id="menuSO" onclick="window.location.href='https://miniso-id.github.io/app/so.html'">
                 <div class="icon-box"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></div>
                 <h3>Stock Opname</h3>
                 <p>Input Data Stok</p>
             </div>
 
-            <div class="menu-card" onclick="window.location.href='https://miniso-id.github.io/app/product.html'">
+            <div class="menu-card" id="menuGallery" onclick="window.location.href='https://miniso-id.github.io/app/product.html'">
                 <div class="icon-box"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></div>
                 <h3>Gallery</h3>
                 <p>Katalog Produk</p>
@@ -207,7 +208,6 @@
                 <p>Muat Ulang</p>
             </div>
         </div>
-        <div id="listContainer"></div>
     </main>
 </div>
 
@@ -219,10 +219,20 @@
     function checkPermissions() {
         const role = localStorage.getItem('mms_role');
         const menuSO = document.getElementById('menuSO');
+        const menuGallery = document.getElementById('menuGallery');
+        
+        // Aturan: Hanya Administrator yang bisa akses Stock Opname
         if (role === 'Administrator') {
             menuSO.style.display = 'flex';
         } else {
             menuSO.style.display = 'none';
+        }
+
+        // Aturan: Staff tidak boleh akses Gallery
+        if (role === 'Staff') {
+            menuGallery.style.display = 'none';
+        } else {
+            menuGallery.style.display = 'flex';
         }
     }
 
@@ -271,7 +281,6 @@
         document.getElementById("dashboard").style.display = "grid";
         document.getElementById("heroSection").style.display = "block";
         document.getElementById("ui-header").style.display = "none";
-        document.getElementById("listContainer").style.display = "none";
         checkPermissions();
     }
 </script>

@@ -24,7 +24,7 @@
             height: 100vh; overflow: hidden;
         }
 
-        /* --- STYLE LOGIN (Disamakan dengan Style Dashboard) --- */
+        /* --- STYLE LOGIN (Updated Logo) --- */
         #loginOverlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: #ffffff;
@@ -39,15 +39,15 @@
             animation: fadeIn 0.6s ease;
         }
 
+        /* Update Bagian Logo Image */
         .login-logo {
-            width: 80px; height: 80px;
-            background: var(--miniso-red);
-            border-radius: 20px;
-            color: white;
-            font-size: 32px; font-weight: 900;
-            display: flex; align-items: center; justify-content: center;
+            width: 100px; 
+            height: 100px;
             margin: 0 auto 20px;
-            box-shadow: 0 10px 20px rgba(230, 21, 35, 0.2);
+            display: block;
+            border-radius: 50%; /* Membuat logo bulat */
+            box-shadow: 0 10px 25px rgba(230, 21, 35, 0.15); /* Shadow merah halus */
+            object-fit: cover;
         }
 
         .login-title { font-size: 24px; font-weight: 800; margin-bottom: 5px; }
@@ -82,7 +82,7 @@
         }
         .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
 
-        /* --- STYLE DASHBOARD (Original Anda) --- */
+        /* --- STYLE DASHBOARD --- */
         .hero-banner {
             width: 100%; max-width: 600px;
             margin: 40px auto 10px; padding: 0 20px;
@@ -125,20 +125,17 @@
         #ui-header { background: #fff; padding: 15px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; display: none; }
         .top-bar { display: flex; gap: 10px; align-items: center; max-width: 1200px; margin: auto; }
         
-        /* SEARCH & SCANNER */
         .search-container { position: relative; flex: 1; }
         #searchInput { width: 100%; height: 44px; padding: 0 50px 0 15px; border-radius: 12px; border: 1.5px solid #eee; background: #f8f8f8; outline: none; }
         #scanBtn { position: absolute; right: 5px; top: 5px; width: 34px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
         #reader { display:none; width:100%; max-width: 450px; aspect-ratio:1/1; margin:10px auto; background:#000; border-radius:20px; overflow:hidden; position:relative; }
         .focus-guide { position: absolute; inset: 20%; border: 2px solid var(--miniso-red); border-radius: 10px; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.5); }
         
-        /* CONTENT AREA */
         .main-content { height: 100vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         #listContainer { max-width: 1200px; margin: auto; padding: 15px; display: none; }
         .search-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f5f5f5; cursor: pointer; }
         .thumb-img { width: 70px; height: 70px; border-radius: 10px; object-fit: contain; background: #f9f9f9; }
         
-        /* DETAIL VIEW */
         .product-detail-card { display: none; max-width: 800px; margin: auto; padding-bottom: 50px; }
         .price-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
         .price-item { padding: 15px; border-radius: 15px; text-align: center; }
@@ -155,7 +152,8 @@
 
 <div id="loginOverlay">
     <div class="login-card">
-        <div class="login-logo">M</div>
+        <img src="https://miniso-id.github.io/app/user512.png" class="login-logo" alt="Logo MMS-X">
+        
         <div class="login-title">Welcome Back!</div>
         <p class="login-subtitle">Silakan login untuk mengakses MMS-X</p>
         
@@ -261,7 +259,6 @@
         const pass = document.getElementById('password').value;
         const errorMsg = document.getElementById('loginError');
 
-        // Reset error
         errorMsg.style.display = 'none';
 
         if(!user || !pass) {
@@ -271,7 +268,6 @@
         }
 
         try {
-            // Cek Supabase (Asumsi tabel 'users')
             const { data, error } = await _supabase
                 .from('users')
                 .select('*')
@@ -281,13 +277,11 @@
                 .maybeSingle();
 
             if (data) {
-                // Login Sukses
                 localStorage.setItem('mms_auth', 'true');
                 localStorage.setItem('mms_role', role);
                 localStorage.setItem('mms_user', user);
                 showApp();
             } else {
-                // Login Gagal
                 errorMsg.innerText = "Login Gagal: Data tidak ditemukan";
                 errorMsg.style.display = 'block';
             }
@@ -309,7 +303,6 @@
         loadCategories();
     }
 
-    // Cek status login saat load
     window.onload = () => {
         if (localStorage.getItem('mms_auth') === 'true') {
             showApp();
@@ -317,7 +310,6 @@
     };
 
     // --- LOGIC DASHBOARD & APP ---
-
     function showDashboard() {
         if(isScanning) stopScan();
         document.getElementById("dashboard").style.display = "grid";

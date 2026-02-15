@@ -23,9 +23,23 @@
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #fdfdfd; color: var(--text-dark); }
+        body { 
+            margin: 0; padding: 0; 
+            font-family: 'Segoe UI', sans-serif; 
+            background: #ffffff; /* Latar belakang putih bersih */
+            color: var(--text-dark); 
+        }
 
-        .app-wrapper { display: flex; height: 100vh; width: 100%; position: relative; }
+        /* Sembunyikan konten utama jika belum standalone */
+        .app-wrapper { 
+            display: none; /* Default sembunyi */
+            height: 100vh; width: 100%; position: relative; 
+        }
+
+        /* Tampilkan konten jika sudah mode standalone */
+        @media (display-mode: standalone) {
+            .app-wrapper { display: flex; }
+        }
 
         /* --- SIDEBAR & OVERLAY --- */
         .sidebar {
@@ -62,7 +76,7 @@
             position: absolute; right: 2px; display: flex; align-items: center; justify-content: center;
         }
 
-        /* --- SCANNER VIEW (HIGH RES) --- */
+        /* --- SCANNER VIEW --- */
         #reader {
             display:none; width:100%; max-width:340px; aspect-ratio:1/1;
             margin:15px auto; background:#000; border-radius:20px;
@@ -76,7 +90,7 @@
         #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
         #videoSource { padding: 10px; border-radius: 8px; border: 2px solid var(--miniso-red); width: 100%; max-width: 300px; font-weight: 600; }
 
-        /* --- PRODUCT CARD (UPDATED STRUCTURE) --- */
+        /* --- PRODUCT CARD --- */
         .product-card {
             background: white; border-radius: 18px; overflow: hidden;
             box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px;
@@ -93,7 +107,6 @@
         .p-title { font-size: 18px; font-weight: 700; margin: 0; color: #111; line-height: 1.3; }
         .p-detail-cat { font-size: 13px; color: #666; font-weight: 500; margin-top: 4px; margin-bottom: 18px; display: block; }
 
-        /* Price Grid Styling */
         .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .price-item { background: var(--bg-gray); padding: 12px 10px; border-radius: 12px; border-bottom: 3px solid #ddd; }
         .price-item.is-regular { border-bottom-color: var(--miniso-red); }
@@ -113,14 +126,19 @@
 
         /* --- iOS SHORTCUT PROMPT --- */
         #ios-prompt {
-            display: none; position: fixed; bottom: 30px; left: 10px; right: 10px;
-            background: white; padding: 15px; border-radius: 15px;
-            box-shadow: 0 5px 25px rgba(0,0,0,0.3); z-index: 9999;
-            border: 2px solid var(--miniso-red); animation: bounceIn 0.6s ease;
+            display: none; position: fixed; 
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 85%; max-width: 320px;
+            background: white; padding: 25px; border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 9999;
+            border: 2px solid var(--miniso-red); 
+            animation: fadeIn 0.5s ease;
         }
-        @keyframes bounceIn { from { transform: translateY(100px); opacity:0; } to { transform: translateY(0); opacity:1; } }
-        .prompt-text { font-size: 13px; line-height: 1.5; color: #444; text-align: center; }
-        .ios-icon { height: 20px; vertical-align: middle; margin: 0 5px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translate(-50%, -40%); } to { opacity: 1; transform: translate(-50%, -50%); } }
+        
+        .prompt-text { font-size: 15px; line-height: 1.6; color: #333; text-align: center; }
+        .ios-icon { height: 24px; vertical-align: middle; margin: 0 5px; }
+        .app-logo-large { display: block; width: 70px; margin: 0 auto 15px; border-radius: 15px; }
 
         @media (max-width: 768px) {
             .sidebar { position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); }
@@ -132,13 +150,15 @@
 <body>
 
 <div id="ios-prompt">
+    <img src="https://miniso-id.github.io/app/icon.png" class="app-logo-large">
     <div class="prompt-text">
-        Install <b>MMS-X</b> di iPhone kamu:<br>
-        Tap <img src="https://miniso-id.github.io/ios/share.png" class="ios-icon"> kemudian pilih <b>"Add to Home Screen"</b>
+        <strong>Install MMS-X</strong><br>
+        Tambahkan ke Home Screen untuk mulai menggunakan aplikasi.<br><br>
+        Tap <img src="https://miniso-id.github.io/ios/share.png" class="ios-icon"> kemudian pilih<br><b>"Add to Home Screen"</b>
     </div>
 </div>
 
-<div class="app-wrapper">
+<div class="app-wrapper" id="appWrapper">
     <nav class="sidebar" id="sidebar">
         <h2>MMS-X (beta)</h2>
         <a href="#" class="active-link">📸 Price Check</a>
@@ -164,7 +184,6 @@
                 </button>
             </div>
         </div>
-
         <div id="reader">
             <div class="focus-guide"></div>
             <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK FOKUS</div>
@@ -178,13 +197,21 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
-    // --- iOS STANDALONE DETECTION ---
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-    if (isIOS && !isStandalone) {
+
+    // Logika kontrol tampilan
+    if (isStandalone) {
+        document.getElementById('appWrapper').style.display = 'flex';
+        document.getElementById('ios-prompt').style.display = 'none';
+    } else if (isIOS) {
         document.getElementById('ios-prompt').style.display = 'block';
+    } else {
+        // Untuk Android/Desktop, langsung tampilkan saja
+        document.getElementById('appWrapper').style.display = 'flex';
     }
 
+    // --- SISANYA TETAP SAMA SEPERTI LOGIKA SEBELUMNYA ---
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('overlay');
     const input = document.getElementById("searchInput");
@@ -205,16 +232,12 @@
 
     document.getElementById('menuToggle').onclick = () => sidebar.classList.toggle('active');
     overlay.onclick = () => sidebar.classList.remove('active');
-
     input.oninput = (e) => search(e.target.value);
 
-    // --- AUTOFOCUS LOGIC ---
     reader.onclick = async () => {
         const track = Quagga.CameraAccess.getActiveTrack();
         if (track && track.applyConstraints) {
-            try {
-                await track.applyConstraints({ advanced: [{ focusMode: "manual" }, { focusMode: "continuous" }] });
-            } catch (e) { console.warn("Focus failed"); }
+            try { await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); } catch (e) {}
         }
     };
 
@@ -223,7 +246,6 @@
         startScan(localStorage.getItem('lastCameraId'));
     };
 
-    // --- 1080p CAMERA LOGIC ---
     async function startScan(deviceId = null) {
         scanning = true; reader.style.display = "block";
         Quagga.init({
@@ -236,7 +258,6 @@
                 },
                 area: { top: "20%", right: "20%", left: "20%", bottom: "20%" }
             },
-            locator: { patchSize: "small", halfSample: false },
             decoder: { readers: ["ean_reader", "code_128_reader"] },
             locate: true
         }, (err) => {
@@ -250,10 +271,7 @@
     async function updateCameraList() {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
-        const backCams = videoDevices.filter(d => /back|rear|0/i.test(d.label));
-        const final = backCams.length > 0 ? backCams : videoDevices;
-        const currentLabel = Quagga.CameraAccess.getActiveTrack()?.label;
-        videoSource.innerHTML = final.map(d => `<option value="${d.deviceId}" ${currentLabel === d.label ? 'selected' : ''}>${d.label || 'Kamera Utama'}</option>`).join("");
+        videoSource.innerHTML = videoDevices.map(d => `<option value="${d.deviceId}">${d.label || 'Kamera'}</option>`).join("");
     }
 
     videoSource.onchange = () => {
@@ -271,7 +289,6 @@
         }
     });
 
-    // --- RENDER FUNCTION (WITH CATEGORY & DUAL PRICE) ---
     function search(q) {
         q = q.trim();
         if(!q || !barcodeIndex.has(q)) { result.innerHTML = ""; return; }
@@ -290,7 +307,6 @@
                     <span class="p-cat">${p.c}</span>
                     <h3 class="p-title">${p.n}</h3>
                     <span class="p-detail-cat">${p.d}</span>
-                    
                     <div class="price-grid">
                         <div class="price-item is-regular">
                             <span class="price-label">Reguler Price</span>
@@ -301,17 +317,10 @@
                             <span class="price-val">Rp${p.s.toLocaleString('id-ID')}</span>
                         </div>
                     </div>
-
                     <div class="p-meta">
                         <div class="meta-row"><span class="meta-label">Barcode</span><span class="meta-val">${q}</span></div>
-                        <div class="meta-row">
-                            <span class="meta-label"><span class="dot" style="background:var(--promo-blue)"></span> Reg. Promo</span>
-                            <span class="meta-val" style="color:var(--promo-blue)">${p.rp}</span>
-                        </div>
-                        <div class="meta-row">
-                            <span class="meta-label"><span class="dot" style="background:var(--promo-green)"></span> Street Promo</span>
-                            <span class="meta-val" style="color:var(--promo-green)">${p.sp}</span>
-                        </div>
+                        <div class="meta-row"><span class="meta-label">Reg Promo</span><span class="meta-val">${p.rp}</span></div>
+                        <div class="meta-row"><span class="meta-label">Street Promo</span><span class="meta-val">${p.sp}</span></div>
                     </div>
                 </div>
             </div>`;

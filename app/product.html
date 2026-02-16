@@ -200,7 +200,14 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
-    /* --- KONFIGURASI SUPABASE (DIBEDAKAN) --- */
+    
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Service Worker Registered!', reg.scope))
+                .catch(err => console.log('Service Worker Failed:', err));
+        });
+    }
     
     // 1. Database Produk (Data Asli Anda)
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";

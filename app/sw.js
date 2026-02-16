@@ -1,11 +1,13 @@
 const CACHE_NAME = 'mms-x-v1';
 const ASSETS_TO_CACHE = [
   './',
-  './index.html', // Ganti dengan nama file HTML utama Anda jika berbeda
+  './index.html',
+  './price.html',
+  './so.html',
+  './product.html', // Tambahkan semua nama file HTML Anda di sini
   './manifest.json',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
-  'https://unpkg.com/quagga@0.12.1/dist/quagga.min.js',
-  'https://miniso-id.github.io/app/user512.png'
+  'https://unpkg.com/quagga@0.12.1/dist/quagga.min.js'
 ];
 
 // 1. Install Service Worker & Cache Aset

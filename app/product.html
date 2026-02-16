@@ -268,22 +268,26 @@
     let currentCategory = 'All';
 
     async function fetchCategories() {
-    // Tambahkan .limit(10000) atau berapapun jumlah maksimal produk Anda
-    const { data } = await _supabase.from('export').select('Category').limit(10000); 
-    
+    // Memanggil fungsi RPC yang sudah dibuat di SQL Editor Supabase
+    const { data, error } = await _supabase.rpc('get_unique_categories');
+
+    if (error) {
+        console.error("Gagal mengambil kategori:", error);
+        return;
+    }
+
     if (data) {
-        // Sisa logika tetap sama
-        const uniqueCats = [...new Set(data.map(i => i.Category).filter(Boolean))].sort();
         const container = document.getElementById('catFilterContainer');
-        
-        // Bersihkan container dulu agar tidak duplikat saat reload (opsional tapi disarankan)
+        // Reset container (kecuali tombol 'All')
         container.innerHTML = '<div class="cat-chip active" onclick="filterCat(\'All\', this)">All</div>';
 
-        uniqueCats.forEach(cat => {
+        data.forEach(item => {
+            // item.category didapat dari nama kolom di fungsi SQL (RPC)
+            const catName = item.category; 
             const chip = document.createElement('div');
             chip.className = 'cat-chip';
-            chip.innerText = cat;
-            chip.onclick = () => filterCat(cat, chip);
+            chip.innerText = catName;
+            chip.onclick = () => filterCat(catName, chip);
             container.appendChild(chip);
         });
     }

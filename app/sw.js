@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mms-x-v1.0.9';
+const CACHE_NAME = 'mms-x-v1.0.1';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

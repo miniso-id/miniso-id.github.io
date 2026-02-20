@@ -255,26 +255,27 @@
         }
     }
 
-    // --- LOGIKA OTOMATIS TANPA LOGIN ULANG ---
-    (function autoLoginCheck() {
-        const isAuth = localStorage.getItem('mmsx_auth');
-        const userRole = localStorage.getItem('mmsx_role');
+    // KODE BARU (Sesuaikan dengan mms_auth agar nyambung)
+(function autoLoginCheck() {
+    // Ambil kunci 'mms_auth' karena itu yang disimpan oleh halaman depan
+    const isAuth = localStorage.getItem('mms_auth'); 
+    const userRole = localStorage.getItem('mms_role');
 
-        // Jika sudah login di halaman depan DAN role-nya bukan 'Store' (Staff)
-        // Kita anggap Administrator dan Area boleh langsung masuk
-        if (isAuth === 'true' && userRole !== 'Store') {
-            // Sembunyikan login screen segera sebelum user melihatnya
-            document.addEventListener("DOMContentLoaded", () => {
-                const overlay = document.getElementById('loginOverlay');
-                if(overlay) overlay.style.display = 'none';
-            });
-        }
-    })();
-
-    if(localStorage.getItem('mmsx_auth') === 'true') {
-        document.getElementById('loginOverlay').style.display = 'none';
+    if (isAuth === 'true' && userRole !== 'Staff') { // Sesuaikan 'Staff' sesuai pilihan di index
+        document.addEventListener("DOMContentLoaded", () => {
+            const overlay = document.getElementById('loginOverlay');
+            if(overlay) overlay.style.display = 'none';
+        });
     }
+})();
 
+// Cek lagi saat script running
+if(localStorage.getItem('mms_auth') === 'true') {
+    window.addEventListener('load', () => {
+        const overlay = document.getElementById('loginOverlay');
+        if(overlay) overlay.style.display = 'none';
+    });
+}
     function logout() {
         localStorage.removeItem('mmsx_auth');
         location.reload();

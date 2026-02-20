@@ -323,7 +323,7 @@
         checkPermissions();
     }
 
-    // 1. Definisi Data Bahasa yang Sudah Diperbaiki
+    // 1. Definisi Data Bahasa (Lengkap dengan Komunikasi Tim)
 const translations = {
     id: {
         loginTitle: "Selamat Datang Kembali!",
@@ -333,13 +333,15 @@ const translations = {
         labelPass: "KATA SANDI",
         placeholderUser: "Ketik nama pengguna",
         btnLog: "MASUK SEKARANG",
-        roles: ["Administrator", "Area", "Toko", "Staff"],
+        roles: ["Administrator", "Wilayah", "Toko", "Karyawan"],
         priceTitle: "Cek Harga",
         priceDesc: "Periksa Harga & Promo",
         soTitle: "Stok Opname",
         soDesc: "Input Data Stok",
         galTitle: "Katalog",
         galDesc: "Galeri Produk",
+        feishuTitle: "Grup Feishu",
+        feishuDesc: "Komunikasi Tim",
         updateTitle: "Pembaruan",
         updateDesc: "Muat Ulang Sistem",
         logoutBtn: "KELUAR",
@@ -361,6 +363,8 @@ const translations = {
         soDesc: "Input Stock Data",
         galTitle: "Gallery",
         galDesc: "Product Catalog",
+        feishuTitle: "Feishu Group",
+        feishuDesc: "Team Communication",
         updateTitle: "Update",
         updateDesc: "Reload System",
         logoutBtn: "LOGOUT",
@@ -382,6 +386,8 @@ const translations = {
         soDesc: "输入库存数据",
         galTitle: "产品目录",
         galDesc: "产品画廊",
+        feishuTitle: "飞书群组",
+        feishuDesc: "团队沟通",
         updateTitle: "更新",
         updateDesc: "重新加载系统",
         logoutBtn: "登出",
@@ -395,7 +401,7 @@ function applyLanguage(lang) {
     const t = translations[lang];
     localStorage.setItem('mms_lang', lang);
 
-    // Terjemahan Bagian Login
+    // Update Bagian Login
     document.querySelector('.login-title').innerText = t.loginTitle;
     document.querySelector('.login-subtitle').innerText = t.loginSubtitle;
     const labels = document.querySelectorAll('.input-group label');
@@ -405,26 +411,33 @@ function applyLanguage(lang) {
     document.getElementById('username').placeholder = t.placeholderUser;
     document.querySelector('.btn-primary').innerText = t.btnLog;
 
-    // Terjemahan Dropdown Peran (Tanpa merubah 'value' agar database tetap jalan)
+    // Update Dropdown Peran
     const roleSelect = document.getElementById('loginAs');
     for (let i = 0; i < roleSelect.options.length; i++) {
         roleSelect.options[i].text = t.roles[i];
     }
 
-    // Terjemahan Dashboard (Menu Kartu)
+    // Update Dashboard (Semua Menu)
     const menus = document.querySelectorAll('.menu-card');
     if(menus.length > 0) {
         menus[0].querySelector('h3').innerText = t.priceTitle;
         menus[0].querySelector('p').innerText = t.priceDesc;
+        
         menus[1].querySelector('h3').innerText = t.soTitle;
         menus[1].querySelector('p').innerText = t.soDesc;
+        
         menus[2].querySelector('h3').innerText = t.galTitle;
         menus[2].querySelector('p').innerText = t.galDesc;
+        
+        // --- INI BAGIAN YANG TADI KETINGGALAN ---
+        menus[3].querySelector('h3').innerText = t.feishuTitle;
+        menus[3].querySelector('p').innerText = t.feishuDesc;
+        
         menus[4].querySelector('h3').innerText = t.updateTitle;
         menus[4].querySelector('p').innerText = t.updateDesc;
     }
 
-    // Terjemahan Tombol & Notifikasi
+    // Update Tombol & Notifikasi
     document.querySelector('.btn-logout').innerText = t.logoutBtn;
     document.querySelector('#update-toast span').innerText = t.verTitle;
     document.querySelector('.btn-update-now').innerText = t.verBtn;
@@ -444,7 +457,6 @@ function injectLangSwitcher() {
     
     const card = document.querySelector('.login-card');
     const logo = document.querySelector('.login-logo');
-    // Menyisipkan tepat di bawah logo
     logo.parentNode.insertBefore(switcher, logo.nextSibling);
 
     const select = document.getElementById('langSelect');
@@ -455,7 +467,6 @@ function injectLangSwitcher() {
     select.addEventListener('change', (e) => applyLanguage(e.target.value));
 }
 
-// Jalankan saat halaman dimuat
 const existingOnload = window.onload;
 window.onload = () => {
     if (typeof existingOnload === 'function') existingOnload();

@@ -244,8 +244,9 @@
         decoder: { 
             readers: [
                 "ean_reader",      // Wajib untuk produk retail (899...)
-                "code_128_reader",  // Cadangan untuk barcode logistik
-                "UPC_reader"
+                "upc_reader",
+                "upc_e_reader",
+                "code_128_reader"  // Cadangan untuk barcode logistik
             ],
             multiple: false
         },

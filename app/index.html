@@ -26,37 +26,39 @@
         }
 
         /* Style Notifikasi Update */
-#update-toast {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%) translateY(100px);
-    background: #333;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    z-index: 10000;
-    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    width: 90%;
-    max-width: 400px;
-}
+        #update-toast {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%) translateY(150px);
+            background: #2d2d2d;
+            color: white;
+            padding: 14px 20px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+            z-index: 10000;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            width: 90%;
+            max-width: 400px;
+        }
 
-#update-toast.show { transform: translateX(-50%) translateY(0); }
+        #update-toast.show { transform: translateX(-50%) translateY(0); }
 
-.btn-update-now {
-    background: var(--miniso-red);
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 8px;
-    font-weight: bold;
-    font-size: 12px;
-    cursor: pointer;
-}
+        .btn-update-now {
+            background: var(--miniso-red);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-weight: 800;
+            font-size: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
 
         /* --- STYLE LOGIN --- */ 
         #loginOverlay {
@@ -66,78 +68,32 @@
         }
         
         .login-card { width: 100%; max-width: 400px; text-align: center; animation: fadeIn 0.6s ease; }
-
-        .login-logo {
-            width: 100px; height: 100px; margin: 0 auto 20px; display: block;
-            border-radius: 50%; box-shadow: 0 10px 25px rgba(230, 21, 35, 0.15); object-fit: cover;
-        }
-
+        .login-logo { width: 100px; height: 100px; margin: 0 auto 20px; display: block; border-radius: 50%; box-shadow: 0 10px 25px rgba(230, 21, 35, 0.15); object-fit: cover; }
         .login-title { font-size: 24px; font-weight: 800; margin-bottom: 5px; }
         .login-subtitle { color: #888; font-size: 14px; margin-bottom: 30px; }
 
         .input-group { text-align: left; margin-bottom: 15px; }
         .input-group label { font-size: 12px; font-weight: 700; color: #999; display: block; margin-bottom: 5px; margin-left: 5px; }
-        
-        .custom-input {
-            width: 100%; height: 50px; padding: 0 15px; border-radius: 14px;
-            border: 1.5px solid #eee; background: #f8f8f8; outline: none; font-size: 16px;
-            color: var(--text-dark); transition: 0.3s;
-        }
+        .custom-input { width: 100%; height: 50px; padding: 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f8f8f8; outline: none; font-size: 16px; color: var(--text-dark); transition: 0.3s; }
         .custom-input:focus { border-color: var(--miniso-red); background: white; }
 
-        .btn-primary {
-            width: 100%; height: 52px; background: var(--miniso-red); color: white;
-            border: none; border-radius: 14px; font-size: 16px; font-weight: 800;
-            margin-top: 15px; cursor: pointer; box-shadow: 0 8px 16px rgba(230, 21, 35, 0.15);
-        }
-        
-        .btn-feishu-login {
-            width: 100%; height: 50px; background: transparent; color: var(--feishu-blue);
-            border: 1.5px solid var(--feishu-blue); border-radius: 14px; font-size: 14px; font-weight: 700;
-            margin-top: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-        }
-
-        .btn-primary:active, .btn-feishu-login:active { transform: scale(0.98); opacity: 0.9; }
+        .btn-primary { width: 100%; height: 52px; background: var(--miniso-red); color: white; border: none; border-radius: 14px; font-size: 16px; font-weight: 800; margin-top: 15px; cursor: pointer; box-shadow: 0 8px 16px rgba(230, 21, 35, 0.15); }
+        .btn-feishu-login { width: 100%; height: 50px; background: transparent; color: var(--feishu-blue); border: 1.5px solid var(--feishu-blue); border-radius: 14px; font-size: 14px; font-weight: 700; margin-top: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
 
         /* --- STYLE DASHBOARD --- */
         .hero-banner { width: 100%; max-width: 600px; margin: 40px auto 10px; padding: 0 20px; animation: fadeIn 0.6s ease; }
-        
-        /* BANNER IMPROVEMENT */
-        .banner-card {
-            background: linear-gradient(135deg, #e61523 0%, #ff4d5a 100%);
-            border-radius: 24px; padding: 20px; color: white; position: relative; overflow: hidden;
-            box-shadow: 0 10px 20px rgba(230, 21, 35, 0.2);
-            display: flex; justify-content: space-between; align-items: center;
-        }
+        .banner-card { background: linear-gradient(135deg, #e61523 0%, #ff4d5a 100%); border-radius: 24px; padding: 20px; color: white; position: relative; overflow: hidden; box-shadow: 0 10px 20px rgba(230, 21, 35, 0.2); display: flex; justify-content: space-between; align-items: center; }
         .banner-left { display: flex; align-items: center; gap: 15px; }
         .banner-logo-img { width: 50px; height: 50px; border-radius: 50%; background: white; padding: 2px; object-fit: cover; }
         .banner-text h2 { margin: 0; font-size: 20px; font-weight: 900; }
         .banner-text p { margin: 2px 0 0; font-size: 13px; opacity: 0.9; }
         .app-version { font-size: 10px; opacity: 0.7; font-weight: normal; margin-left: 5px; }
+        .btn-logout { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 15px; border-radius: 20px; font-size: 11px; font-weight: bold; cursor: pointer; backdrop-filter: blur(5px); }
 
-        .btn-logout {
-            background: rgba(255,255,255,0.2); border: none; color: white; 
-            padding: 8px 15px; border-radius: 20px; font-size: 11px; font-weight: bold;
-            cursor: pointer; backdrop-filter: blur(5px);
-        }
-
-        #dashboard { 
-            display: grid; grid-template-columns: 1fr 1fr; gap: 15px; 
-            padding: 10px 20px 40px; max-width: 600px; margin: 0 auto; 
-            animation: fadeIn 0.4s ease; 
-        }
-        .menu-card { 
-            background: white; border-radius: 24px; padding: 25px 15px; 
-            text-align: center; border: 1px solid #f0f0f0; cursor: pointer; 
-            transition: 0.2s; display: flex; flex-direction: column; align-items: center; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
-        }
+        #dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 10px 20px 40px; max-width: 600px; margin: 0 auto; animation: fadeIn 0.4s ease; }
+        .menu-card { background: white; border-radius: 24px; padding: 25px 15px; text-align: center; border: 1px solid #f0f0f0; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
         .menu-card:active { transform: scale(0.95); background: var(--miniso-soft); }
-        .icon-box { 
-            width: 65px; height: 65px; background: var(--miniso-soft); 
-            border-radius: 20px; display: flex; align-items: center; justify-content: center; 
-            color: var(--miniso-red); margin-bottom: 12px; 
-        }
+        .icon-box { width: 65px; height: 65px; background: var(--miniso-soft); border-radius: 20px; display: flex; align-items: center; justify-content: center; color: var(--miniso-red); margin-bottom: 12px; }
         .menu-card h3 { margin: 0; font-size: 15px; font-weight: 800; }
         .menu-card p { margin: 5px 0 0 0; font-size: 11px; color: #888; }
 
@@ -149,8 +105,6 @@
         #scanBtn { position: absolute; right: 5px; top: 5px; width: 34px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
         
         .main-content { height: 100vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        #listContainer { max-width: 1200px; margin: auto; padding: 15px; display: none; }
-        
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
@@ -186,7 +140,6 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
             LOGIN HELP (FEISHU GROUP)
         </button>
-
         <p id="loginError" style="color:var(--miniso-red); font-weight:bold; font-size:12px; margin-top:15px; display:none;"></p>
     </div>
 </div>
@@ -226,33 +179,22 @@
                 <h3>Price Checker</h3>
                 <p>Cek Harga & Promo</p>
             </div>
-
             <div class="menu-card" id="menuSO" onclick="window.location.href='https://miniso-id.github.io/app/so.html'">
                 <div class="icon-box"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></div>
                 <h3>Stock Opname</h3>
                 <p>Input Data Stok</p>
             </div>
-
             <div class="menu-card" id="menuGallery" onclick="window.location.href='https://miniso-id.github.io/app/product.html'">
                 <div class="icon-box"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></div>
                 <h3>Gallery</h3>
                 <p>Katalog Produk</p>
             </div>
-
             <div class="menu-card" onclick="window.location.href='https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=f7dmac9c-8aa0-4f7a-9927-102d6c2b1461'">
-                <div class="icon-box" style="background:#e8f3ff; color:var(--feishu-blue);">
-                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="9" cy="7" r="4"></circle>
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                    </svg>
-                </div>
+                <div class="icon-box" style="background:#e8f3ff; color:var(--feishu-blue);"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>
                 <h3>Feishu Group</h3>
                 <p>Komunikasi Tim</p>
             </div>
-
-            <div class="menu-card" onclick="forceUpdate()">
+            <div class="menu-card" onclick="forceHardReload()">
                 <div class="icon-box" style="background:#f4f4f4; color:#333;"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></div>
                 <h3>Update</h3>
                 <p>Muat Ulang</p>
@@ -261,60 +203,67 @@
     </main>
 </div>
 
+<div id="update-toast">
+    <span style="font-size: 13px; font-weight: 600;">Versi baru tersedia!</span>
+    <button class="btn-update-now" onclick="applyUpdate()">UPDATE SEKARANG</button>
+</div>
+
 <script>
-let newWorker;
-let refreshing = false;
+    let newWorker;
+    let refreshing = false;
 
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').then(reg => {
-        // Cek jika ada update yang menunggu (saat aplikasi baru dibuka)
-        if (reg.waiting) {
-            newWorker = reg.waiting;
-            showUpdateToast();
-        }
+    // REGISTRASI SERVICE WORKER
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+            if (reg.waiting) {
+                newWorker = reg.waiting;
+                showUpdateToast();
+            }
 
-        reg.addEventListener('updatefound', () => {
-            newWorker = reg.installing;
-            newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    showUpdateToast();
-                }
+            reg.addEventListener('updatefound', () => {
+                newWorker = reg.installing;
+                newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        showUpdateToast();
+                    }
+                });
             });
         });
-    });
 
-    // HANYA reload jika ada perintah skipWaiting yang berhasil masuk
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (refreshing) return;
-        window.location.reload();
-        refreshing = true;
-    });
-}
-
-function showUpdateToast() {
-    document.getElementById('update-toast').classList.add('show');
-}
-
-function applyUpdate() {
-    // Sembunyikan toast agar tidak diklik dua kali
-    document.getElementById('update-toast').classList.remove('show');
-    
-    if (newWorker) {
-        // Mengirim pesan ke SW untuk aktif
-        newWorker.postMessage('skipWaiting');
-    } else {
-        // Fallback jika variabel newWorker hilang, coba cari langsung
-        navigator.serviceWorker.getRegistration().then(reg => {
-            if (reg.waiting) {
-                reg.waiting.postMessage('skipWaiting');
-            } else {
-                window.location.reload();
-            }
+        // Event saat SW baru mengambil alih
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (refreshing) return;
+            refreshing = true;
+            forceHardReload();
         });
     }
-}
 
-    
+    function showUpdateToast() {
+        document.getElementById('update-toast').classList.add('show');
+    }
+
+    function applyUpdate() {
+        document.getElementById('update-toast').classList.remove('show');
+        if (newWorker) {
+            newWorker.postMessage('skipWaiting');
+        } else {
+            navigator.serviceWorker.getRegistration().then(reg => {
+                if (reg && reg.waiting) {
+                    reg.waiting.postMessage('skipWaiting');
+                } else {
+                    forceHardReload();
+                }
+            });
+        }
+    }
+
+    function forceHardReload() {
+        // Menambahkan timestamp unik agar browser bypass cache HTML
+        const cleanUrl = window.location.href.split(/[?#]/)[0];
+        window.location.replace(cleanUrl + '?v=' + new Date().getTime());
+    }
+
+    // --- LOGIKA DATABASE & LOGIN ---
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -323,18 +272,10 @@ function applyUpdate() {
         const role = localStorage.getItem('mms_role');
         const menuSO = document.getElementById('menuSO');
         const menuGallery = document.getElementById('menuGallery');
-        
-        if (role === 'Administrator') {
-            menuSO.style.display = 'flex';
-        } else {
-            menuSO.style.display = 'none';
-        }
-
-        if (role === 'Staff') {
-            menuGallery.style.display = 'none';
-        } else {
-            menuGallery.style.display = 'flex';
-        }
+        if (role === 'Administrator') { menuSO.style.display = 'flex'; } 
+        else { menuSO.style.display = 'none'; }
+        if (role === 'Staff') { menuGallery.style.display = 'none'; } 
+        else { menuGallery.style.display = 'flex'; }
     }
 
     async function attemptLogin() {
@@ -342,7 +283,6 @@ function applyUpdate() {
         const user = document.getElementById('username').value;
         const pass = document.getElementById('password').value;
         const errorMsg = document.getElementById('loginError');
-
         try {
             const { data } = await _supabase.from('users').select('*').eq('login as', role).eq('username', user).eq('password', pass).maybeSingle();
             if (data) {
@@ -363,7 +303,6 @@ function applyUpdate() {
     function showApp() {
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('appContent').style.display = 'flex';
-        // MENAMPILKAN USERNAME BUKAN ROLE
         document.getElementById('displayUsername').innerText = localStorage.getItem('mms_user') || 'User';
         checkPermissions();
     }
@@ -374,9 +313,7 @@ function applyUpdate() {
     }
 
     window.onload = () => {
-        if (localStorage.getItem('mms_auth') === 'true') {
-            showApp();
-        }
+        if (localStorage.getItem('mms_auth') === 'true') { showApp(); }
     };
 
     function showDashboard() {
@@ -386,10 +323,5 @@ function applyUpdate() {
         checkPermissions();
     }
 </script>
-
-    <div id="update-toast">
-    <span style="font-size: 13px;">Versi baru tersedia!</span>
-    <button class="btn-update-now" onclick="applyUpdate()">UPDATE SEKARANG</button>
-</div>
 </body>
 </html>

@@ -25,6 +25,39 @@
             height: 100vh; overflow: hidden;
         }
 
+        /* Style Notifikasi Update */
+#update-toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #333;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    z-index: 10000;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    width: 90%;
+    max-width: 400px;
+}
+
+#update-toast.show { transform: translateX(-50%) translateY(0); }
+
+.btn-update-now {
+    background: var(--miniso-red);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 12px;
+    cursor: pointer;
+}
+
         /* --- STYLE LOGIN --- */ 
         #loginOverlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -234,22 +267,18 @@ let refreshing = false;
 
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').then(reg => {
-        // Cek jika ada update yang sedang menunggu 
         reg.addEventListener('updatefound', () => {
             newWorker = reg.installing;
             newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    // Notifikasi ke user
-                    if (confirm("Versi baru tersedia! Muat ulang sekarang untuk memperbarui?")) {
-                        // MENGIRIM PESAN KE SW UNTUK SKIP WAITING
-                        newWorker.postMessage('skipWaiting');
-                    }
+                    // Munculkan Toast Update
+                    document.getElementById('update-toast').classList.add('show');
                 }
             });
         });
     });
 
-    // LISTENER UTAMA: Jika Service Worker baru mengambil kendali, RELOAD!
+    // Otomatis reload saat Service Worker baru mengambil alih
     navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (!refreshing) {
             window.location.reload();
@@ -258,17 +287,11 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// Fungsi tombol Update manual yang lebih kuat
-function forceUpdate() {
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(registrations => {
-            for (let registration of registrations) {
-                registration.update();
-            }
-        });
+// Fungsi yang dipanggil saat tombol di Toast diklik
+function applyUpdate() {
+    if (newWorker) {
+        newWorker.postMessage('skipWaiting');
     }
-    // Menambahkan timestamp agar browser tidak mengambil dari cache biasa
-    window.location.href = window.location.href.split('?')[0] + '?v=' + new Date().getTime();
 }
     
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
@@ -342,5 +365,10 @@ function forceUpdate() {
         checkPermissions();
     }
 </script>
+
+    <div id="update-toast">
+    <span style="font-size: 13px;">Versi baru tersedia!</span>
+    <button class="btn-update-now" onclick="applyUpdate()">UPDATE SEKARANG</button>
+</div>
 </body>
 </html>

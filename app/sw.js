@@ -1,10 +1,6 @@
-const CACHE_NAME = 'mms-x-v1.0.10'; // Pastikan versi ini sama dengan di HTML
+const CACHE_NAME = 'mms-x-v1.0.2'; // Pastikan versi ini sama dengan di HTML
 const ASSETS_TO_CACHE = [
   './',
-  './index.html',
-  './price.html',
-  './so.html',
-  './product.html',
   './manifest.json',
   'https://miniso-id.github.io/app/user512.png',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',

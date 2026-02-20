@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mms-x-v1.0.8';
+const CACHE_NAME = 'mms-x-v1.0.9'; // Pastikan versi ini sama dengan di HTML
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -11,56 +11,63 @@ const ASSETS_TO_CACHE = [
   'https://unpkg.com/quagga@0.12.1/dist/quagga.min.js'
 ];
 
-// sw.js
-
+// 1. Tahap Install - Menyimpan aset ke cache
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log('MMS-X: Mengunduh aset ke cache...');
+      return cache.addAll(ASSETS_TO_CACHE);
+    })
   );
-  // JANGAN panggil self.skipWaiting() di sini! 
-  // Biarkan dia statusnya 'waiting' sampai user klik tombol.
+  // JANGAN panggil self.skipWaiting() di sini agar tidak auto-reload
 });
 
-// Listener untuk menerima perintah klik dari tombol Update
+// 2. Tahap Message - Menerima perintah dari tombol "UPDATE SEKARANG"
 self.addEventListener('message', (event) => {
   if (event.data === 'skipWaiting') {
     self.skipWaiting();
   }
 });
 
+// 3. Tahap Activate - Menghapus cache versi lama
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) return caches.delete(cache);
+          if (cache !== CACHE_NAME) {
+            console.log('MMS-X: Menghapus cache lama:', cache);
+            return caches.delete(cache);
+          }
         })
       );
-    }).then(() => self.clients.claim())
+    }).then(() => self.clients.claim()) // Mengambil alih halaman seketika
   );
 });
 
-// ... sisanya (fetch listener) tetap sama ...
-
-
-// Mendengarkan perintah skipWaiting dari UI
-self.addEventListener('message', (event) => {
-  if (event.data === 'skipWaiting') {
-    self.skipWaiting();
-  }
-});
-
+// 4. Tahap Fetch - Strategi pengambilan data
 self.addEventListener('fetch', (event) => {
+  // Pengecualian untuk Supabase: Selalu ambil dari internet (Network Only)
+  // Agar data stok/harga tidak pernah basi
+  if (event.request.url.includes('supabase.co')) {
+    return; 
+  }
+
   event.respondWith(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.match(event.request).then((response) => {
-        const fetchPromise = fetch(event.request).then((networkResponse) => {
-          if (event.request.url.includes('supabase.co')) return networkResponse;
-          cache.put(event.request, networkResponse.clone());
-          return networkResponse;
-        }).catch(() => response);
-        return response || fetchPromise;
-      });
+    caches.match(event.request).then((response) => {
+      // Jika ada di cache, gunakan cache. Jika tidak, ambil dari internet.
+      const fetchPromise = fetch(event.request).then((networkResponse) => {
+        // Update cache di background jika aset ditemukan
+        if (networkResponse && networkResponse.status === 200) {
+          const cacheCopy = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, cacheCopy);
+          });
+        }
+        return networkResponse;
+      }).catch(() => response);
+
+      return response || fetchPromise;
     })
   );
 });

@@ -66,38 +66,47 @@
 
         .btn-primary:active, .btn-feishu-login:active { transform: scale(0.98); opacity: 0.9; }
 
-        /* --- STYLE DASHBOARD BANNER --- */
+        /* --- STYLE DASHBOARD --- */
         .hero-banner { width: 100%; max-width: 600px; margin: 40px auto 10px; padding: 0 20px; animation: fadeIn 0.6s ease; }
         
+        /* BANNER IMPROVEMENT */
         .banner-card {
             background: linear-gradient(135deg, #e61523 0%, #ff4d5a 100%);
             border-radius: 24px; padding: 20px; color: white; position: relative; overflow: hidden;
             box-shadow: 0 10px 20px rgba(230, 21, 35, 0.2);
-            display: flex; justify-content: space-between; align-items: center; /* Membuat isi sejajar kiri-kanan */
+            display: flex; justify-content: space-between; align-items: center;
         }
-        
-        .banner-content { display: flex; align-items: center; gap: 15px; z-index: 2; }
-        
-        .banner-logo {
-            width: 50px; height: 50px; border-radius: 50%;
-            background: white; padding: 2px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); object-fit: cover;
-        }
-        
-        .banner-text h2 { margin: 0; font-size: 22px; font-weight: 900; display: flex; align-items: center; gap: 8px; }
-        .banner-text p { margin: 4px 0 0; font-size: 13px; opacity: 0.95; }
-        
-        .app-version { 
-            font-size: 10px; background: rgba(255,255,255,0.25); 
-            padding: 3px 8px; border-radius: 12px; font-weight: bold; letter-spacing: 0.5px;
-        }
+        .banner-left { display: flex; align-items: center; gap: 15px; }
+        .banner-logo-img { width: 50px; height: 50px; border-radius: 50%; background: white; padding: 2px; object-fit: cover; }
+        .banner-text h2 { margin: 0; font-size: 20px; font-weight: 900; }
+        .banner-text p { margin: 2px 0 0; font-size: 13px; opacity: 0.9; }
+        .app-version { font-size: 10px; opacity: 0.7; font-weight: normal; margin-left: 5px; }
 
         .btn-logout {
-            background: rgba(255, 255, 255, 0.2); border: none;
-            color: white; padding: 8px 16px; border-radius: 20px; font-size: 11px; font-weight: bold;
-            cursor: pointer; transition: 0.2s; z-index: 2; flex-shrink: 0;
+            background: rgba(255,255,255,0.2); border: none; color: white; 
+            padding: 8px 15px; border-radius: 20px; font-size: 11px; font-weight: bold;
+            cursor: pointer; backdrop-filter: blur(5px);
         }
-        .btn-logout:active { background: rgba(255, 255, 255, 0.3); transform: scale(0.95); }
+
+        #dashboard { 
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px; 
+            padding: 10px 20px 40px; max-width: 600px; margin: 0 auto; 
+            animation: fadeIn 0.4s ease; 
+        }
+        .menu-card { 
+            background: white; border-radius: 24px; padding: 25px 15px; 
+            text-align: center; border: 1px solid #f0f0f0; cursor: pointer; 
+            transition: 0.2s; display: flex; flex-direction: column; align-items: center; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
+        }
+        .menu-card:active { transform: scale(0.95); background: var(--miniso-soft); }
+        .icon-box { 
+            width: 65px; height: 65px; background: var(--miniso-soft); 
+            border-radius: 20px; display: flex; align-items: center; justify-content: center; 
+            color: var(--miniso-red); margin-bottom: 12px; 
+        }
+        .menu-card h3 { margin: 0; font-size: 15px; font-weight: 800; }
+        .menu-card p { margin: 5px 0 0 0; font-size: 11px; color: #888; }
 
         /* --- UI HEADER --- */
         #ui-header { background: #fff; padding: 15px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; display: none; }
@@ -167,10 +176,10 @@
     <main class="main-content" id="scrollContainer">
         <div id="heroSection" class="hero-banner">
             <div class="banner-card">
-                <div class="banner-content">
-                    <img src="https://miniso-id.github.io/app/user512.png" alt="Logo MMS-X" class="banner-logo">
+                <div class="banner-left">
+                    <img src="https://miniso-id.github.io/app/user512.png" class="banner-logo-img">
                     <div class="banner-text">
-                        <h2>MMS-X <span class="app-version">v1.0.5</span></h2>
+                        <h2>MMS-X<span class="app-version">v1.2.0</span></h2>
                         <p>User: <span id="displayUsername">Guest</span></p>
                     </div>
                 </div>
@@ -220,7 +229,6 @@
 </div>
 
 <script>
-
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js')
@@ -238,14 +246,12 @@
         const menuSO = document.getElementById('menuSO');
         const menuGallery = document.getElementById('menuGallery');
         
-        // Aturan: Hanya Administrator yang bisa akses Stock Opname
         if (role === 'Administrator') {
             menuSO.style.display = 'flex';
         } else {
             menuSO.style.display = 'none';
         }
 
-        // Aturan: Staff tidak boleh akses Gallery
         if (role === 'Staff') {
             menuGallery.style.display = 'none';
         } else {
@@ -279,13 +285,8 @@
     function showApp() {
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('appContent').style.display = 'flex';
-        
-        // Ambil data username dari LocalStorage (disimpan saat login)
-        const user = localStorage.getItem('mms_user') || 'Guest';
-        
-        // Tampilkan username di banner
-        document.getElementById('displayUsername').innerText = user;
-        
+        // MENAMPILKAN USERNAME BUKAN ROLE
+        document.getElementById('displayUsername').innerText = localStorage.getItem('mms_user') || 'User';
         checkPermissions();
     }
 

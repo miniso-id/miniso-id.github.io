@@ -11,11 +11,21 @@ const ASSETS_TO_CACHE = [
   'https://unpkg.com/quagga@0.12.1/dist/quagga.min.js'
 ];
 
+// sw.js
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
   );
-  self.skipWaiting(); 
+  // JANGAN panggil self.skipWaiting() di sini! 
+  // Biarkan dia statusnya 'waiting' sampai user klik tombol.
+});
+
+// Listener untuk menerima perintah klik dari tombol Update
+self.addEventListener('message', (event) => {
+  if (event.data === 'skipWaiting') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('activate', (event) => {
@@ -23,14 +33,15 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
-            return caches.delete(cache);
-          }
+          if (cache !== CACHE_NAME) return caches.delete(cache);
         })
       );
     }).then(() => self.clients.claim())
   );
 });
+
+// ... sisanya (fetch listener) tetap sama ...
+
 
 // Mendengarkan perintah skipWaiting dari UI
 self.addEventListener('message', (event) => {

@@ -4,7 +4,7 @@ const ASSETS_TO_CACHE = [
   './manifest.json',
   'https://miniso-id.github.io/app/user512.png',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
-  'https://unpkg.com/quagga@0.12.1/dist/quagga.min.js'
+  'https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js'
 ];
 
 // 1. Tahap Install - Menyimpan aset ke cache

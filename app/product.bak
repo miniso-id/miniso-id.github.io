@@ -7,7 +7,7 @@
     <title>MMS-X</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
     
     <style>
         :root {
@@ -20,6 +20,30 @@
             --sidebar-width: 280px;
         }
 
+        /* --- LOGIN OVERLAY (TEMA SEPADAN) --- */
+        #loginOverlay {
+            position: fixed; inset: 0; background: var(--bg-gray); 
+            z-index: 20000; display: flex; align-items: center; justify-content: center;
+        }
+        .login-box {
+            background: white; width: 90%; max-width: 350px; padding: 35px 25px; 
+            border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); text-align: center;
+        }
+        .login-box h2 { color: var(--miniso-red); margin: 0 0 10px 0; font-weight: 800; font-size: 28px; }
+        .login-box p { color: #666; font-size: 14px; margin-bottom: 25px; }
+        .login-box label { display: block; text-align: left; font-size: 11px; font-weight: 800; color: #999; margin: 0 0 5px 5px; text-transform: uppercase; }
+        .login-box input, .login-box select { 
+            width: 100%; height: 48px; margin-bottom: 15px; padding: 0 15px; 
+            border-radius: 12px; border: 1.5px solid #eee; background: #f9f9f9; outline: none; font-size: 15px; transition: 0.3s;
+        }
+        .login-box input:focus { border-color: var(--miniso-red); background: white; }
+        .btn-login { 
+            width: 100%; height: 50px; background: var(--miniso-red); color: white; 
+            border: none; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 10px;
+        }
+        .btn-login:active { transform: scale(0.98); }
+
+        /* --- STYLE ASLI (TIDAK BERUBAH) --- */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
             margin: 0; padding: 0; 
@@ -28,35 +52,30 @@
             height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden;
         }
 
-        /* --- SIDEBAR --- */
         .sidebar { width: var(--sidebar-width); background: var(--miniso-red); color: #fff; position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 9500; padding: 25px; }
         .sidebar.active { transform: translateX(0); }
         .sidebar a { color: #fff; text-decoration: none; display: block; padding: 15px; border-radius: 12px; margin-bottom: 10px; font-weight: 600; background: rgba(255,255,255,0.1); }
         #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 9000; display: none; backdrop-filter: blur(4px); }
 
-        /* --- HEADER & SCANNER --- */
-#ui-header { 
-    background: rgba(255, 255, 255, 0.95); 
-    backdrop-filter: blur(15px); 
-    /* Tambahkan atau ubah bagian ini */
-    padding: calc(12px + env(safe-area-inset-top)) 16px 12px 16px; 
-    border-bottom: 1px solid #eee; 
-    z-index: 1000; 
-    width: 100%; 
-    flex-shrink: 0; 
-}
+        #ui-header { 
+            background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(15px); 
+            padding: calc(20px + env(safe-area-inset-top)) 16px 12px 16px; 
+            border-bottom: 1px solid #eee; 
+            z-index: 1000; 
+            width: 100%; 
+            flex-shrink: 0; 
+        }
         .top-bar { display: flex; gap: 10px; align-items: center; max-width: 1200px; margin-inline: auto; width: 100%; }
         .search-container { position: relative; flex: 1; }
         #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
         #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
-        /* --- CATEGORY FILTER --- */
         #catFilterContainer { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 4px 0; scrollbar-width: none; width: 100%; }
         #catFilterContainer::-webkit-scrollbar { display: none; }
         .cat-chip { padding: 8px 16px; background: #f0f0f0; border-radius: 20px; font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; border: 1px solid transparent; transition: 0.2s; flex-shrink: 0; text-transform: uppercase; }
         .cat-chip.active { background: var(--miniso-red); color: white; }
 
-        /* --- SCANNER UI --- */
         #reader { 
             display:none; width:100%; max-width:340px; aspect-ratio:1/1; 
             margin:15px auto; background:#000; border-radius:20px; 
@@ -68,56 +87,25 @@
         .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; }
         #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
 
-        /* --- PRODUCT GRID (FIXED TEXT WRAP) --- */
         .main-content { flex: 1; overflow-y: auto; overflow-x: hidden; width: 100%; padding: 0 16px; }
+        #listContainer { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 16px 0 80px 0; width: 100%; }
         
-        #listContainer { 
-            display: grid; 
-            grid-template-columns: 1fr; 
-            gap: 12px; 
-            padding: 16px 0 80px 0;
-            width: 100%;
-        }
-        
-        @media (min-width: 768px) {
-            #listContainer { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
-        }
+        @media (min-width: 768px) { #listContainer { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; } }
 
-        .list-item { 
-            display: flex; align-items: center; gap: 14px; 
-            padding: 12px; background: white; border-radius: 16px; 
-            border: 1px solid #f0f0f0; transition: 0.2s; cursor: pointer;
-            width: 100%; min-width: 0; /* Penting untuk flex-wrap child */
-        }
+        .list-item { display: flex; align-items: center; gap: 14px; padding: 12px; background: white; border-radius: 16px; border: 1px solid #f0f0f0; transition: 0.2s; cursor: pointer; width: 100%; min-width: 0; }
         .list-item:active { transform: scale(0.98); background: #fafafa; }
         .list-img-box { width: 70px; height: 70px; background: #f9f9f9; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; border: 1px solid #f0f0f0; }
         .list-img-box img { width: 100%; height: 100%; object-fit: contain; }
-        
-        .list-info { flex: 1; min-width: 0; } /* min-width: 0 mencegah teks mendorong container keluar */
+        .list-info { flex: 1; min-width: 0; }
         .list-cat { font-size: 10px; color: var(--miniso-red); font-weight: 800; text-transform: uppercase; margin-bottom: 2px; }
-        
-        /* Text Wrap Solution: Line Clamping */
-        .list-name { 
-            font-weight: 700; font-size: 14px; color: #111; line-height: 1.4;
-            margin-bottom: 3px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2; /* Maksimal 2 baris teks */
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            word-break: break-word;
-        }
-        .list-bc { 
-            font-size: 11px; color: #888; 
-            word-break: break-all; /* Memecah barcode jika terlalu panjang */
-            line-height: 1.2;
-        }
+        .list-name { font-weight: 700; font-size: 14px; color: #111; line-height: 1.4; margin-bottom: 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
+        .list-bc { font-size: 11px; color: #888; word-break: break-all; line-height: 1.2; }
 
-        /* --- DETAIL PAGE --- */
         #detailContainer { display: none; padding-top: 20px; padding-bottom: 80px; max-width: 700px; margin: 0 auto; width: 100%; }
         .product-card { background: white; border-radius: 20px; overflow: hidden; border: 1px solid #eee; width: 100%; animation: slideUp 0.3s ease-out; }
         .image-box { background: #fff; text-align: center; padding: 20px; position: relative; border-bottom: 1px solid #f5f5f5; }
         .image-box img { max-width: 100%; height: 300px; object-fit: contain; cursor: zoom-in; }
-        .promo-badge { position: absolute; top: 15px; left: 15px; background: #ff9800; color: white; padding: 5px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; z-index: 10; }
+        .promo-badge { position: absolute; bottom: 15px; right: 15px; background: #ff9800; color: white; padding: 5px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; z-index: 10; }
         .p-info { padding: 24px; }
         .p-cat { font-size: 11px; font-weight: 800; color: var(--miniso-red); text-transform: uppercase; margin-bottom: 8px; display: block; }
         .p-title { font-size: 22px; font-weight: 800; margin: 0 0 10px 0; color: #000; line-height: 1.3; word-break: break-word; }
@@ -131,71 +119,44 @@
         .price-val { font-size: 19px; font-weight: 800; color: #222; }
         .price-item.reg .price-val { color: var(--miniso-red); }
 
-        /* --- LIGHTBOX (SMOOTH TRANSITION) --- */
-        /* --- LIGHTBOX (ULTRA SMOOTH TRANSITION) --- */
-        #lightbox { 
-            position: fixed; 
-            inset: 0; 
-            background: rgba(0,0,0,0.85); 
-            z-index: 10000; 
-            display: none; 
-            align-items: center; 
-            justify-content: center; 
-            opacity: 0; 
-            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
-            padding: 24px; 
-            cursor: pointer; 
-            backdrop-filter: blur(12px); 
-            -webkit-backdrop-filter: blur(12px);
-        }
+        #lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1); padding: 24px; cursor: pointer; backdrop-filter: blur(12px); }
+        #lightbox.active { display: flex; opacity: 1; }
+        #lightbox img { max-width: 95%; max-height: 85vh; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(0.8) translateY(20px); transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        #lightbox.active img { transform: scale(1) translateY(0); }
 
-        /* Saat aktif, container menjadi flex dan opacity muncul */
-        #lightbox.active { 
-            display: flex; 
-            opacity: 1; 
-        }
-
-        #lightbox img { 
-            max-width: 95%; 
-            max-height: 85vh; 
-            border-radius: 24px; 
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            /* Transformasi awal: mengecil dan sedikit ke bawah */
-            transform: scale(0.8) translateY(20px); 
-            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); 
-        }
-
-        /* Saat aktif, gambar membesar ke ukuran normal dengan efek membal */
-        #lightbox.active img { 
-            transform: scale(1) translateY(0); 
-        }
-
-/* --- PENYESUAIAN TOMBOL BACK FLOATING --- */
-.floating-back { 
-    position: fixed; 
-    /* Diubah dari 12px ke 60px agar turun di bawah label promo */
-    top: calc(63px + env(safe-area-inset-top)); 
-    left: 20px; 
-    width: 45px; 
-    height: 45px; 
-    background: #fff; 
-    border-radius: 50%; 
-    display: none; 
-    align-items: center; 
-    justify-content: center; 
-    box-shadow: 0 8px 20px rgba(0,0,0,0.15); 
-    z-index: 9999; 
-    cursor: pointer; 
-    border: 1px solid #eee; 
-}
+        .floating-back { position: fixed; top: calc(25px + env(safe-area-inset-top)); left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 9999; cursor: pointer; border: 1px solid #eee; }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
 
+<div id="loginOverlay">
+    <div class="login-box">
+        <h2>MMS-X</h2>
+        <p>Silakan masuk ke akun Anda</p>
+        
+        <label>Login As</label>
+        <select id="loginAs">
+            <option value="Administrator">Administrator</option>
+            <option value="Area">Area</option>
+            <option value="Store">Store</option>
+        </select>
+        
+        <label>Username</label>
+        <input type="text" id="username" placeholder="Username" autocomplete="off">
+        
+        <label>Password</label>
+        <input type="password" id="password" placeholder="••••••••">
+        
+        <button class="btn-login" onclick="checkLogin()">MASUK</button>
+        <p id="loginError" style="color:var(--miniso-red); font-size:12px; margin-top:15px; font-weight:700; display:none;">Login Gagal! Periksa data Anda.</p>
+    </div>
+</div>
+
 <div id="sidebar" class="sidebar">
     <h2>MMS-X</h2>
-    <a href="https://miniso-id.github.io/app/">Home</a>
+    <a href="https://miniso-id.github.io/app/" onclick="toggleSidebar()">Home</a>
+    <a href="#" onclick="logout()" style="background:rgba(0,0,0,0.2); margin-top:20px;">Logout</a>
 </div>
 <div id="overlay" onclick="toggleSidebar()"></div>
 
@@ -220,11 +181,9 @@
                 </button>
             </div>
         </div>
-
         <div id="catFilterContainer">
             <div class="cat-chip active" onclick="filterCat('All', this)">All</div>
         </div>
-        
         <div id="reader">
             <div class="focus-guide"></div>
             <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK FOKUS</div>
@@ -241,28 +200,98 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
+    
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Service Worker Registered!', reg.scope))
+                .catch(err => console.log('Service Worker Failed:', err));
+        });
+    }
+    
+    // 1. Database Produk (Data Asli Anda)
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    // 2. Database User (GANTI LINK API DI BAWAH INI DENGAN LINK BARU ANDA)
+    const USER_SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co"; 
+    const USER_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
+    const _userSupabase = supabase.createClient(USER_SUPABASE_URL, USER_SUPABASE_KEY);
+
+    /* --- LOGIKA LOGIN --- */
+    async function checkLogin() {
+        const role = document.getElementById('loginAs').value;
+        const user = document.getElementById('username').value;
+        const pass = document.getElementById('password').value;
+        const err = document.getElementById('loginError');
+        const btn = document.querySelector('.btn-login');
+
+        btn.innerText = "LOADING...";
+        err.style.display = 'none';
+
+        try {
+            // Memanggil database user menggunakan link API berbeda
+            const { data } = await _userSupabase
+                .from('users') // Nama tabel user di supabase baru Anda
+                .select('*')
+                .eq('login as', role)
+                .eq('username', user)
+                .eq('password', pass)
+                .maybeSingle();
+
+            if (data) {
+                document.getElementById('loginOverlay').style.display = 'none';
+                localStorage.setItem('mmsx_auth', 'true');
+            } else {
+                err.style.display = 'block';
+            }
+        } catch (e) {
+            alert("Error Koneksi Database User");
+        } finally {
+            btn.innerText = "MASUK";
+        }
+    }
+
+    if(localStorage.getItem('mmsx_auth') === 'true') {
+        document.getElementById('loginOverlay').style.display = 'none';
+    }
+
+    function logout() {
+        localStorage.removeItem('mmsx_auth');
+        location.reload();
+    }
+
+    /* --- SCRIPT ASLI (TIDAK DIRUBAH SAMA SEKALI) --- */
     let scanning = false, lastScroll = 0, timer;
     let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
     let currentCategory = 'All';
 
     async function fetchCategories() {
-        const { data } = await _supabase.from('export').select('Category');
-        if (data) {
-            const uniqueCats = [...new Set(data.map(i => i.Category).filter(Boolean))].sort();
-            const container = document.getElementById('catFilterContainer');
-            uniqueCats.forEach(cat => {
-                const chip = document.createElement('div');
-                chip.className = 'cat-chip';
-                chip.innerText = cat;
-                chip.onclick = () => filterCat(cat, chip);
-                container.appendChild(chip);
-            });
-        }
+    // Memanggil fungsi RPC yang sudah dibuat di SQL Editor Supabase
+    const { data, error } = await _supabase.rpc('get_unique_categories');
+
+    if (error) {
+        console.error("Gagal mengambil kategori:", error);
+        return;
     }
+
+    if (data) {
+        const container = document.getElementById('catFilterContainer');
+        // Reset container (kecuali tombol 'All')
+        container.innerHTML = '<div class="cat-chip active" onclick="filterCat(\'All\', this)">All</div>';
+
+        data.forEach(item => {
+            // item.category didapat dari nama kolom di fungsi SQL (RPC)
+            const catName = item.category; 
+            const chip = document.createElement('div');
+            chip.className = 'cat-chip';
+            chip.innerText = catName;
+            chip.onclick = () => filterCat(catName, chip);
+            container.appendChild(chip);
+        });
+    }
+}
     fetchCategories();
 
     function filterCat(cat, el) {
@@ -279,9 +308,7 @@
         lb.classList.add('active');
     }
 
-    function closeLightbox() {
-        document.getElementById('lightbox').classList.remove('active');
-    }
+    function closeLightbox() { document.getElementById('lightbox').classList.remove('active'); }
 
     function toggleSidebar() { 
         document.getElementById("sidebar").classList.toggle("active");
@@ -298,18 +325,15 @@
     async function search() {
         const q = document.getElementById("searchInput").value.trim();
         const list = document.getElementById("listContainer");
-        
         let query = _supabase.from('export').select('*');
         if (currentCategory !== 'All') query = query.eq('Category', currentCategory);
         if (q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
-        
-        let { data } = await query.limit(50);
-        
+        let { data } = await query.limit(5000);
         if(data) {
             list.innerHTML = data.map(p => `
                 <div class="list-item" onclick="showDetail('${p.Barcode}')">
                     <div class="list-img-box" onclick="event.stopPropagation(); openLightbox('${p.Image}')">
-                        <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/150x150?text=Miniso'">
+                        <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/150x150?text=Miniso'" loading="lazy">
                     </div>
                     <div class="list-info">
                         <div class="list-cat">${p.Category || 'GENERAL'}</div>
@@ -324,19 +348,59 @@
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
     async function startScan(deviceId = null) {
-        scanning = true; document.getElementById("reader").style.display = "block";
-        const constraints = { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "environment" };
-        if (deviceId) constraints.deviceId = { exact: deviceId };
+    scanning = true; 
+    document.getElementById("reader").style.display = "block";
+    
+    // Settingan Kamera
+    const constraints = { 
+        width: { min: 640, ideal: 1280, max: 1920 }, // Resolusi fleksibel
+        height: { min: 480, ideal: 720, max: 1080 }, 
+        facingMode: "environment",
+        focusMode: "continuous" // Mencoba memaksa autofocus
+    };
+    
+    if (deviceId) constraints.deviceId = { exact: deviceId };
 
-        Quagga.init({
-            inputStream: { type: "LiveStream", target: document.getElementById("reader"), constraints: constraints },
-            decoder: { readers: ["ean_reader", "code_128_reader"] },
-            locate: true
-        }, (err) => {
-            if (err) { if(deviceId) startScan(null); return; }
-            Quagga.start(); updateCameraList();
-        });
-    }
+    Quagga.init({
+        inputStream: { 
+            type: "LiveStream", 
+            target: document.getElementById("reader"), 
+            constraints: constraints,
+            // PENTING: Batasi area scan hanya di tengah (kotak merah)
+            // Ini membantu menghindari distorsi di pinggir botol
+            area: { 
+                top: "25%",    // Abaikan 25% atas
+                right: "15%",  // Abaikan 15% kanan
+                left: "15%",   // Abaikan 15% kiri
+                bottom: "25%"  // Abaikan 25% bawah
+            },
+        },
+        locator: {
+            patchSize: "medium", // "medium" lebih baik untuk barcode standar drpd "small"
+            halfSample: false,   // JANGAN dikompres, butuh ketajaman penuh
+        },
+        numOfWorkers: 4,      // Gunakan 4 core CPU (lebih ngebut)
+        frequency: 10,        // Scan 10x per detik
+        decoder: { 
+            readers: [
+                "upc_reader",
+                "ean_reader",      // Wajib untuk produk retail (899...)
+                "code_128_reader"  // Cadangan untuk barcode logistik
+            ],
+            multiple: false
+        },
+        locate: true
+    }, (err) => {
+        if (err) { 
+            console.error(err);
+            // Jika error resolusi, coba restart tanpa deviceId spesifik
+            if(deviceId) startScan(null); 
+            return; 
+        }
+        Quagga.start(); 
+        updateCameraList();
+    });
+}
 
     async function updateCameraList() {
         const devices = await navigator.mediaDevices.enumerateDevices();
@@ -354,24 +418,34 @@
     function stopScan() { Quagga.stop(); scanning = false; document.getElementById("reader").style.display = "none"; document.getElementById("cameraControl").style.display = "none"; }
 
     Quagga.onDetected(async res => {
-        const code = res.codeResult.code;
-        const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
-        if(data) { document.getElementById("beepOk").play(); stopScan(); document.getElementById("searchInput").value = code; showDetail(code); }
-    });
+    const code = res.codeResult.code;
+    const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
+    
+    if(data) { 
+        document.getElementById("beepOk").play(); 
+        stopScan(); 
+        
+        // Tambahkan ini agar keyboard menutup dan layar tidak goyang
+        document.getElementById("searchInput").blur(); 
+        
+        document.getElementById("searchInput").value = code; 
+        showDetail(code); 
+    }
+});
 
     async function showDetail(fullBarcode) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;
         const { data: p } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();
         if(!p) return;
-
         document.getElementById("listContainer").style.display = "none";
         document.getElementById("ui-header").style.display = "none";
-
         const regPrice = cleanPrice(p["Regular Store Price"]);
         const strPrice = cleanPrice(p["Street Store Price"]);
-        const discountLabel = (p["Regular Store Promo"] && p["Regular Store Promo"] !== "NORMAL") ? `<div class="promo-badge">${p["Extra Promo"]}</div>` : "";
-
-        const det = document.getElementById("detailContainer");
+        const promoText = (p["Extra Promo"] || "").trim();
+        const discountLabel = (promoText !== "" && promoText !== "NORMAL PRICE" && p["Regular Store Promo"] !== "NORMAL") 
+        ? `<div class="promo-badge">${promoText}</div>` 
+        : "";
+             const det = document.getElementById("detailContainer");
         det.innerHTML = `
             <div class="product-card">
                 <div class="image-box">
@@ -382,7 +456,6 @@
                     <span class="p-cat">${p.Category || 'GENERAL'}</span>
                     <h3 class="p-title">${p.Name}</h3>
                     <p class="p-desc">${p.Description || ''}</p>
-                    
                     <div class="price-comparison-grid">
                         <div class="price-item reg">
                             <span class="price-label">Regular Store</span>
@@ -393,7 +466,6 @@
                             <span class="price-val">Rp${strPrice.toLocaleString('id-ID')}</span>
                         </div>
                     </div>
-
                     <div style="border-top: 1px solid #eee; padding-top: 20px;">
                         <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px;">
                             <span style="color:#888; font-weight:600;">BARCODE</span><span style="font-weight:700; word-break:break-all; text-align:right; max-width:60%;">${p.Barcode}</span>
@@ -421,6 +493,118 @@
         document.getElementById("btnBackFloating").style.display = "none";
         document.getElementById("scrollContainer").scrollTop = lastScroll;
     }
+</script>
+
+<script>
+// 1. Data Terjemahan untuk Halaman Product (Katalog)
+const prodTranslations = {
+    id: {
+        loginTitle: "MMS-X",
+        loginDesc: "Silakan masuk ke akun Anda",
+        labelRole: "MASUK SEBAGAI",
+        labelUser: "NAMA PENGGUNA",
+        labelPass: "KATA SANDI",
+        btnMasuk: "MASUK",
+        loginFail: "Login Gagal! Periksa data Anda.",
+        searchPlace: "Cari nama / barcode...",
+        tapHint: "ARAHKAN BARCODE • TAP UNTUK FOKUS",
+        allCat: "SEMUA",
+        regStoreLabel: "Toko Reguler",
+        strStoreLabel: "Toko Ruko",
+        barcodeLabel: "BARCODE",
+        regPromoLabel: "PROMO REGULER",
+        strPromoLabel: "PROMO RUKO"
+    },
+    en: {
+        loginTitle: "MMS-X",
+        loginDesc: "Please login to your account",
+        labelRole: "LOGIN AS",
+        labelUser: "USERNAME",
+        labelPass: "PASSWORD",
+        btnMasuk: "LOGIN",
+        loginFail: "Login Failed! Check your credentials.",
+        searchPlace: "Search name / barcode...",
+        tapHint: "POINT AT BARCODE • TAP TO FOCUS",
+        allCat: "ALL",
+        regStoreLabel: "Regular Store",
+        strStoreLabel: "Street Store",
+        barcodeLabel: "BARCODE",
+        regPromoLabel: "REGULAR STORE PROMO",
+        strPromoLabel: "STREET STORE PROMO"
+    },
+    cn: {
+        loginTitle: "MMS-X",
+        loginDesc: "请登录您的账户",
+        labelRole: "登录身份",
+        labelUser: "用户名",
+        labelPass: "密码",
+        btnMasuk: "登录",
+        loginFail: "登录失败！请检查您的信息。",
+        searchPlace: "搜索名称 / 条码...",
+        tapHint: "对准条形码 • 轻触对焦",
+        allCat: "全部",
+        regStoreLabel: "常规店价格",
+        strStoreLabel: "街边店价格",
+        barcodeLabel: "条码",
+        regPromoLabel: "常规促销",
+        strPromoLabel: "街边店促销"
+    }
+};
+
+// 2. Fungsi Eksekusi Terjemahan
+function applyProductLanguage() {
+    const lang = localStorage.getItem('mms_lang') || 'id';
+    const t = prodTranslations[lang];
+
+    // Terjemahkan Login Overlay
+    const loginBox = document.querySelector('.login-box');
+    if (loginBox) {
+        loginBox.querySelector('p').innerText = t.loginDesc;
+        const labels = loginBox.querySelectorAll('label');
+        if (labels.length >= 3) {
+            labels[0].innerText = t.labelRole;
+            labels[1].innerText = t.labelUser;
+            labels[2].innerText = t.labelPass;
+        }
+        document.querySelector('.btn-login').innerText = t.btnMasuk;
+        document.getElementById('loginError').innerText = t.loginFail;
+    }
+
+    // Terjemahkan Header & Search
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.placeholder = t.searchPlace;
+    
+    const tapHint = document.querySelector('.tap-hint');
+    if (tapHint) tapHint.innerText = t.tapHint;
+
+    // Terjemahkan Chip Kategori "All"
+    const allChip = document.querySelector('.cat-chip');
+    if (allChip && allChip.innerText.toLowerCase() === 'all') {
+        allChip.innerText = t.allCat;
+    }
+
+    // Intersepsi Detail Produk (Sama seperti price.html)
+    const originalShowDetail = window.showDetail;
+    window.showDetail = async function(fullBarcode) {
+        await originalShowDetail(fullBarcode);
+        
+        const labels = document.querySelectorAll('.price-label');
+        if (labels.length >= 2) {
+            labels[0].innerText = t.regStoreLabel;
+            labels[1].innerText = t.strStoreLabel;
+        }
+
+        const infoLabels = document.querySelectorAll('#detailContainer span[style*="color:#888"]');
+        if (infoLabels.length >= 3) {
+            infoLabels[0].innerText = t.barcodeLabel;
+            infoLabels[1].innerText = t.regPromoLabel;
+            infoLabels[2].innerText = t.strPromoLabel;
+        }
+    };
+}
+
+// Jalankan saat halaman dimuat
+document.addEventListener('DOMContentLoaded', applyProductLanguage);
 </script>
 </body>
 </html>

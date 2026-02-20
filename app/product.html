@@ -277,10 +277,8 @@ if(localStorage.getItem('mms_auth') === 'true') {
     });
 }
     function logout() {
-    localStorage.removeItem('mms_auth');
-    localStorage.removeItem('mms_role');
-    localStorage.removeItem('mms_user');
-    location.reload();
+    localStorage.clear(); // Cara paling aman hapus semua data login & bahasa
+    window.location.href = "index.html"; // Arahkan kembali ke menu utama
 }
 
     /* --- SCRIPT ASLI (TIDAK DIRUBAH SAMA SEKALI) --- */

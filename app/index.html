@@ -283,12 +283,26 @@
         const user = document.getElementById('username').value;
         const pass = document.getElementById('password').value;
         const errorMsg = document.getElementById('loginError');
+        
         try {
-            const { data } = await _supabase.from('users').select('*').eq('login as', role).eq('username', user).eq('password', pass).maybeSingle();
+            const { data } = await _supabase.from('users')
+                .select('*')
+                .eq('login as', role)
+                .eq('username', user)
+                .eq('password', pass)
+                .maybeSingle();
+
             if (data) {
+                // --- BAGIAN PENTING: Sinkronisasi dengan halaman lain ---
                 localStorage.setItem('mms_auth', 'true');
                 localStorage.setItem('mms_role', role);
                 localStorage.setItem('mms_user', user);
+                
+                // Gunakan kunci yang sama dengan halaman produk (mmsx_auth)
+                // agar halaman sebelah langsung mengenali login ini
+                localStorage.setItem('mmsx_auth', 'true');
+                localStorage.setItem('mmsx_role', role); 
+
                 showApp();
             } else {
                 errorMsg.innerText = "Login Gagal: Username/Password salah.";

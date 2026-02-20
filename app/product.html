@@ -219,7 +219,7 @@
     const USER_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _userSupabase = supabase.createClient(USER_SUPABASE_URL, USER_SUPABASE_KEY);
 
-    /* --- LOGIKA LOGIN --- */
+    /* --- LOGIKA LOGIN TERINTEGRASI --- */
     async function checkLogin() {
         const role = document.getElementById('loginAs').value;
         const user = document.getElementById('username').value;
@@ -231,9 +231,8 @@
         err.style.display = 'none';
 
         try {
-            // Memanggil database user menggunakan link API berbeda
             const { data } = await _userSupabase
-                .from('users') // Nama tabel user di supabase baru Anda
+                .from('users') 
                 .select('*')
                 .eq('login as', role)
                 .eq('username', user)
@@ -241,8 +240,11 @@
                 .maybeSingle();
 
             if (data) {
-                document.getElementById('loginOverlay').style.display = 'none';
+                // Simpan data login agar halaman lain tahu user sudah masuk
                 localStorage.setItem('mmsx_auth', 'true');
+                localStorage.setItem('mmsx_role', role); // Simpan role juga
+                
+                document.getElementById('loginOverlay').style.display = 'none';
             } else {
                 err.style.display = 'block';
             }
@@ -252,6 +254,22 @@
             btn.innerText = "MASUK";
         }
     }
+
+    // --- LOGIKA OTOMATIS TANPA LOGIN ULANG ---
+    (function autoLoginCheck() {
+        const isAuth = localStorage.getItem('mmsx_auth');
+        const userRole = localStorage.getItem('mmsx_role');
+
+        // Jika sudah login di halaman depan DAN role-nya bukan 'Store' (Staff)
+        // Kita anggap Administrator dan Area boleh langsung masuk
+        if (isAuth === 'true' && userRole !== 'Store') {
+            // Sembunyikan login screen segera sebelum user melihatnya
+            document.addEventListener("DOMContentLoaded", () => {
+                const overlay = document.getElementById('loginOverlay');
+                if(overlay) overlay.style.display = 'none';
+            });
+        }
+    })();
 
     if(localStorage.getItem('mmsx_auth') === 'true') {
         document.getElementById('loginOverlay').style.display = 'none';

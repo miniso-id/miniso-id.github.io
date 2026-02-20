@@ -494,5 +494,117 @@
         document.getElementById("scrollContainer").scrollTop = lastScroll;
     }
 </script>
+
+<script>
+// 1. Data Terjemahan untuk Halaman Product (Katalog)
+const prodTranslations = {
+    id: {
+        loginTitle: "MMS-X",
+        loginDesc: "Silakan masuk ke akun Anda",
+        labelRole: "MASUK SEBAGAI",
+        labelUser: "NAMA PENGGUNA",
+        labelPass: "KATA SANDI",
+        btnMasuk: "MASUK",
+        loginFail: "Login Gagal! Periksa data Anda.",
+        searchPlace: "Cari nama / barcode...",
+        tapHint: "ARAHKAN BARCODE • TAP UNTUK FOKUS",
+        allCat: "SEMUA",
+        regStoreLabel: "Toko Reguler",
+        strStoreLabel: "Toko Ruko",
+        barcodeLabel: "BARCODE",
+        regPromoLabel: "PROMO REGULER",
+        strPromoLabel: "PROMO RUKO"
+    },
+    en: {
+        loginTitle: "MMS-X",
+        loginDesc: "Please login to your account",
+        labelRole: "LOGIN AS",
+        labelUser: "USERNAME",
+        labelPass: "PASSWORD",
+        btnMasuk: "LOGIN",
+        loginFail: "Login Failed! Check your credentials.",
+        searchPlace: "Search name / barcode...",
+        tapHint: "POINT AT BARCODE • TAP TO FOCUS",
+        allCat: "ALL",
+        regStoreLabel: "Regular Store",
+        strStoreLabel: "Street Store",
+        barcodeLabel: "BARCODE",
+        regPromoLabel: "REGULAR STORE PROMO",
+        strPromoLabel: "STREET STORE PROMO"
+    },
+    cn: {
+        loginTitle: "MMS-X",
+        loginDesc: "请登录您的账户",
+        labelRole: "登录身份",
+        labelUser: "用户名",
+        labelPass: "密码",
+        btnMasuk: "登录",
+        loginFail: "登录失败！请检查您的信息。",
+        searchPlace: "搜索名称 / 条码...",
+        tapHint: "对准条形码 • 轻触对焦",
+        allCat: "全部",
+        regStoreLabel: "常规店价格",
+        strStoreLabel: "街边店价格",
+        barcodeLabel: "条码",
+        regPromoLabel: "常规促销",
+        strPromoLabel: "街边店促销"
+    }
+};
+
+// 2. Fungsi Eksekusi Terjemahan
+function applyProductLanguage() {
+    const lang = localStorage.getItem('mms_lang') || 'id';
+    const t = prodTranslations[lang];
+
+    // Terjemahkan Login Overlay
+    const loginBox = document.querySelector('.login-box');
+    if (loginBox) {
+        loginBox.querySelector('p').innerText = t.loginDesc;
+        const labels = loginBox.querySelectorAll('label');
+        if (labels.length >= 3) {
+            labels[0].innerText = t.labelRole;
+            labels[1].innerText = t.labelUser;
+            labels[2].innerText = t.labelPass;
+        }
+        document.querySelector('.btn-login').innerText = t.btnMasuk;
+        document.getElementById('loginError').innerText = t.loginFail;
+    }
+
+    // Terjemahkan Header & Search
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.placeholder = t.searchPlace;
+    
+    const tapHint = document.querySelector('.tap-hint');
+    if (tapHint) tapHint.innerText = t.tapHint;
+
+    // Terjemahkan Chip Kategori "All"
+    const allChip = document.querySelector('.cat-chip');
+    if (allChip && allChip.innerText.toLowerCase() === 'all') {
+        allChip.innerText = t.allCat;
+    }
+
+    // Intersepsi Detail Produk (Sama seperti price.html)
+    const originalShowDetail = window.showDetail;
+    window.showDetail = async function(fullBarcode) {
+        await originalShowDetail(fullBarcode);
+        
+        const labels = document.querySelectorAll('.price-label');
+        if (labels.length >= 2) {
+            labels[0].innerText = t.regStoreLabel;
+            labels[1].innerText = t.strStoreLabel;
+        }
+
+        const infoLabels = document.querySelectorAll('#detailContainer span[style*="color:#888"]');
+        if (infoLabels.length >= 3) {
+            infoLabels[0].innerText = t.barcodeLabel;
+            infoLabels[1].innerText = t.regPromoLabel;
+            infoLabels[2].innerText = t.strPromoLabel;
+        }
+    };
+}
+
+// Jalankan saat halaman dimuat
+document.addEventListener('DOMContentLoaded', applyProductLanguage);
+</script>
 </body>
 </html>

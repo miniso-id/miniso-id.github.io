@@ -66,34 +66,36 @@
 
         .btn-primary:active, .btn-feishu-login:active { transform: scale(0.98); opacity: 0.9; }
 
-        /* --- STYLE DASHBOARD --- */
+        /* --- STYLE DASHBOARD BANNER --- */
         .hero-banner { width: 100%; max-width: 600px; margin: 40px auto 10px; padding: 0 20px; animation: fadeIn 0.6s ease; }
         
         .banner-card {
             background: linear-gradient(135deg, #e61523 0%, #ff4d5a 100%);
-            border-radius: 24px; padding: 20px 25px; color: white; position: relative; overflow: hidden;
+            border-radius: 24px; padding: 20px; color: white; position: relative; overflow: hidden;
             box-shadow: 0 10px 20px rgba(230, 21, 35, 0.2);
-            display: flex; justify-content: space-between; align-items: center;
+            display: flex; justify-content: space-between; align-items: center; /* Membuat isi sejajar kiri-kanan */
         }
         
         .banner-content { display: flex; align-items: center; gap: 15px; z-index: 2; }
         
         .banner-logo {
-            width: 55px; height: 55px; border-radius: 50%;
+            width: 50px; height: 50px; border-radius: 50%;
             background: white; padding: 2px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15); object-fit: cover;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); object-fit: cover;
         }
         
-        .banner-text h2 { margin: 0; font-size: 22px; font-weight: 900; letter-spacing: 0.5px; }
-        .banner-text p { margin: 2px 0 0; font-size: 13px; opacity: 0.9; }
-        .banner-text .user-greeting { font-size: 14px; margin-top: 4px; font-weight: 600; }
-        .banner-text .user-greeting span { font-weight: 800; }
-        .banner-text .user-role { font-size: 11px; opacity: 0.8; }
+        .banner-text h2 { margin: 0; font-size: 22px; font-weight: 900; display: flex; align-items: center; gap: 8px; }
+        .banner-text p { margin: 4px 0 0; font-size: 13px; opacity: 0.95; }
+        
+        .app-version { 
+            font-size: 10px; background: rgba(255,255,255,0.25); 
+            padding: 3px 8px; border-radius: 12px; font-weight: bold; letter-spacing: 0.5px;
+        }
 
         .btn-logout {
-            background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255,255,255,0.4);
+            background: rgba(255, 255, 255, 0.2); border: none;
             color: white; padding: 8px 16px; border-radius: 20px; font-size: 11px; font-weight: bold;
-            cursor: pointer; backdrop-filter: blur(5px); transition: 0.2s; z-index: 2;
+            cursor: pointer; transition: 0.2s; z-index: 2; flex-shrink: 0;
         }
         .btn-logout:active { background: rgba(255, 255, 255, 0.3); transform: scale(0.95); }
 
@@ -166,11 +168,10 @@
         <div id="heroSection" class="hero-banner">
             <div class="banner-card">
                 <div class="banner-content">
-                    <img src="https://miniso-id.github.io/app/user512.png" alt="Logo" class="banner-logo">
+                    <img src="https://miniso-id.github.io/app/user512.png" alt="Logo MMS-X" class="banner-logo">
                     <div class="banner-text">
-                        <h2>MMS-X</h2>
-                        <p class="user-greeting">Halo, <span id="displayUsername">User</span>!</p>
-                        <p class="user-role">Role: <span id="displayUserRole">Guest</span></p>
+                        <h2>MMS-X <span class="app-version">v1.0.5</span></h2>
+                        <p>User: <span id="displayUsername">Guest</span></p>
                     </div>
                 </div>
                 <button onclick="doLogout()" class="btn-logout">KELUAR</button>
@@ -279,13 +280,11 @@
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('appContent').style.display = 'flex';
         
-        // Tarik data dari LocalStorage
-        const role = localStorage.getItem('mms_role') || 'Guest';
-        const user = localStorage.getItem('mms_user') || 'User';
+        // Ambil data username dari LocalStorage (disimpan saat login)
+        const user = localStorage.getItem('mms_user') || 'Guest';
         
-        // Tampilkan di Banner
-        document.getElementById('displayUserRole').innerText = role;
-        document.getElementById('displayUsername').innerText = user.toUpperCase(); // Dibuat huruf kapital agar lebih tegas
+        // Tampilkan username di banner
+        document.getElementById('displayUsername').innerText = user;
         
         checkPermissions();
     }

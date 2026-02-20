@@ -278,7 +278,15 @@
     function showApp() {
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('appContent').style.display = 'flex';
-        document.getElementById('displayUserRole').innerText = localStorage.getItem('mms_role');
+        
+        // Tarik data dari LocalStorage
+        const role = localStorage.getItem('mms_role') || 'Guest';
+        const user = localStorage.getItem('mms_user') || 'User';
+        
+        // Tampilkan di Banner
+        document.getElementById('displayUserRole').innerText = role;
+        document.getElementById('displayUsername').innerText = user.toUpperCase(); // Dibuat huruf kapital agar lebih tegas
+        
         checkPermissions();
     }
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mms-x-v1.0.9'; // Pastikan versi ini sama dengan di HTML
+const CACHE_NAME = 'mms-x-v1.0.10'; // Pastikan versi ini sama dengan di HTML
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

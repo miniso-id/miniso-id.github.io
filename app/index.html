@@ -365,6 +365,7 @@ const translations = {
         updateDesc: "Muat Ulang Sistem",
         logoutBtn: "KELUAR",
         verTitle: "Versi Baru Tersedia!",
+        helpBtn: "BANTUAN LOGIN (GRUP FEISHU)", // Tambahan
         verBtn: "PERBARUI"
     },
     en: {
@@ -388,6 +389,7 @@ const translations = {
         updateDesc: "Reload System",
         logoutBtn: "LOGOUT",
         verTitle: "New Version Available!",
+        helpBtn: "LOGIN HELP (FEISHU GROUP)", // Tambahan
         verBtn: "UPDATE NOW"
     },
     cn: {
@@ -411,6 +413,7 @@ const translations = {
         updateDesc: "重新加载系统",
         logoutBtn: "登出",
         verTitle: "新版本可用！",
+        helpBtn: "登录帮助 (飞书群)", // Tambahan
         verBtn: "立即更新"
     }
 };
@@ -449,6 +452,12 @@ function applyLanguage(lang) {
         menus[3].querySelector('p').innerText = t.feishuDesc;
         menus[4].querySelector('h3').innerText = t.updateTitle;
         menus[4].querySelector('p').innerText = t.updateDesc;
+    }
+
+    const loginHelpBtn = document.querySelector('.btn-feishu-login');
+    if (loginHelpBtn) {
+        // Kita hanya ganti text node setelah icon SVG
+        loginHelpBtn.childNodes[loginHelpBtn.childNodes.length - 1].nodeValue = " " + t.helpBtn;
     }
 
     // Update Tombol & Notifikasi

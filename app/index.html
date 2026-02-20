@@ -267,32 +267,53 @@ let refreshing = false;
 
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').then(reg => {
+        // Cek jika ada update yang menunggu (saat aplikasi baru dibuka)
+        if (reg.waiting) {
+            newWorker = reg.waiting;
+            showUpdateToast();
+        }
+
         reg.addEventListener('updatefound', () => {
             newWorker = reg.installing;
             newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    // Munculkan Toast Update
-                    document.getElementById('update-toast').classList.add('show');
+                    showUpdateToast();
                 }
             });
         });
     });
 
-    // Otomatis reload saat Service Worker baru mengambil alih
+    // HANYA reload jika ada perintah skipWaiting yang berhasil masuk
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-            window.location.reload();
-            refreshing = true;
-        }
+        if (refreshing) return;
+        window.location.reload();
+        refreshing = true;
     });
 }
 
-// Fungsi yang dipanggil saat tombol di Toast diklik
+function showUpdateToast() {
+    document.getElementById('update-toast').classList.add('show');
+}
+
 function applyUpdate() {
+    // Sembunyikan toast agar tidak diklik dua kali
+    document.getElementById('update-toast').classList.remove('show');
+    
     if (newWorker) {
+        // Mengirim pesan ke SW untuk aktif
         newWorker.postMessage('skipWaiting');
+    } else {
+        // Fallback jika variabel newWorker hilang, coba cari langsung
+        navigator.serviceWorker.getRegistration().then(reg => {
+            if (reg.waiting) {
+                reg.waiting.postMessage('skipWaiting');
+            } else {
+                window.location.reload();
+            }
+        });
     }
 }
+
     
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";

@@ -322,6 +322,145 @@
         document.getElementById("ui-header").style.display = "none";
         checkPermissions();
     }
+
+    // 1. Definisi Data Bahasa yang Sudah Diperbaiki
+const translations = {
+    id: {
+        loginTitle: "Selamat Datang Kembali!",
+        loginSubtitle: "Silakan masuk untuk mengakses sistem MMS-X",
+        labelLoginAs: "MASUK SEBAGAI",
+        labelUser: "NAMA PENGGUNA",
+        labelPass: "KATA SANDI",
+        placeholderUser: "Ketik nama pengguna",
+        btnLog: "MASUK SEKARANG",
+        roles: ["Administrator", "Wilayah", "Toko", "Karyawan"],
+        priceTitle: "Cek Harga",
+        priceDesc: "Periksa Harga & Promo",
+        soTitle: "Stok Opname",
+        soDesc: "Input Data Stok",
+        galTitle: "Katalog",
+        galDesc: "Galeri Produk",
+        updateTitle: "Pembaruan",
+        updateDesc: "Muat Ulang Sistem",
+        logoutBtn: "KELUAR",
+        verTitle: "Versi Baru Tersedia!",
+        verBtn: "PERBARUI"
+    },
+    en: {
+        loginTitle: "Welcome Back!",
+        loginSubtitle: "Please login to access MMS-X system",
+        labelLoginAs: "LOGIN AS",
+        labelUser: "USERNAME",
+        labelPass: "PASSWORD",
+        placeholderUser: "Enter username",
+        btnLog: "LOGIN NOW",
+        roles: ["Administrator", "Area", "Store", "Staff"],
+        priceTitle: "Price Checker",
+        priceDesc: "Check Price & Promo",
+        soTitle: "Stock Count",
+        soDesc: "Input Stock Data",
+        galTitle: "Gallery",
+        galDesc: "Product Catalog",
+        updateTitle: "Update",
+        updateDesc: "Reload System",
+        logoutBtn: "LOGOUT",
+        verTitle: "New Version Available!",
+        verBtn: "UPDATE NOW"
+    },
+    cn: {
+        loginTitle: "欢迎回来！",
+        loginSubtitle: "请登录以访问 MMS-X 系统",
+        labelLoginAs: "登录身份",
+        labelUser: "用户名",
+        labelPass: "密码",
+        placeholderUser: "输入用户名",
+        btnLog: "立即登录",
+        roles: ["管理员", "区域", "店铺", "员工"],
+        priceTitle: "价格查询",
+        priceDesc: "查询价格和促销",
+        soTitle: "库存盘点",
+        soDesc: "输入库存数据",
+        galTitle: "产品目录",
+        galDesc: "产品画廊",
+        updateTitle: "更新",
+        updateDesc: "重新加载系统",
+        logoutBtn: "登出",
+        verTitle: "新版本可用！",
+        verBtn: "立即更新"
+    }
+};
+
+// 2. Fungsi Utama Penerjemah
+function applyLanguage(lang) {
+    const t = translations[lang];
+    localStorage.setItem('mms_lang', lang);
+
+    // Terjemahan Bagian Login
+    document.querySelector('.login-title').innerText = t.loginTitle;
+    document.querySelector('.login-subtitle').innerText = t.loginSubtitle;
+    const labels = document.querySelectorAll('.input-group label');
+    labels[0].innerText = t.labelLoginAs;
+    labels[1].innerText = t.labelUser;
+    labels[2].innerText = t.labelPass;
+    document.getElementById('username').placeholder = t.placeholderUser;
+    document.querySelector('.btn-primary').innerText = t.btnLog;
+
+    // Terjemahan Dropdown Peran (Tanpa merubah 'value' agar database tetap jalan)
+    const roleSelect = document.getElementById('loginAs');
+    for (let i = 0; i < roleSelect.options.length; i++) {
+        roleSelect.options[i].text = t.roles[i];
+    }
+
+    // Terjemahan Dashboard (Menu Kartu)
+    const menus = document.querySelectorAll('.menu-card');
+    if(menus.length > 0) {
+        menus[0].querySelector('h3').innerText = t.priceTitle;
+        menus[0].querySelector('p').innerText = t.priceDesc;
+        menus[1].querySelector('h3').innerText = t.soTitle;
+        menus[1].querySelector('p').innerText = t.soDesc;
+        menus[2].querySelector('h3').innerText = t.galTitle;
+        menus[2].querySelector('p').innerText = t.galDesc;
+        menus[4].querySelector('h3').innerText = t.updateTitle;
+        menus[4].querySelector('p').innerText = t.updateDesc;
+    }
+
+    // Terjemahan Tombol & Notifikasi
+    document.querySelector('.btn-logout').innerText = t.logoutBtn;
+    document.querySelector('#update-toast span').innerText = t.verTitle;
+    document.querySelector('.btn-update-now').innerText = t.verBtn;
+}
+
+// 3. Injeksi Elemen Switcher Bahasa
+function injectLangSwitcher() {
+    const switcher = document.createElement('div');
+    switcher.style = "margin-bottom: 25px; display: flex; justify-content: center;";
+    switcher.innerHTML = `
+        <select id="langSelect" style="padding: 8px 15px; border-radius: 12px; border: 1.5px solid #eee; background: #f8f8f8; font-size: 14px; font-weight: 600; cursor: pointer; outline: none;">
+            <option value="id">🇮🇩 Indonesia</option>
+            <option value="en">🇺🇸 English</option>
+            <option value="cn">🇨🇳 中文 (China)</option>
+        </select>
+    `;
+    
+    const card = document.querySelector('.login-card');
+    const logo = document.querySelector('.login-logo');
+    // Menyisipkan tepat di bawah logo
+    logo.parentNode.insertBefore(switcher, logo.nextSibling);
+
+    const select = document.getElementById('langSelect');
+    const savedLang = localStorage.getItem('mms_lang') || 'id';
+    select.value = savedLang;
+    applyLanguage(savedLang);
+
+    select.addEventListener('change', (e) => applyLanguage(e.target.value));
+}
+
+// Jalankan saat halaman dimuat
+const existingOnload = window.onload;
+window.onload = () => {
+    if (typeof existingOnload === 'function') existingOnload();
+    injectLangSwitcher();
+};
 </script>
 </body>
 </html>

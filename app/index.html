@@ -179,7 +179,7 @@
                 <div class="banner-left">
                     <img src="https://miniso-id.github.io/app/user512.png" class="banner-logo-img">
                     <div class="banner-text">
-                        <h2>MMS-X<span class="app-version">v1.0.5</span></h2>
+                        <h2>MMS-X<span class="app-version">v1.0.6</span></h2>
                         <p>User: <span id="displayUsername">Guest</span></p>
                     </div>
                 </div>
@@ -229,24 +229,42 @@
 </div>
 
 <script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js')
-                .then(reg => console.log('Service Worker Registered!', reg.scope))
-                .catch(err => console.log('Service Worker Failed:', err));
-        });
-    }
+let newWorker;
 
-    function forceUpdate() {
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+        reg.addEventListener('updatefound', () => {
+            newWorker = reg.installing;
+            newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // Tampilkan konfirmasi update ke user
+                    if (confirm("Versi baru tersedia! Muat ulang sekarang untuk memperbarui?")) {
+                        newWorker.postMessage('skipWaiting');
+                    }
+                }
+            });
+        });
+    });
+
+    let refreshing;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        window.location.reload();
+        refreshing = true;
+    });
+}
+
+// Fungsi tombol Update manual yang lebih kuat
+function forceUpdate() {
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
-                registration.update(); // Cek file sw.js baru di server
+                registration.update();
             }
         });
     }
-    // Refresh halaman dan abaikan cache browser 
-    window.location.reload(true);
+    // Menambahkan timestamp agar browser tidak mengambil dari cache biasa
+    window.location.href = window.location.href.split('?')[0] + '?v=' + new Date().getTime();
 }
     
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";

@@ -277,9 +277,11 @@ if(localStorage.getItem('mms_auth') === 'true') {
     });
 }
     function logout() {
-        localStorage.removeItem('mmsx_auth');
-        location.reload();
-    }
+    localStorage.removeItem('mms_auth');
+    localStorage.removeItem('mms_role');
+    localStorage.removeItem('mms_user');
+    location.reload();
+}
 
     /* --- SCRIPT ASLI (TIDAK DIRUBAH SAMA SEKALI) --- */
     let scanning = false, lastScroll = 0, timer;

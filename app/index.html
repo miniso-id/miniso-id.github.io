@@ -322,7 +322,13 @@
     }
 
     function doLogout() {
-        localStorage.clear();
+        // Hapus semua data login
+        localStorage.removeItem('mms_auth');
+        localStorage.removeItem('mms_role');
+        localStorage.removeItem('mms_user');
+        localStorage.removeItem('mmsx_auth');
+        localStorage.removeItem('mmsx_role');
+        
         location.reload();
     }
 

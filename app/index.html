@@ -179,7 +179,7 @@
                 <div class="banner-left">
                     <img src="https://miniso-id.github.io/app/user512.png" class="banner-logo-img">
                     <div class="banner-text">
-                        <h2>MMS-X<span class="app-version">v1.0.1</span></h2>
+                        <h2>MMS-X<span class="app-version">v1.0.2</span></h2>
                         <p>User: <span id="displayUsername">Guest</span></p>
                     </div>
                 </div>
@@ -234,7 +234,7 @@ let refreshing = false;
 
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').then(reg => {
-        // Cek jika ada update yang sedang menunggu
+        // Cek jika ada update yang sedang menunggu 
         reg.addEventListener('updatefound', () => {
             newWorker = reg.installing;
             newWorker.addEventListener('statechange', () => {

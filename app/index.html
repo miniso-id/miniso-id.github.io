@@ -239,13 +239,14 @@
 
     function forceUpdate() {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-            for(let registration of registrations) {
-                registration.update(); // Memaksa cek update sw.js
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+            for (let registration of registrations) {
+                registration.update(); // Cek file sw.js baru di server
             }
         });
     }
-    window.location.reload(true); // Hard reload halaman
+    // Refresh halaman dan abaikan cache browser
+    window.location.reload(true);
 }
     
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";

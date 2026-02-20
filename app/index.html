@@ -323,7 +323,7 @@
         checkPermissions();
     }
 
-    // 1. Definisi Data Bahasa (Lengkap dengan Komunikasi Tim)
+   // 1. Definisi Data Bahasa (Lengkap & Murni Bahasa Indonesia)
 const translations = {
     id: {
         loginTitle: "Selamat Datang Kembali!",
@@ -422,17 +422,12 @@ function applyLanguage(lang) {
     if(menus.length > 0) {
         menus[0].querySelector('h3').innerText = t.priceTitle;
         menus[0].querySelector('p').innerText = t.priceDesc;
-        
         menus[1].querySelector('h3').innerText = t.soTitle;
         menus[1].querySelector('p').innerText = t.soDesc;
-        
         menus[2].querySelector('h3').innerText = t.galTitle;
         menus[2].querySelector('p').innerText = t.galDesc;
-        
-        // --- INI BAGIAN YANG TADI KETINGGALAN ---
         menus[3].querySelector('h3').innerText = t.feishuTitle;
         menus[3].querySelector('p').innerText = t.feishuDesc;
-        
         menus[4].querySelector('h3').innerText = t.updateTitle;
         menus[4].querySelector('p').innerText = t.updateDesc;
     }
@@ -443,20 +438,35 @@ function applyLanguage(lang) {
     document.querySelector('.btn-update-now').innerText = t.verBtn;
 }
 
-// 3. Injeksi Elemen Switcher Bahasa
+// 3. Injeksi Elemen Switcher Bahasa dengan Tema Merah Miniso
 function injectLangSwitcher() {
     const switcher = document.createElement('div');
     switcher.style = "margin-bottom: 25px; display: flex; justify-content: center;";
+    
+    // Styling dropdown agar senada dengan tombol login (Merah Miniso)
     switcher.innerHTML = `
-        <select id="langSelect" style="padding: 8px 15px; border-radius: 12px; border: 1.5px solid #eee; background: #f8f8f8; font-size: 14px; font-weight: 600; cursor: pointer; outline: none;">
-            <option value="id">🇮🇩 Indonesia</option>
-            <option value="en">🇺🇸 English</option>
-            <option value="cn">🇨🇳 中文 (China)</option>
+        <select id="langSelect" style="
+            padding: 8px 15px; 
+            border-radius: 12px; 
+            border: 2px solid var(--miniso-red); 
+            background: white; 
+            color: var(--miniso-red);
+            font-size: 14px; 
+            font-weight: 800; 
+            cursor: pointer; 
+            outline: none;
+            box-shadow: 0 4px 10px rgba(230, 21, 35, 0.1);
+        ">
+            <option value="id">🇮🇩 INDONESIA</option>
+            <option value="en">🇺🇸 ENGLISH</option>
+            <option value="cn">🇨🇳 中文 (CHINA)</option>
         </select>
     `;
     
     const card = document.querySelector('.login-card');
     const logo = document.querySelector('.login-logo');
+    
+    // Sisipkan tepat di bawah logo login
     logo.parentNode.insertBefore(switcher, logo.nextSibling);
 
     const select = document.getElementById('langSelect');
@@ -467,6 +477,7 @@ function injectLangSwitcher() {
     select.addEventListener('change', (e) => applyLanguage(e.target.value));
 }
 
+// Inisialisasi saat window dimuat
 const existingOnload = window.onload;
 window.onload = () => {
     if (typeof existingOnload === 'function') existingOnload();

@@ -212,7 +212,7 @@
     let newWorker;
     let refreshing = false;
 
-    // REGISTRASI SERVICE WORKER
+    // REGISTRASI SERVICE WORKER 
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').then(reg => {
             if (reg.waiting) {

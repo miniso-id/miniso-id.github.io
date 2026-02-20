@@ -219,7 +219,7 @@
                 <p>Komunikasi Tim</p>
             </div>
 
-            <div class="menu-card" onclick="location.reload()">
+            <div class="menu-card" onclick="forceUpdate()">
                 <div class="icon-box" style="background:#f4f4f4; color:#333;"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></div>
                 <h3>Update</h3>
                 <p>Muat Ulang</p>
@@ -236,6 +236,17 @@
                 .catch(err => console.log('Service Worker Failed:', err));
         });
     }
+
+    function forceUpdate() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+                registration.update(); // Memaksa cek update sw.js
+            }
+        });
+    }
+    window.location.reload(true); // Hard reload halaman
+}
     
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";

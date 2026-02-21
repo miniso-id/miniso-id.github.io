@@ -1,7 +1,9 @@
 const CACHE_NAME = 'mms-x-v1.0.6'; // Pastikan versi ini sama dengan di HTML
+const OFFLINE_URL = './offline.html'; // Tentukan URL offline
 const ASSETS_TO_CACHE = [
   './',
   './manifest.json',
+  './offline.html', // Tambahkan ini
   'https://miniso-id.github.io/app/user512.png',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
   'https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js'
@@ -61,7 +63,14 @@ self.addEventListener('fetch', (event) => {
           });
         }
         return networkResponse;
-      }).catch(() => response);
+      }).catch(() => {
+        // --- LOGIKA OFFLINE BARU DI SINI ---
+        // Jika gagal koneksi (offline) dan yang diminta adalah halaman (navigasi)
+        if (event.request.mode === 'navigate') {
+          return caches.match(OFFLINE_URL);
+        }
+        return response; // Berikan cache yang ada (untuk gambar/js)
+      });
 
       return response || fetchPromise;
     })

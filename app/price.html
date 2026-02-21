@@ -266,6 +266,7 @@ function navigateTo(url) {
             type: "LiveStream", 
             target: document.getElementById("reader"), 
             constraints: constraints,
+            willReadFrequently: true,
             // PENTING: Batasi area scan hanya di tengah (kotak merah)
             // Ini membantu menghindari distorsi di pinggir botol
             area: { 
@@ -276,11 +277,11 @@ function navigateTo(url) {
             },
         },
         locator: {
-            patchSize: "medium", // "medium" lebih baik untuk barcode standar drpd "small"
+            patchSize: "large", // "medium" lebih baik untuk barcode standar drpd "small"
             halfSample: false,   // JANGAN dikompres, butuh ketajaman penuh
         },
         numOfWorkers: 4,      // Gunakan 4 core CPU (lebih ngebut)
-        frequency: 15,        // Scan 10x per detik
+        frequency: 25,        // Scan 10x per detik
         decoder: { 
             readers: [
                 "upc_reader",

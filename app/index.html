@@ -25,19 +25,22 @@
     transition: 0.3s;
 }
 
-/* Efek Masuk (Fade In) */
+/* Efek Masuk */
 body {
     opacity: 0;
-    transition: opacity 0.4s ease-in-out;
+    transform: scale(0.98); /* Sedikit mengecil saat loading */
+    transition: opacity 0.25s ease-out, transform 0.25s ease-out;
 }
 
 body.fade-in {
     opacity: 1;
+    transform: scale(1);
 }
 
-/* Efek Keluar (Fade Out) */
+/* Efek Keluar */
 .fade-out {
     opacity: 0 !important;
+    transform: scale(1.02) !important; /* Sedikit membesar saat keluar */
     pointer-events: none;
 }
 
@@ -193,7 +196,11 @@ body.fade-in {
 
         #dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 10px 20px 40px; max-width: 600px; margin: 0 auto; animation: fadeIn 0.4s ease; }
         .menu-card { background: white; border-radius: 24px; padding: 25px 15px; text-align: center; border: 1px solid #f0f0f0; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
-        .menu-card:active { transform: scale(0.95); background: var(--miniso-soft); }
+        .menu-card:active {
+    transform: scale(0.92); /* Terasa seperti menekan tombol fisik */
+    background: #f0f0f0;
+    transition: 0.1s;
+}
         .icon-box { width: 65px; height: 65px; background: var(--miniso-soft); border-radius: 20px; display: flex; align-items: center; justify-content: center; color: var(--miniso-red); margin-bottom: 12px; }
         .menu-card h3 { margin: 0; font-size: 15px; font-weight: 800; }
         .menu-card p { margin: 5px 0 0 0; font-size: 11px; color: #888; }
@@ -329,21 +336,21 @@ body.fade-in {
 
 <script>
 
-// 1. Efek saat halaman baru terbuka
+// Jalankan saat halaman dimuat
 document.addEventListener("DOMContentLoaded", () => {
-    document.body.classList.add("fade-in");
+    // Beri sedikit delay agar browser siap merender animasi
+    setTimeout(() => {
+        document.body.classList.add("fade-in");
+    }, 10);
 });
 
-// 2. Fungsi transisi saat pindah halaman
 function navigateTo(url) {
-    // Tambahkan kelas fade-out ke body
-    document.body.classList.remove("fade-in");
     document.body.classList.add("fade-out");
 
-    // Tunggu animasi CSS selesai (0.4 detik) sebelum pindah
+    // Hanya tunggu 250ms (seperempat detik)
     setTimeout(() => {
         window.location.href = url;
-    }, 4000); 
+    }, 250); 
 }
 
 function updateOnlineStatus() {

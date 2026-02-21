@@ -222,12 +222,12 @@
         </div>
         <div class="input-group">
             <label>USERNAME</label>
-            <input type="text" id="username" class="custom-input" placeholder="Masukkan username">
+            <input type="text" id="username" class="custom-input" placeholder="Masukkan username" autocomplete="username">
         </div>
         <div class="input-group">
     <label>PASSWORD</label>
     <div style="position: relative;">
-        <input type="password" id="password" class="custom-input" placeholder="••••••••">
+        <input type="password" id="password" class="custom-input" placeholder="••••••••" autocomplete="current-password">
         <button type="button" onclick="togglePassword()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #999;">
             <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -317,24 +317,24 @@ function updateOnlineStatus() {
     const dashboard = document.getElementById('dashboard');
     const offlineOverlay = document.getElementById('offline-overlay');
     const loginBtn = document.querySelector('.btn-primary');
-if (loginBtn) loginBtn.innerText = t.btnLog;
-
-    // Ambil data bahasa saat ini
+    
+    // 1. Ambil bahasa dulu
     const currentLang = localStorage.getItem('mms_lang') || 'id';
     const t = translations[currentLang];
 
     if (navigator.onLine) {
         if (dashboard) dashboard.style.filter = "none";
         if (offlineOverlay) offlineOverlay.style.display = 'none';
-        if (loginBtn) loginBtn.disabled = false;
+        if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.innerText = t.btnLog; // 2. Baru gunakan t di sini
+        }
     } else {
-        // Update teks pop-up sesuai bahasa aktif sebelum ditampilkan
         const offlineCard = document.querySelector('.offline-card');
         if (offlineCard) {
             offlineCard.querySelector('h2').innerText = t.offTitle;
             offlineCard.querySelector('p').innerText = t.offDesc;
         }
-        
         if (dashboard) dashboard.style.filter = "grayscale(1)";
         if (offlineOverlay) offlineOverlay.style.display = 'flex';
         if (loginBtn) loginBtn.disabled = true;
@@ -643,10 +643,13 @@ function applyLanguage(lang) {
     }
 
     const loginHelpBtn = document.querySelector('.btn-feishu-login');
-    if (loginHelpBtn) {
-        // Kita hanya ganti text node setelah icon SVG
-        loginHelpBtn.childNodes[loginHelpBtn.childNodes.length - 1].nodeValue = " " + t.helpBtn;
-    }
+if (loginHelpBtn) {
+    // Cari text node dan ganti, atau bungkus teks dengan <span>
+    loginHelpBtn.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        <span>${t.helpBtn}</span>
+    `;
+}
 
     // Update Tombol & Notifikasi
     document.querySelector('.btn-logout').innerText = t.logoutBtn;
@@ -657,7 +660,7 @@ function applyLanguage(lang) {
 // 3. Injeksi Elemen Switcher Bahasa dengan Tema Merah Miniso
 function injectLangSwitcher() {
     const switcher = document.createElement('div');
-    switcher.style = "margin-bottom: 25px; display: flex; justify-content: center;";
+    switcher.style = "margin-bottom: 20px; display: flex; justify-content: center;";
     
     // Styling dropdown agar senada dengan tombol login (Merah Miniso)
     switcher.innerHTML = `
@@ -684,6 +687,7 @@ function injectLangSwitcher() {
     
     // Sisipkan tepat di bawah logo login
     logo.parentNode.insertBefore(switcher, logo.nextSibling);
+    document.querySelector('.login-title').style.marginTop = "10px";
 
     const select = document.getElementById('langSelect');
     const savedLang = localStorage.getItem('mms_lang') || 'id';

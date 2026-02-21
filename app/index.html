@@ -317,6 +317,7 @@ function updateOnlineStatus() {
     const dashboard = document.getElementById('dashboard');
     const offlineOverlay = document.getElementById('offline-overlay');
     const loginBtn = document.querySelector('.btn-primary');
+if (loginBtn) loginBtn.innerText = t.btnLog;
 
     // Ambil data bahasa saat ini
     const currentLang = localStorage.getItem('mms_lang') || 'id';
@@ -421,21 +422,17 @@ document.addEventListener('DOMContentLoaded', updateOnlineStatus);
     const errorMsg = document.getElementById('loginError');
     const loginBtn = document.querySelector('.btn-primary');
     
-    // Ambil bahasa yang sedang aktif
+    // Ambil bahasa aktif
     const currentLang = localStorage.getItem('mms_lang') || 'id';
     const t = translations[currentLang];
 
-    // Simpan teks asli tombol
-    const originalText = loginBtn.innerText;
-
-    // AKTIFKAN LOADING (Menggunakan bahasa yang dipilih)
+    // Mulai Loading
     loginBtn.disabled = true;
-    loginBtn.innerHTML = `<span class="spinner"></span> ${t.loading}`; 
+    loginBtn.innerHTML = `<span class="spinner"></span> ${t.loading}`;
     loginBtn.style.opacity = "0.8";
     errorMsg.style.display = 'none';
 
     try {
-        // ... (kode supabase tetap sama)
         const { data, error } = await _supabase.from('users')
             .select('*')
             .eq('login as', role)
@@ -444,26 +441,29 @@ document.addEventListener('DOMContentLoaded', updateOnlineStatus);
             .maybeSingle();
 
         if (data) {
-            // ... (kode success tetap sama)
             localStorage.setItem('mms_auth', 'true');
             localStorage.setItem('mms_role', role);
             localStorage.setItem('mms_user', user);
+            localStorage.setItem('mmsx_auth', 'true');
+            localStorage.setItem('mmsx_role', role);
             showApp();
         } else {
-            errorMsg.innerText = currentLang === 'cn' ? "用户名或密码错误！" : (currentLang === 'en' ? "Invalid Username or Password!" : "Username atau Password salah!");
+            // Pesan error sesuai bahasa
+            errorMsg.innerText = t.loginFail;
             errorMsg.style.display = 'block';
         }
     } catch (err) {
-        errorMsg.innerText = "Error";
+        // Pesan gangguan koneksi sesuai bahasa
+        errorMsg.innerText = t.connError;
         errorMsg.style.display = 'block';
     } finally {
-        // KEMBALIKAN TEKS (Menggunakan t.btnLog agar konsisten)
+        // Kembalikan tombol ke teks awal sesuai bahasa
         loginBtn.disabled = false;
         loginBtn.innerHTML = t.btnLog;
         loginBtn.style.opacity = "1";
     }
 }
-
+    
 function togglePassword() {
     const passwordInput = document.getElementById('password');
     const eyeIcon = document.getElementById('eyeIcon');
@@ -532,6 +532,8 @@ const translations = {
         updateTitle: "Pembaruan",
         updateDesc: "Muat Ulang Sistem",
         logoutBtn: "KELUAR",
+        loginFail: "Username atau Password salah!",
+        connError: "Gangguan koneksi ke server.",
         verTitle: "Versi Baru Tersedia!",
         offTitle: "Koneksi Terputus",
         offDesc: "MMS-X memerlukan internet. Menu telah dinonaktifkan hingga kamu terhubung kembali.",
@@ -559,6 +561,8 @@ const translations = {
         updateTitle: "Update",
         updateDesc: "Reload System",
         logoutBtn: "LOGOUT",
+        loginFail: "Invalid Username or Password!",
+        connError: "Connection error to server.",
         verTitle: "New Version Available!",
         offTitle: "Connection Lost",
         offDesc: "MMS-X requires internet. Menu has been disabled until you are reconnected.",
@@ -586,6 +590,8 @@ const translations = {
         updateTitle: "更新",
         updateDesc: "重新加载系统",
         logoutBtn: "登出",
+        loginFail: "用户名或密码错误！",
+        connError: "连接服务器失败。",
         verTitle: "新版本可用！",
         offTitle: "连接已断开",
         offDesc: "MMS-X 需要互联网连接。菜单已禁用，直到您重新连接。",

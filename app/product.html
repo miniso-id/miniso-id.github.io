@@ -20,6 +20,22 @@
             --sidebar-width: 280px;
         }
 
+        /* Efek Masuk (Fade In) */
+body {
+    opacity: 0;
+    transition: opacity 0.4s ease-in-out;
+}
+
+body.fade-in {
+    opacity: 1;
+}
+
+/* Efek Keluar (Fade Out) */
+.fade-out {
+    opacity: 0 !important;
+    pointer-events: none;
+}
+
         /* --- LOGIN OVERLAY (TEMA SEPADAN) --- */
         #loginOverlay {
             position: fixed; inset: 0; background: var(--bg-gray); 

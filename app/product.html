@@ -20,23 +20,20 @@
             --sidebar-width: 280px;
         }
 
-        /* Efek Masuk */
+/* Animasi Masuk Halaman */
 body {
     opacity: 0;
-    transform: scale(0.98); /* Sedikit mengecil saat loading */
-    transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+    transition: opacity 0.2s ease-in;
 }
 
 body.fade-in {
     opacity: 1;
-    transform: scale(1);
 }
 
-/* Efek Keluar */
+/* Animasi Keluar Halaman */
 .fade-out {
     opacity: 0 !important;
-    transform: scale(1.02) !important; /* Sedikit membesar saat keluar */
-    pointer-events: none;
+    transition: opacity 0.2s ease-out;
 }
 
         /* --- LOGIN OVERLAY (TEMA SEPADAN) --- */
@@ -149,6 +146,10 @@ body.fade-in {
 </head>
 <body>
 
+<div id="page-loader" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:30000; align-items:center; justify-content:center; backdrop-filter:blur(2px);">
+    <div class="spinner" style="border-top-color: var(--miniso-red); width: 40px; height: 40px; border-width: 4px;"></div>
+</div>
+
 <div id="loginOverlay">
     <div class="login-box">
         <h2>MMS-X</h2>
@@ -220,21 +221,24 @@ body.fade-in {
 
 <script>
 
-    // Jalankan saat halaman dimuat
+// Jalankan saat halaman dimuat
 document.addEventListener("DOMContentLoaded", () => {
-    // Beri sedikit delay agar browser siap merender animasi
-    setTimeout(() => {
-        document.body.classList.add("fade-in");
-    }, 10);
+    document.body.classList.add("fade-in");
 });
 
 function navigateTo(url) {
+    const loader = document.getElementById('page-loader');
+    
+    // 1. Tampilkan loader spinner
+    if (loader) loader.style.display = 'flex';
+    
+    // 2. Beri efek fade-out pada body
     document.body.classList.add("fade-out");
 
-    // Hanya tunggu 250ms (seperempat detik)
+    // 3. Pindah halaman (durasi 200ms agar terasa instan tapi halus)
     setTimeout(() => {
         window.location.href = url;
-    }, 250); 
+    }, 200); 
 }
     
     if ('serviceWorker' in navigator) {

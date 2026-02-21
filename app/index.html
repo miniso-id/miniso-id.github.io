@@ -2,6 +2,7 @@
 <html lang="id">
 <head>
     <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://miniso-id.github.io/app/user512.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>MMS-X</title>
@@ -24,6 +25,32 @@
     transition: 0.3s;
 }
 
+/* Gaya untuk Spinner */
+.spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Tambahan gaya agar input password tidak tertutup ikon */
+.input-wrapper {
+    position: relative;
+    width: 100%;
+}
+.custom-input#password {
+    padding-right: 45px; /* Memberi ruang untuk ikon mata */
+}
+        
 /* Banner peringatan offline (Opsional tapi disarankan) */
 /* Overlay untuk menggelapkan layar belakang */
 #offline-overlay {
@@ -198,9 +225,17 @@
             <input type="text" id="username" class="custom-input" placeholder="Masukkan username">
         </div>
         <div class="input-group">
-            <label>PASSWORD</label>
-            <input type="password" id="password" class="custom-input" placeholder="••••••••">
-        </div>
+    <label>PASSWORD</label>
+    <div style="position: relative;">
+        <input type="password" id="password" class="custom-input" placeholder="••••••••">
+        <button type="button" onclick="togglePassword()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #999;">
+            <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+        </button>
+    </div>
+</div>
         
         <button class="btn-primary" onclick="attemptLogin()">MASUK SEKARANG</button>
         
@@ -380,40 +415,66 @@ document.addEventListener('DOMContentLoaded', updateOnlineStatus);
     }
 
     async function attemptLogin() {
-        const role = document.getElementById('loginAs').value;
-        const user = document.getElementById('username').value;
-        const pass = document.getElementById('password').value;
-        const errorMsg = document.getElementById('loginError');
-        
-        try {
-            const { data } = await _supabase.from('users')
-                .select('*')
-                .eq('login as', role)
-                .eq('username', user)
-                .eq('password', pass)
-                .maybeSingle();
+    const role = document.getElementById('loginAs').value;
+    const user = document.getElementById('username').value;
+    const pass = document.getElementById('password').value;
+    const errorMsg = document.getElementById('loginError');
+    const loginBtn = document.querySelector('.btn-primary');
+    
+    // Simpan teks asli (sesuai bahasa yang aktif)
+    const originalText = loginBtn.innerText;
 
-            if (data) {
-                // --- BAGIAN PENTING: Sinkronisasi dengan halaman lain ---
-                localStorage.setItem('mms_auth', 'true');
-                localStorage.setItem('mms_role', role);
-                localStorage.setItem('mms_user', user);
-                
-                // Gunakan kunci yang sama dengan halaman produk (mmsx_auth)
-                // agar halaman sebelah langsung mengenali login ini
-                localStorage.setItem('mmsx_auth', 'true');
-                localStorage.setItem('mmsx_role', role); 
+    // Aktifkan Loading
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = `<span class="spinner"></span> MEMPROSES...`;
+    loginBtn.style.opacity = "0.8";
+    errorMsg.style.display = 'none';
 
-                showApp();
-            } else {
-                errorMsg.innerText = "Login Gagal: Username/Password salah.";
-                errorMsg.style.display = 'block';
-            }
-        } catch (err) {
-            errorMsg.innerText = "Gagal terhubung ke database.";
+    try {
+        const { data, error } = await _supabase.from('users')
+            .select('*')
+            .eq('login as', role)
+            .eq('username', user)
+            .eq('password', pass)
+            .maybeSingle();
+
+        if (data) {
+            localStorage.setItem('mms_auth', 'true');
+            localStorage.setItem('mms_role', role);
+            localStorage.setItem('mms_user', user);
+            localStorage.setItem('mmsx_auth', 'true');
+            localStorage.setItem('mmsx_role', role);
+            showApp();
+        } else {
+            errorMsg.innerText = "Username atau Password salah!";
             errorMsg.style.display = 'block';
         }
+    } catch (err) {
+        errorMsg.innerText = "Gangguan koneksi ke server.";
+        errorMsg.style.display = 'block';
+    } finally {
+        // Kembalikan tombol ke semula
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = originalText;
+        loginBtn.style.opacity = "1";
     }
+}
+
+function togglePassword() {
+    const passwordInput = document.getElementById('password');
+    const eyeIcon = document.getElementById('eyeIcon');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        // Ubah ikon ke "Mata Coret" (Optional)
+        eyeIcon.innerHTML = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>`;
+    } else {
+        passwordInput.type = 'password';
+        // Kembali ke ikon "Mata Terbuka"
+        eyeIcon.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>`;
+    }
+}
+    
 
     function showApp() {
         document.getElementById('loginOverlay').style.display = 'none';

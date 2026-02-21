@@ -216,6 +216,23 @@ body.fade-in {
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
+
+    // 1. Efek saat halaman baru terbuka
+document.addEventListener("DOMContentLoaded", () => {
+    document.body.classList.add("fade-in");
+});
+
+// 2. Fungsi transisi saat pindah halaman
+function navigateTo(url) {
+    // Tambahkan kelas fade-out ke body
+    document.body.classList.remove("fade-in");
+    document.body.classList.add("fade-out");
+
+    // Tunggu animasi CSS selesai (0.4 detik) sebelum pindah
+    setTimeout(() => {
+        window.location.href = url;
+    }, 4000); 
+}
     
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {

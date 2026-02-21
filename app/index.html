@@ -283,18 +283,25 @@ function updateOnlineStatus() {
     const offlineOverlay = document.getElementById('offline-overlay');
     const loginBtn = document.querySelector('.btn-primary');
 
+    // Ambil data bahasa saat ini
+    const currentLang = localStorage.getItem('mms_lang') || 'id';
+    const t = translations[currentLang];
+
     if (navigator.onLine) {
-        // Jika Online
         if (dashboard) dashboard.style.filter = "none";
         if (offlineOverlay) offlineOverlay.style.display = 'none';
         if (loginBtn) loginBtn.disabled = false;
-        console.log("Status: Online");
     } else {
-        // Jika Offline
-        if (dashboard) dashboard.style.filter = "grayscale(1)"; // Opsional: dashboard jadi abu-abu
+        // Update teks pop-up sesuai bahasa aktif sebelum ditampilkan
+        const offlineCard = document.querySelector('.offline-card');
+        if (offlineCard) {
+            offlineCard.querySelector('h2').innerText = t.offTitle;
+            offlineCard.querySelector('p').innerText = t.offDesc;
+        }
+        
+        if (dashboard) dashboard.style.filter = "grayscale(1)";
         if (offlineOverlay) offlineOverlay.style.display = 'flex';
         if (loginBtn) loginBtn.disabled = true;
-        console.log("Status: Offline");
     }
 }
 
@@ -538,6 +545,12 @@ function applyLanguage(lang) {
     const roleSelect = document.getElementById('loginAs');
     for (let i = 0; i < roleSelect.options.length; i++) {
         roleSelect.options[i].text = t.roles[i];
+    }
+
+    const offCard = document.querySelector('.offline-card');
+    if (offCard) {
+        offCard.querySelector('h2').innerText = t.offTitle;
+        offCard.querySelector('p').innerText = t.offDesc;
     }
 
     // Update Dashboard (Semua Menu)

@@ -200,13 +200,21 @@
 
             const video = document.getElementById('video-canvas');
             video.onplaying = async () => {
-                const track = video.srcObject.getVideoTracks()[0];
-                const cap = track.getCapabilities();
-                const adv = {};
-                if (cap.focusMode && cap.focusMode.includes('continuous')) adv.focusMode = "continuous";
-                if (cap.zoom) adv.zoom = Math.min(2, cap.zoom.max);
-                if (Object.keys(adv).length > 0) await track.applyConstraints({ advanced: [adv] });
-            };
+    const track = video.srcObject.getVideoTracks()[0];
+    const cap = track.getCapabilities();
+    const adv = {};
+    
+    // Tetap pertahankan autofocus agar tetap tajam
+    if (cap.focusMode && cap.focusMode.includes('continuous')) {
+        adv.focusMode = "continuous";
+    }
+
+    // Bagian zoom sudah dihapus di sini
+
+    if (Object.keys(adv).length > 0) {
+        await track.applyConstraints({ advanced: [adv] });
+    }
+};
             updateCameraList();
         } catch (err) { console.error(err); }
     }

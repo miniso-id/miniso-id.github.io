@@ -254,62 +254,84 @@ function navigateTo(url) {
     // MENGGANTI FUNGSI SCAN DENGAN ZXING
     // MENGGANTI FUNGSI SCAN DENGAN ZXING + AUTOFOCUS
     async function startScan(deviceId = null) {
-        scanning = true; 
-        document.getElementById("reader").style.display = "block";
-        
-        try {
-            // Jika deviceId kosong, coba cari kamera belakang
-            if (!deviceId) {
-                const videoInputDevices = await codeReader.listVideoInputDevices();
-                const backCamera = videoInputDevices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('environment'));
-                if (backCamera) {
-                    deviceId = backCamera.deviceId;
-                } else if (videoInputDevices.length > 0) {
-                    deviceId = videoInputDevices[videoInputDevices.length - 1].deviceId;
+    scanning = true; 
+    document.getElementById("reader").style.display = "block";
+    
+    const constraints = {
+        video: {
+            deviceId: deviceId ? { exact: deviceId } : undefined,
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            facingMode: "environment"
+        }
+    };
+
+    try {
+        if (!deviceId) {
+            const videoInputDevices = await codeReader.listVideoInputDevices();
+            const backCamera = videoInputDevices.find(d => 
+                d.label.toLowerCase().includes('back') || 
+                d.label.toLowerCase().includes('environment')
+            );
+            if (backCamera) {
+                deviceId = backCamera.deviceId;
+                constraints.video.deviceId = { exact: deviceId };
+            }
+        }
+
+        await codeReader.decodeFromConstraints(constraints, 'video-canvas', async (result, err) => {
+            if (result) {
+                const code = result.text;
+                const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
+                
+                if(data) { 
+                    document.getElementById("beepOk").play(); 
+                    stopScan(); 
+                    document.getElementById("searchInput").value = code; 
+                    showDetail(code); 
                 }
             }
+        });
 
-            // Memulai kamera dan scan menggunakan ZXing
-            codeReader.decodeFromVideoDevice(deviceId, 'video-canvas', async (result, err) => {
-                if (result) {
-                    const code = result.text;
-                    
-                    const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
-                    
-                    if(data) { 
-                        document.getElementById("beepOk").play(); 
-                        stopScan(); 
-                        document.getElementById("searchInput").blur(); 
-                        document.getElementById("searchInput").value = code; 
-                        showDetail(code); 
+        const videoElement = document.getElementById('video-canvas');
+        videoElement.onplaying = async () => {
+            const stream = videoElement.srcObject;
+            if (stream) {
+                const track = stream.getVideoTracks()[0];
+                const capabilities = track.getCapabilities();
+                
+                // --- PENGATURAN ZOOM & FOKUS OTOMATIS ---
+                const advancedConstraints = {};
+
+                // 1. Set Focus ke Continuous
+                if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
+                    advancedConstraints.focusMode = "continuous";
+                }
+
+                // 2. Set Zoom (Coba ke 2x atau maksimal yang tersedia)
+                if (capabilities.zoom) {
+                    const targetZoom = Math.min(2, capabilities.zoom.max); 
+                    advancedConstraints.zoom = targetZoom;
+                    console.log("Zoom diset ke: " + targetZoom);
+                }
+
+                if (Object.keys(advancedConstraints).length > 0) {
+                    try {
+                        await track.applyConstraints({ advanced: [advancedConstraints] });
+                    } catch (e) {
+                        console.error("Gagal menerapkan zoom/fokus:", e);
                     }
                 }
-            });
+            }
+        };
 
-            // --- TAMBAHAN UNTUK AUTOFOCUS ---
-            // Tunggu sebentar sampai video benar-benar memutar stream dari kamera
-            const videoElement = document.getElementById('video-canvas');
-            videoElement.onplaying = async () => {
-                const stream = videoElement.srcObject;
-                if (stream) {
-                    const track = stream.getVideoTracks()[0];
-                    const capabilities = track.getCapabilities();
-                    
-                    // Jika kamera mendukung pengaturan fokus
-                    if (capabilities.focusMode) {
-                        try {
-                            // Paksa ke mode continuous
-                            await track.applyConstraints({
-                                advanced: [{ focusMode: "continuous" }]
-                            });
-                            console.log("Autofocus diaktifkan");
-                        } catch (e) {
-                            console.error("Gagal set autofocus:", e);
-                        }
-                    }
-                }
-            };
+        
 
+        updateCameraList();
+    } catch (err) {
+        console.error("Gagal kamera:", err);
+    }
+}
             updateCameraList();
         } catch (err) {
             console.error("Gagal memulai kamera:", err);
@@ -373,6 +395,29 @@ function navigateTo(url) {
         document.getElementById("reader").style.display = "none"; 
         document.getElementById("cameraControl").style.display = "none"; 
     }
+
+    document.getElementById("reader").onclick = async () => {
+    const videoElement = document.getElementById('video-canvas');
+    if (!videoElement.srcObject) return;
+    
+    const track = videoElement.srcObject.getVideoTracks()[0];
+    const capabilities = track.getCapabilities();
+    const hint = document.querySelector('.tap-hint');
+
+    if (capabilities.focusMode) {
+        hint.innerText = "MEMFOKUSKAN... ⏳";
+        try {
+            // Trik: Paksa fokus manual sebentar lalu kembalikan ke continuous
+            await track.applyConstraints({ advanced: [{ focusMode: "manual" }] });
+            setTimeout(async () => {
+                await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+                hint.innerText = "ARAHKAN BARCODE • TAP UNTUK FOKUS";
+            }, 500);
+        } catch (e) {
+            hint.innerText = "FOKUS DIKUNCI PERANGKAT";
+        }
+    }
+};
 
     async function showDetail(fullBarcode) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;

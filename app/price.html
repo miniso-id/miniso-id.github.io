@@ -36,6 +36,42 @@ body.fade-in {
     transition: opacity 0.2s ease-out;
 }
 
+/* Gaya untuk garis laser */
+.laser {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 3px;
+    background-color: var(--miniso-red);
+    box-shadow: 0 0 12px 2px rgba(230, 21, 35, 0.7); /* Efek cahaya (glow) */
+    z-index: 5;
+    animation: scanAnimation 2s infinite ease-in-out;
+}
+
+/* Animasi naik turun */
+@keyframes scanAnimation {
+    0% { top: 0%; opacity: 0.3; }
+    50% { top: 100%; opacity: 1; }
+    100% { top: 0%; opacity: 0.3; }
+}
+
+/* Pastikan focus-guide punya posisi relative agar laser tidak lari keluar */
+.focus-guide {
+    position: absolute;
+    /* Sesuaikan dengan area yang kita bahas tadi (15% potong atas-bawah) */
+    top: 15%; 
+    bottom: 15%;
+    left: 10%;
+    right: 10%;
+    border: 2.5px solid var(--miniso-red);
+    border-radius: 15px;
+    pointer-events: none;
+    z-index: 2;
+    box-shadow: 0 0 0 1000px rgba(0,0,0,0.4);
+    overflow: hidden; /* Agar laser tidak tembus keluar kotak */
+}
+
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
             margin: 0; padding: 0; 
@@ -74,8 +110,8 @@ body.fade-in {
     position: absolute; 
     top: 15%; 
     bottom: 15%; 
-    left: 5%; 
-    right: 5%; 
+    left: 10%; 
+    right: 10%; 
     border: 2.5px solid var(--miniso-red); 
     border-radius: 15px; 
     pointer-events: none; 
@@ -160,9 +196,11 @@ body.fade-in {
             </div>
         </div>
         <div id="reader">
-            <div class="focus-guide"></div>
-            <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK FOKUS</div>
-        </div>
+    <div class="focus-guide">
+        <div class="laser"></div> 
+    </div>
+    <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK FOKUS</div>
+</div>
         <div id="cameraControl"><select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select></div>
     </header>
 
@@ -281,8 +319,8 @@ function navigateTo(url) {
             // Ini membantu menghindari distorsi di pinggir botol
             area: { 
                 top: "15%",    // Abaikan 25% atas
-                right: "5%",  // Abaikan 15% kanan
-                left: "5%",   // Abaikan 15% kiri
+                right: "10%",  // Abaikan 15% kanan
+                left: "10%",   // Abaikan 15% kiri
                 bottom: "15%"  // Abaikan 25% bawah
             },
         },

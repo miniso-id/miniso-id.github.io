@@ -7,7 +7,7 @@
     <title>MMS-X</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
     
     <style>
         :root {
@@ -19,6 +19,22 @@
             --bg-gray: #f4f4f4;
             --sidebar-width: 280px;
         }
+
+/* Animasi Masuk Halaman */
+body {
+    opacity: 0;
+    transition: opacity 0.2s ease-in;
+}
+
+body.fade-in {
+    opacity: 1;
+}
+
+/* Animasi Keluar Halaman */
+.fade-out {
+    opacity: 0 !important;
+    transition: opacity 0.2s ease-out;
+}
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
@@ -101,6 +117,10 @@
 </head>
 <body>
 
+<div id="page-loader" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:30000; align-items:center; justify-content:center; backdrop-filter:blur(2px);">
+    <div class="spinner" style="border-top-color: var(--miniso-red); width: 40px; height: 40px; border-width: 4px;"></div>
+</div>
+
 <div id="sidebar" class="sidebar">
     <h2>MMS-X</h2>
     <a href="https://miniso-id.github.io/app/" onclick="toggleSidebar()">Home</a>
@@ -144,6 +164,26 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
+
+// Jalankan saat halaman dimuat
+document.addEventListener("DOMContentLoaded", () => {
+    document.body.classList.add("fade-in");
+});
+
+function navigateTo(url) {
+    const loader = document.getElementById('page-loader');
+    
+    // 1. Tampilkan loader spinner
+    if (loader) loader.style.display = 'flex';
+    
+    // 2. Beri efek fade-out pada body
+    document.body.classList.add("fade-out");
+
+    // 3. Pindah halaman (durasi 200ms agar terasa instan tapi halus)
+    setTimeout(() => {
+        window.location.href = url;
+    }, 200); 
+}
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -243,6 +283,7 @@
         frequency: 10,        // Scan 10x per detik
         decoder: { 
             readers: [
+                "upc_reader",
                 "ean_reader",      // Wajib untuk produk retail (899...)
                 "code_128_reader"  // Cadangan untuk barcode logistik
             ],
@@ -351,6 +392,87 @@ const discountLabel = (promoText !== "" && promoText !== "NORMAL PRICE" && p["Re
     }
 
     startScan(lastSelectedDeviceId);
+</script>
+
+<script>
+// 1. Data Terjemahan Khusus Halaman Price Check
+const priceTranslations = {
+    id: {
+        searchPlaceholder: "Scan / Input Barcode...",
+        tapHint: "ARAHKAN BARCODE • TAP UNTUK FOKUS",
+        sidebarHome: "Beranda",
+        regStoreLabel: "Toko Reguler",
+        strStoreLabel: "Toko Ruko",
+        barcodeLabel: "BARCODE",
+        regPromoLabel: "PROMO REGULER",
+        strPromoLabel: "PROMO RUKO",
+        generalCat: "UMUM"
+    },
+    en: {
+        searchPlaceholder: "Scan / Enter Barcode...",
+        tapHint: "POINT AT BARCODE • TAP TO FOCUS",
+        sidebarHome: "Home",
+        regStoreLabel: "Regular Store",
+        strStoreLabel: "Street Store",
+        barcodeLabel: "BARCODE",
+        regPromoLabel: "REGULAR STORE PROMO",
+        strPromoLabel: "STREET STORE PROMO",
+        generalCat: "GENERAL"
+    },
+    cn: {
+        searchPlaceholder: "扫描 / 输入条形码...",
+        tapHint: "对准条形码 • 轻触对焦",
+        sidebarHome: "首页",
+        regStoreLabel: "常规店价格",
+        strStoreLabel: "街边店价格",
+        barcodeLabel: "条码",
+        regPromoLabel: "常规促销",
+        strPromoLabel: "街边店促销",
+        generalCat: "普通"
+    }
+};
+
+// 2. Fungsi Sinkronisasi Bahasa
+function applyPriceLanguage() {
+    const lang = localStorage.getItem('mms_lang') || 'id';
+    const t = priceTranslations[lang];
+
+    // Terjemahkan Input Search & Hint
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.placeholder = t.searchPlaceholder;
+    
+    const tapHint = document.querySelector('.tap-hint');
+    if (tapHint) tapHint.innerText = t.tapHint;
+
+    // Terjemahkan Sidebar
+    const sidebarHome = document.querySelector('#sidebar a');
+    if (sidebarHome) sidebarHome.innerText = t.sidebarHome;
+
+    // --- Bagian Penting: Terjemahkan Detail Produk saat Muncul ---
+    // Karena konten detail dibuat lewat innerHTML, kita perlu "mengintersepsi" fungsinya
+    const originalShowDetail = window.showDetail;
+    window.showDetail = async function(fullBarcode) {
+        await originalShowDetail(fullBarcode); // Jalankan fungsi asli dulu
+        
+        // Setelah HTML detail muncul, baru kita ganti labelnya
+        const labels = document.querySelectorAll('.price-label');
+        if (labels.length >= 2) {
+            labels[0].innerText = t.regStoreLabel;
+            labels[1].innerText = t.strStoreLabel;
+        }
+
+        // Terjemahkan label statis di bagian bawah detail
+        const infoLabels = document.querySelectorAll('#detailContainer span[style*="color:#888"]');
+        if (infoLabels.length >= 3) {
+            infoLabels[0].innerText = t.barcodeLabel;
+            infoLabels[1].innerText = t.regPromoLabel;
+            infoLabels[2].innerText = t.strPromoLabel;
+        }
+    };
+}
+
+// Jalankan fungsi saat halaman siap
+document.addEventListener('DOMContentLoaded', applyPriceLanguage);
 </script>
 </body>
 </html>

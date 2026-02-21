@@ -25,17 +25,54 @@
 }
 
 /* Banner peringatan offline (Opsional tapi disarankan) */
-#offline-banner {
-    display: none;
-    background: #323232;
-    color: white;
-    text-align: center;
-    padding: 10px;
-    font-size: 13px;
-    font-weight: bold;
-    position: sticky;
+/* Overlay untuk menggelapkan layar belakang */
+#offline-overlay {
+    display: none; /* Sembunyi secara default */
+    position: fixed;
     top: 0;
-    z-index: 9999;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7); /* Hitam transparan */
+    backdrop-filter: blur(4px); /* Efek blur pada dashboard belakang */
+    z-index: 20000;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Kotak Pop-up Tengah */
+.offline-card {
+    background: white;
+    width: 85%;
+    max-width: 320px;
+    padding: 30px 20px;
+    border-radius: 24px;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.offline-card svg {
+    color: var(--miniso-red);
+    margin-bottom: 15px;
+}
+
+.offline-card h2 {
+    margin: 0 0 10px;
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.offline-card p {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+@keyframes popIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
 }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -131,6 +168,16 @@
 </head>
 <body>
 
+<div id="offline-overlay">
+    <div class="offline-card">
+        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 2l20 20M5 12.83l.01-.01M9.17 9.17a4 4 0 0 1 5.66 5.66M12 12l.01-.01M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+        </svg>
+        <h2>Koneksi Terputus</h2>
+        <p>MMS-X memerlukan internet. Menu telah dinonaktifkan hingga kamu terhubung kembali.</p>
+    </div>
+</div>
+
 <div id="offline-banner">⚠️ KONEKSI TERPUTUS. MENU DINONAKTIFKAN.</div>
 
 <div id="loginOverlay">
@@ -188,7 +235,7 @@
                 <div class="banner-left">
                     <img src="https://miniso-id.github.io/app/user512.png" class="banner-logo-img">
                     <div class="banner-text">
-                        <h2>MMS-X<span class="app-version">v1.0.6</span></h2>
+                        <h2>MMS-X<span class="app-version">v1.0.7</span></h2>
                         <p>User: <span id="displayUsername">Guest</span></p>
                     </div>
                 </div>
@@ -233,31 +280,29 @@
 
 <script>
 
-    function updateOnlineStatus() {
+function updateOnlineStatus() {
     const dashboard = document.getElementById('dashboard');
-    const offlineBanner = document.getElementById('offline-banner');
-    const loginBtn = document.querySelector('.btn-primary'); // Tombol login
+    const offlineOverlay = document.getElementById('offline-overlay');
+    const loginBtn = document.querySelector('.btn-primary');
 
     if (navigator.onLine) {
         // Jika Online
-        dashboard.classList.remove('offline-mode');
-        if (offlineBanner) offlineBanner.style.display = 'none';
+        if (dashboard) dashboard.style.filter = "none";
+        if (offlineOverlay) offlineOverlay.style.display = 'none';
         if (loginBtn) loginBtn.disabled = false;
         console.log("Status: Online");
     } else {
         // Jika Offline
-        dashboard.classList.add('offline-mode');
-        if (offlineBanner) offlineBanner.style.display = 'block';
+        if (dashboard) dashboard.style.filter = "grayscale(1)"; // Opsional: dashboard jadi abu-abu
+        if (offlineOverlay) offlineOverlay.style.display = 'flex';
         if (loginBtn) loginBtn.disabled = true;
         console.log("Status: Offline");
     }
 }
 
-// Pasang listener untuk mendeteksi perubahan jaringan
+// Pastikan event listener tetap ada
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
-
-// Jalankan pengecekan saat aplikasi pertama kali dibuka
 document.addEventListener('DOMContentLoaded', updateOnlineStatus);
     
     let newWorker;

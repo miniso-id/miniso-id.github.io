@@ -257,7 +257,7 @@ function navigateTo(url) {
         height: { min: 480, ideal: 1080, max: 1080 }, 
         facingMode: "environment",
         focusMode: "continuous", // Mencoba memaksa autofocus
-        zoom: 1.0
+        advanced: { zoom: 1.0 }
     };
     
     if (deviceId) constraints.deviceId = { exact: deviceId };
@@ -289,6 +289,13 @@ function navigateTo(url) {
                 "ean_reader",      // Wajib untuk produk retail (899...)
                 "code_128_reader"  // Cadangan untuk barcode logistik
             ],
+            debug: {
+            showCanvas: true,
+            drawBoundingBox: true,
+            showFrequency: true,
+            drawScanline: true,
+            showPattern: true
+        }
             multiple: false
         },
         locate: true

@@ -253,8 +253,8 @@ function navigateTo(url) {
     
     // Settingan Kamera
     const constraints = { 
-        width: { min: 640, ideal: 1920 }, // Resolusi fleksibel
-        height: { min: 480, ideal: 1080 }, 
+        width: { min: 640, ideal: 1280 }, // Resolusi fleksibel
+        height: { min: 480, ideal: 720 }, 
         facingMode: "environment",
         focusMode: "continuous" // Mencoba memaksa autofocus
     };
@@ -276,7 +276,7 @@ function navigateTo(url) {
             },
         },
         locator: {
-            patchSize: "small", // "medium" lebih baik untuk barcode standar drpd "small"
+            patchSize: "medium", // "medium" lebih baik untuk barcode standar drpd "small"
             halfSample: true,   // JANGAN dikompres, butuh ketajaman penuh
         },
         numOfWorkers: 4,      // Gunakan 4 core CPU (lebih ngebut)

@@ -252,6 +252,7 @@ function navigateTo(url) {
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
     // MENGGANTI FUNGSI SCAN DENGAN ZXING
+    // MENGGANTI FUNGSI SCAN DENGAN ZXING + AUTOFOCUS
     async function startScan(deviceId = null) {
         scanning = true; 
         document.getElementById("reader").style.display = "block";
@@ -273,7 +274,6 @@ function navigateTo(url) {
                 if (result) {
                     const code = result.text;
                     
-                    // Logika pengecekan database sama persis
                     const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
                     
                     if(data) { 
@@ -284,20 +284,69 @@ function navigateTo(url) {
                         showDetail(code); 
                     }
                 }
-                if (err && !(err instanceof ZXing.NotFoundException)) {
-                    // Abaikan error NotFoundException karena itu wajar saat frame tidak ada barcode
-                    console.error("ZXing Error:", err);
-                }
             });
+
+            // --- TAMBAHAN UNTUK AUTOFOCUS ---
+            // Tunggu sebentar sampai video benar-benar memutar stream dari kamera
+            const videoElement = document.getElementById('video-canvas');
+            videoElement.onplaying = async () => {
+                const stream = videoElement.srcObject;
+                if (stream) {
+                    const track = stream.getVideoTracks()[0];
+                    const capabilities = track.getCapabilities();
+                    
+                    // Jika kamera mendukung pengaturan fokus
+                    if (capabilities.focusMode) {
+                        try {
+                            // Paksa ke mode continuous
+                            await track.applyConstraints({
+                                advanced: [{ focusMode: "continuous" }]
+                            });
+                            console.log("Autofocus diaktifkan");
+                        } catch (e) {
+                            console.error("Gagal set autofocus:", e);
+                        }
+                    }
+                }
+            };
 
             updateCameraList();
         } catch (err) {
             console.error("Gagal memulai kamera:", err);
-            // Fallback reset
             if(deviceId) startScan(null);
         }
     }
 
+    // --- FITUR TAP TO FOCUS ---
+    document.getElementById("reader").addEventListener("click", async () => {
+        const videoElement = document.getElementById('video-canvas');
+        if (!videoElement.srcObject) return;
+        
+        const track = videoElement.srcObject.getVideoTracks()[0];
+        const capabilities = track.getCapabilities();
+        const hint = document.querySelector('.tap-hint');
+
+        if (capabilities.focusMode) {
+            hint.innerText = "MEMFOKUSKAN... ⏳";
+            try {
+                // Trik: Matikan continuous sebentar, lalu nyalakan lagi untuk "memancing" lensa bergerak
+                await track.applyConstraints({ advanced: [{ focusMode: "manual" }] });
+                setTimeout(async () => {
+                    await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+                    hint.innerText = "ARAHKAN BARCODE • TAP UNTUK FOKUS";
+                }, 300);
+            } catch (e) {
+                console.log("Tap focus tidak didukung di perangkat ini", e);
+                hint.innerText = "FOKUS MANUAL TIDAK DIDUKUNG BROWSER";
+                setTimeout(() => hint.innerText = "ARAHKAN BARCODE • TAP UNTUK FOKUS", 2000);
+            }
+        } else {
+            // Jika perangkat tidak mengizinkan web mengatur fokus (sering terjadi di iPhone/Safari lama)
+            hint.innerText = "JAUHKAN SEDIKIT KAMERA ANDA";
+            setTimeout(() => hint.innerText = "ARAHKAN BARCODE • TAP UNTUK FOKUS", 2000);
+        }
+    });
+    
     async function updateCameraList() {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(d => d.kind === 'videoinput');

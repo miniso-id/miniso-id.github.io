@@ -421,16 +421,21 @@ document.addEventListener('DOMContentLoaded', updateOnlineStatus);
     const errorMsg = document.getElementById('loginError');
     const loginBtn = document.querySelector('.btn-primary');
     
-    // Simpan teks asli (sesuai bahasa yang aktif)
+    // Ambil bahasa yang sedang aktif
+    const currentLang = localStorage.getItem('mms_lang') || 'id';
+    const t = translations[currentLang];
+
+    // Simpan teks asli tombol
     const originalText = loginBtn.innerText;
 
-    // Aktifkan Loading
+    // AKTIFKAN LOADING (Menggunakan bahasa yang dipilih)
     loginBtn.disabled = true;
-    loginBtn.innerHTML = `<span class="spinner"></span> MEMPROSES...`;
+    loginBtn.innerHTML = `<span class="spinner"></span> ${t.loading}`; 
     loginBtn.style.opacity = "0.8";
     errorMsg.style.display = 'none';
 
     try {
+        // ... (kode supabase tetap sama)
         const { data, error } = await _supabase.from('users')
             .select('*')
             .eq('login as', role)
@@ -439,23 +444,22 @@ document.addEventListener('DOMContentLoaded', updateOnlineStatus);
             .maybeSingle();
 
         if (data) {
+            // ... (kode success tetap sama)
             localStorage.setItem('mms_auth', 'true');
             localStorage.setItem('mms_role', role);
             localStorage.setItem('mms_user', user);
-            localStorage.setItem('mmsx_auth', 'true');
-            localStorage.setItem('mmsx_role', role);
             showApp();
         } else {
-            errorMsg.innerText = "Username atau Password salah!";
+            errorMsg.innerText = currentLang === 'cn' ? "用户名或密码错误！" : (currentLang === 'en' ? "Invalid Username or Password!" : "Username atau Password salah!");
             errorMsg.style.display = 'block';
         }
     } catch (err) {
-        errorMsg.innerText = "Gangguan koneksi ke server.";
+        errorMsg.innerText = "Error";
         errorMsg.style.display = 'block';
     } finally {
-        // Kembalikan tombol ke semula
+        // KEMBALIKAN TEKS (Menggunakan t.btnLog agar konsisten)
         loginBtn.disabled = false;
-        loginBtn.innerHTML = originalText;
+        loginBtn.innerHTML = t.btnLog;
         loginBtn.style.opacity = "1";
     }
 }
@@ -515,6 +519,7 @@ const translations = {
         labelPass: "KATA SANDI",
         placeholderUser: "Ketik nama pengguna",
         btnLog: "MASUK SEKARANG",
+        loading: "MEMPROSES...", // Tambahkan ini
         roles: ["Administrator", "Wilayah", "Toko", "Karyawan"],
         priceTitle: "Cek Harga",
         priceDesc: "Periksa Harga & Promo",
@@ -541,6 +546,7 @@ const translations = {
         labelPass: "PASSWORD",
         placeholderUser: "Enter username",
         btnLog: "LOGIN NOW",
+        loading: "PROCESSING...", // Tambahkan ini
         roles: ["Administrator", "Area", "Store", "Staff"],
         priceTitle: "Price Checker",
         priceDesc: "Check Price & Promo",
@@ -567,6 +573,7 @@ const translations = {
         labelPass: "密码",
         placeholderUser: "输入用户名",
         btnLog: "立即登录",
+        loading: "处理中...", // Tambahkan ini
         roles: ["管理员", "区域", "店铺", "员工"],
         priceTitle: "价格查询",
         priceDesc: "查询价格和促销",

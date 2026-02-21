@@ -4,6 +4,7 @@ const ASSETS_TO_CACHE = [
   './',
   './manifest.json',
   './offline.html', // Tambahkan ini
+  './index.html',
   'https://miniso-id.github.io/app/user512.png',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
   'https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js'

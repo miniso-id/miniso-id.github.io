@@ -253,8 +253,8 @@ function navigateTo(url) {
     
     // Settingan Kamera
     const constraints = { 
-        width: { min: 640, ideal: 1280 }, // Resolusi fleksibel
-        height: { min: 480, ideal: 720 }, 
+        width: { min: 1920, ideal: 1920 }, // Resolusi fleksibel
+        height: { min: 1080, ideal: 1080 }, 
         facingMode: "environment",
         focusMode: "continuous" // Mencoba memaksa autofocus
     };
@@ -280,7 +280,7 @@ function navigateTo(url) {
             halfSample: false,   // JANGAN dikompres, butuh ketajaman penuh
         },
         numOfWorkers: 4,      // Gunakan 4 core CPU (lebih ngebut)
-        frequency: 10,        // Scan 10x per detik
+        frequency: 15,        // Scan 10x per detik
         decoder: { 
             readers: [
                 "upc_reader",

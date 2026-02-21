@@ -256,7 +256,8 @@ function navigateTo(url) {
         width: { min: 640, ideal: 1920, max: 1920 }, // Resolusi fleksibel
         height: { min: 480, ideal: 1080, max: 1080 }, 
         facingMode: "environment",
-        focusMode: "continuous" // Mencoba memaksa autofocus
+        focusMode: "continuous", // Mencoba memaksa autofocus
+        zoom: 1.0
     };
     
     if (deviceId) constraints.deviceId = { exact: deviceId };

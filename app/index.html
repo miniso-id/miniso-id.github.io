@@ -25,6 +25,22 @@
     transition: 0.3s;
 }
 
+/* Efek Masuk (Fade In) */
+body {
+    opacity: 0;
+    transition: opacity 0.4s ease-in-out;
+}
+
+body.fade-in {
+    opacity: 1;
+}
+
+/* Efek Keluar (Fade Out) */
+.fade-out {
+    opacity: 0 !important;
+    pointer-events: none;
+}
+
 /* Gaya untuk Spinner */
 .spinner {
     width: 18px;
@@ -277,17 +293,17 @@
         </div>
 
         <div id="dashboard">
-            <div class="menu-card" onclick="window.location.href='https://miniso-id.github.io/app/price.html'">
+            <div class="menu-card" onclick="navigateTo('https://miniso-id.github.io/app/price.html')">
                 <div class="icon-box"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg></div>
                 <h3>Price Checker</h3>
                 <p>Cek Harga & Promo</p>
             </div>
-            <div class="menu-card" id="menuSO" onclick="window.location.href='https://miniso-id.github.io/app/so.html'">
+            <div class="menu-card" id="menuSO" onclick="navigateTo('https://miniso-id.github.io/app/so.html')">
                 <div class="icon-box"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></div>
                 <h3>Stock Opname</h3>
                 <p>Input Data Stok</p>
             </div>
-            <div class="menu-card" id="menuGallery" onclick="window.location.href='https://miniso-id.github.io/app/product.html'">
+            <div class="menu-card" id="menuGallery" onclick="navigateTo('https://miniso-id.github.io/app/product.html')">
                 <div class="icon-box"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></div>
                 <h3>Gallery</h3>
                 <p>Katalog Produk</p>
@@ -312,6 +328,23 @@
 </div>
 
 <script>
+
+// 1. Efek saat halaman baru terbuka
+document.addEventListener("DOMContentLoaded", () => {
+    document.body.classList.add("fade-in");
+});
+
+// 2. Fungsi transisi saat pindah halaman
+function navigateTo(url) {
+    // Tambahkan kelas fade-out ke body
+    document.body.classList.remove("fade-in");
+    document.body.classList.add("fade-out");
+
+    // Tunggu animasi CSS selesai (0.4 detik) sebelum pindah
+    setTimeout(() => {
+        window.location.href = url;
+    }, 4000); 
+}
 
 function updateOnlineStatus() {
     const dashboard = document.getElementById('dashboard');

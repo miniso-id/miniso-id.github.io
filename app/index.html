@@ -316,7 +316,7 @@
 function updateOnlineStatus() {
     const dashboard = document.getElementById('dashboard');
     const offlineOverlay = document.getElementById('offline-overlay');
-    const loginBtn = document.querySelector('.btn-primary').innerText = t.btnLog;
+    const loginBtn = document.querySelector('.btn-primary');
 
     // Ambil data bahasa saat ini
     const currentLang = localStorage.getItem('mms_lang') || 'id';

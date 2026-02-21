@@ -16,6 +16,28 @@
             --text-dark: #1a1a1a;
         }
 
+        /* Gaya untuk memblokir interaksi */
+.offline-mode {
+    pointer-events: none !important;
+    filter: grayscale(1);
+    opacity: 0.6;
+    transition: 0.3s;
+}
+
+/* Banner peringatan offline (Opsional tapi disarankan) */
+#offline-banner {
+    display: none;
+    background: #323232;
+    color: white;
+    text-align: center;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: bold;
+    position: sticky;
+    top: 0;
+    z-index: 9999;
+}
+
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
             margin: 0; padding: 0; 
@@ -109,6 +131,8 @@
 </head>
 <body>
 
+<div id="offline-banner">⚠️ KONEKSI TERPUTUS. MENU DINONAKTIFKAN.</div>
+
 <div id="loginOverlay">
     <div class="login-card">
         <img src="https://miniso-id.github.io/app/user512.png" class="login-logo">
@@ -164,7 +188,7 @@
                 <div class="banner-left">
                     <img src="https://miniso-id.github.io/app/user512.png" class="banner-logo-img">
                     <div class="banner-text">
-                        <h2>MMS-X<span class="app-version">v1.0.5</span></h2>
+                        <h2>MMS-X<span class="app-version">v1.0.6</span></h2>
                         <p>User: <span id="displayUsername">Guest</span></p>
                     </div>
                 </div>
@@ -208,6 +232,34 @@
 </div>
 
 <script>
+
+    function updateOnlineStatus() {
+    const dashboard = document.getElementById('dashboard');
+    const offlineBanner = document.getElementById('offline-banner');
+    const loginBtn = document.querySelector('.btn-primary'); // Tombol login
+
+    if (navigator.onLine) {
+        // Jika Online
+        dashboard.classList.remove('offline-mode');
+        if (offlineBanner) offlineBanner.style.display = 'none';
+        if (loginBtn) loginBtn.disabled = false;
+        console.log("Status: Online");
+    } else {
+        // Jika Offline
+        dashboard.classList.add('offline-mode');
+        if (offlineBanner) offlineBanner.style.display = 'block';
+        if (loginBtn) loginBtn.disabled = true;
+        console.log("Status: Offline");
+    }
+}
+
+// Pasang listener untuk mendeteksi perubahan jaringan
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+
+// Jalankan pengecekan saat aplikasi pertama kali dibuka
+document.addEventListener('DOMContentLoaded', updateOnlineStatus);
+    
     let newWorker;
     let refreshing = false;
 

@@ -4,10 +4,11 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X Optimized</title>
+    <title>MMS-X</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     
     <style>
         :root {
@@ -19,6 +20,22 @@
             --bg-gray: #f4f4f4;
             --sidebar-width: 280px;
         }
+
+/* Animasi Masuk Halaman */
+body {
+    opacity: 0;
+    transition: opacity 0.2s ease-in;
+}
+
+body.fade-in {
+    opacity: 1;
+}
+
+/* Animasi Keluar Halaman */
+.fade-out {
+    opacity: 0 !important;
+    transition: opacity 0.2s ease-out;
+}
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
@@ -101,10 +118,13 @@
 </head>
 <body>
 
+<div id="page-loader" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:30000; align-items:center; justify-content:center; backdrop-filter:blur(2px);">
+    <div class="spinner" style="border-top-color: var(--miniso-red); width: 40px; height: 40px; border-width: 4px;"></div>
+</div>
+
 <div id="sidebar" class="sidebar">
     <h2>MMS-X</h2>
     <a href="https://miniso-id.github.io/app/" onclick="toggleSidebar()">Home</a>
-    <a href="#" onclick="localStorage.clear(); alert('Cache Cleared'); location.reload();">Clear Cache</a>
 </div>
 <div id="overlay" onclick="toggleSidebar()"></div>
 
@@ -125,14 +145,14 @@
             <div class="search-container">
                 <input id="searchInput" placeholder="Scan / Input Barcode..." autocomplete="off">
                 <button id="scanBtn">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                 </button>
             </div>
         </div>
-        <div id="reader">
-            <div class="focus-guide"></div>
-            <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK FOKUS</div>
-        </div>
+        <div id="reader" onclick="scanNumberFromVideo()">
+    <div class="focus-guide"></div>
+    <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK BACA ANGKA</div>
+</div>
         <div id="cameraControl"><select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select></div>
     </header>
 
@@ -145,12 +165,82 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
+
+async function scanNumberFromVideo() {
+    const video = document.querySelector('#reader video');
+    if (!video) return;
+
+    // Buat canvas sementara untuk menangkap gambar dari video stream
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Tampilkan indikator loading sederhana
+    const hint = document.querySelector('.tap-hint');
+    const originalHint = hint.innerText;
+    hint.innerText = "MEMBACA ANGKA...";
+
+    try {
+        // Gunakan Tesseract untuk membaca angka (whitelist hanya angka 0-9)
+        const { data: { text } } = await Tesseract.recognize(canvas, 'eng', {
+            params: {
+                tessedit_char_whitelist: '0123456789'
+            }
+        });
+
+        // Bersihkan hasil (hapus spasi/karakter aneh)
+        const cleanedCode = text.replace(/\D/g, '');
+
+        if (cleanedCode.length >= 8) { // Validasi panjang minimal barcode
+            document.getElementById("beepOk").play();
+            document.getElementById("searchInput").value = cleanedCode;
+            showDetail(cleanedCode);
+        } else {
+            hint.innerText = "ANGKA TIDAK JELAS, COBA LAGI";
+            setTimeout(() => hint.innerText = originalHint, 2000);
+        }
+    } catch (e) {
+        console.error("OCR Error:", e);
+        hint.innerText = originalHint;
+    }
+}
+    
+
+// Jalankan saat halaman dimuat
+document.addEventListener("DOMContentLoaded", () => {
+    document.body.classList.add("fade-in");
+});
+
+function navigateTo(url) {
+    const loader = document.getElementById('page-loader');
+    
+    // 1. Tampilkan loader spinner
+    if (loader) loader.style.display = 'flex';
+    
+    // 2. Beri efek fade-out pada body
+    document.body.classList.add("fade-out");
+
+    // 3. Pindah halaman (durasi 200ms agar terasa instan tapi halus)
+    setTimeout(() => {
+        window.location.href = url;
+    }, 200); 
+}
+
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Service Worker Registered!', reg.scope))
+                .catch(err => console.log('Service Worker Failed:', err));
+        });
+    }
+    
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let scanning = false, lastScroll = 0, timer;
-    let isFetching = false; // OPTIMASI: Lock agar tidak spam API
     let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
 
     function openLightbox(src) {
@@ -176,21 +266,17 @@
 
     async function search() {
         const q = document.getElementById("searchInput").value.trim();
-        if(!q) return;
-
-        // OPTIMASI: Limit 20 agar tidak download semua data
-        let query = _supabase.from('export').select('Barcode, Name, Category, Image').limit(20);
+        const list = document.getElementById("listContainer");
+        let query = _supabase.from('export').select('*');
         
         if (q) query = query.ilike('Barcode', `%${q}%`);
         
-        let { data } = await query;
-        const list = document.getElementById("listContainer");
-        
+        let { data } = await query.limit(1);
         if(data) {
             list.innerHTML = data.map(p => `
                 <div class="list-item" onclick="showDetail('${p.Barcode}')">
                     <div class="list-img-box" onclick="event.stopPropagation(); openLightbox('${p.Image}')">
-                        <img src="${p.Image || ''}" loading="lazy" onerror="this.src='https://via.placeholder.com/150x150?text=Miniso'">
+                        <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/150x150?text=Miniso'" loading="lazy">
                     </div>
                     <div class="list-info">
                         <div class="list-cat">${p.Category || 'GENERAL'}</div>
@@ -205,43 +291,59 @@
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
     async function startScan(deviceId = null) {
-        scanning = true; 
-        document.getElementById("reader").style.display = "block";
-        
-        const constraints = { 
-            width: { min: 640, ideal: 1920, max: 1920 }, 
-            height: { min: 480, ideal: 1080, max: 1080 }, 
-            facingMode: "environment" 
-        };
-        
-        if (deviceId) constraints.deviceId = { exact: deviceId };
+    scanning = true; 
+    document.getElementById("reader").style.display = "block";
+    
+    // Settingan Kamera
+    const constraints = { 
+        width: { min: 640, ideal: 1920, max: 1920 }, // Resolusi fleksibel
+        height: { min: 480, ideal: 1080, max: 1080 }, 
+        facingMode: "environment",
+        focusMode: "continuous" // Mencoba memaksa autofocus
+    };
+    
+    if (deviceId) constraints.deviceId = { exact: deviceId };
 
-        Quagga.init({
-            inputStream: { 
-                type: "LiveStream", 
-                target: document.getElementById("reader"), 
-                constraints: constraints,
-                area: { top: "25%", right: "15%", left: "15%", bottom: "25%" },
+    Quagga.init({
+        inputStream: { 
+            type: "LiveStream", 
+            target: document.getElementById("reader"), 
+            constraints: constraints,
+            // PENTING: Batasi area scan hanya di tengah (kotak merah)
+            // Ini membantu menghindari distorsi di pinggir botol
+            area: { 
+                top: "25%",    // Abaikan 25% atas
+                right: "15%",  // Abaikan 15% kanan
+                left: "15%",   // Abaikan 15% kiri
+                bottom: "25%"  // Abaikan 25% bawah
             },
-            locator: { patchSize: "medium", halfSample: false },
-            numOfWorkers: 4, 
-            frequency: 10, 
-            decoder: { 
-                readers: [ "ean_reader", "code_128_reader" ],
-                multiple: false
-            },
-            locate: true
-        }, (err) => {
-            if (err) { 
-                console.error(err);
-                if(deviceId) startScan(null); 
-                return; 
-            }
-            Quagga.start(); 
-            updateCameraList();
-        });
-    }
-
+        },
+        locator: {
+            patchSize: "medium", // "medium" lebih baik untuk barcode standar drpd "small"
+            halfSample: false,   // JANGAN dikompres, butuh ketajaman penuh
+        },
+        numOfWorkers: 4,      // Gunakan 4 core CPU (lebih ngebut)
+        frequency: 10,        // Scan 10x per detik
+        decoder: { 
+            readers: [
+                "upc_reader",
+                "ean_reader",      // Wajib untuk produk retail (899...)
+                "code_128_reader"  // Cadangan untuk barcode logistik
+            ],
+            multiple: false
+        },
+        locate: true
+    }, (err) => {
+        if (err) { 
+            console.error(err);
+            // Jika error resolusi, coba restart tanpa deviceId spesifik
+            if(deviceId) startScan(null); 
+            return; 
+        }
+        Quagga.start(); 
+        updateCameraList();
+    });
+}
     async function updateCameraList() {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
@@ -255,81 +357,33 @@
     }
 
     document.getElementById("videoSource").onchange = (e) => { lastSelectedDeviceId = e.target.value; localStorage.setItem('preferredCameraId', lastSelectedDeviceId); Quagga.stop(); startScan(lastSelectedDeviceId); };
-    
     function stopScan() { Quagga.stop(); scanning = false; document.getElementById("reader").style.display = "none"; document.getElementById("cameraControl").style.display = "none"; }
 
-    // OPTIMASI: Logika Scanner dengan Lock & Check
     Quagga.onDetected(async res => {
-        if (isFetching) return; // Kunci agar tidak spam
-
         const code = res.codeResult.code;
-        if(!code) return;
-
-        isFetching = true; // Aktifkan kunci
-
-        // Cek cepat (hanya ambil kolom Barcode)
-        const { data } = await _supabase
-            .from('export')
-            .select('Barcode')
-            .eq('Barcode', code) // Pakai eq agar cepat
-            .maybeSingle();
+        const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
         
         if(data) { 
             document.getElementById("beepOk").play(); 
             stopScan(); 
             document.getElementById("searchInput").blur(); 
             document.getElementById("searchInput").value = code; 
-            await showDetail(code); 
-        } else {
-            // Jika tidak ketemu, unlock setelah 1.5 detik
-            setTimeout(() => { isFetching = false; }, 1500);
+            showDetail(code); 
         }
     });
 
     async function showDetail(fullBarcode) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;
-
-        // OPTIMASI: Caching LocalStorage (Hemat Kuota)
-        let p = null;
-        const cacheKey = "mms_cache_" + fullBarcode;
-        
-        // 1. Cek HP dulu
-        const cachedRaw = localStorage.getItem(cacheKey);
-        if (cachedRaw) {
-            try {
-                const entry = JSON.parse(cachedRaw);
-                const umurCache = Date.now() - entry.timestamp;
-                if (umurCache < 12 * 60 * 60 * 1000) { p = entry.data; } // Valid 12 Jam
-            } catch (e) { localStorage.removeItem(cacheKey); }
-        }
-
-        // 2. Jika tidak ada di HP, baru download
-        if (!p) {
-            const { data } = await _supabase.from('export')
-                .select('Barcode, Name, Category, Image, Description, "Regular Store Price", "Street Store Price", "Extra Promo", "Regular Store Promo", "Street Store Promo"')
-                .eq('Barcode', fullBarcode)
-                .maybeSingle();
-            
-            p = data;
-            if (p) {
-                localStorage.setItem(cacheKey, JSON.stringify({ data: p, timestamp: Date.now() }));
-            }
-        }
-
-        if(!p) {
-            isFetching = false; return;
-        }
-
+        const { data: p } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();
+        if(!p) return;
         document.getElementById("listContainer").style.display = "none";
         document.getElementById("ui-header").style.display = "none";
-
         const regPrice = cleanPrice(p["Regular Store Price"]);
         const strPrice = cleanPrice(p["Street Store Price"]);
-        const promoText = (p["Extra Promo"] || "").trim();
-        const discountLabel = (promoText !== "" && promoText !== "NORMAL PRICE" && p["Regular Store Promo"] !== "NORMAL") 
-            ? `<div class="promo-badge">${promoText}</div>` 
-            : "";
-
+const promoText = (p["Extra Promo"] || "").trim();
+const discountLabel = (promoText !== "" && promoText !== "NORMAL PRICE" && p["Regular Store Promo"] !== "NORMAL") 
+    ? `<div class="promo-badge">${promoText}</div>` 
+    : "";
         const det = document.getElementById("detailContainer");
         det.innerHTML = `
             <div class="product-card">
@@ -369,8 +423,6 @@
         det.classList.add('active');
         document.getElementById("btnBackFloating").style.display = "flex";
         document.getElementById("scrollContainer").scrollTo(0, 0);
-        
-        isFetching = false; // Unlock
     }
 
     function back() {
@@ -382,8 +434,88 @@
         startScan(lastSelectedDeviceId);
     }
 
-    // Auto start
     startScan(lastSelectedDeviceId);
+</script>
+
+<script>
+// 1. Data Terjemahan Khusus Halaman Price Check
+const priceTranslations = {
+    id: {
+        searchPlaceholder: "Scan / Input Barcode...",
+        tapHint: "ARAHKAN BARCODE • TAP UNTUK FOKUS",
+        sidebarHome: "Beranda",
+        regStoreLabel: "Toko Reguler",
+        strStoreLabel: "Toko Ruko",
+        barcodeLabel: "BARCODE",
+        regPromoLabel: "PROMO REGULER",
+        strPromoLabel: "PROMO RUKO",
+        generalCat: "UMUM"
+    },
+    en: {
+        searchPlaceholder: "Scan / Enter Barcode...",
+        tapHint: "POINT AT BARCODE • TAP TO FOCUS",
+        sidebarHome: "Home",
+        regStoreLabel: "Regular Store",
+        strStoreLabel: "Street Store",
+        barcodeLabel: "BARCODE",
+        regPromoLabel: "REGULAR STORE PROMO",
+        strPromoLabel: "STREET STORE PROMO",
+        generalCat: "GENERAL"
+    },
+    cn: {
+        searchPlaceholder: "扫描 / 输入条形码...",
+        tapHint: "对准条形码 • 轻触对焦",
+        sidebarHome: "首页",
+        regStoreLabel: "常规店价格",
+        strStoreLabel: "街边店价格",
+        barcodeLabel: "条码",
+        regPromoLabel: "常规促销",
+        strPromoLabel: "街边店促销",
+        generalCat: "普通"
+    }
+};
+
+// 2. Fungsi Sinkronisasi Bahasa
+function applyPriceLanguage() {
+    const lang = localStorage.getItem('mms_lang') || 'id';
+    const t = priceTranslations[lang];
+
+    // Terjemahkan Input Search & Hint
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.placeholder = t.searchPlaceholder;
+    
+    const tapHint = document.querySelector('.tap-hint');
+    if (tapHint) tapHint.innerText = t.tapHint;
+
+    // Terjemahkan Sidebar
+    const sidebarHome = document.querySelector('#sidebar a');
+    if (sidebarHome) sidebarHome.innerText = t.sidebarHome;
+
+    // --- Bagian Penting: Terjemahkan Detail Produk saat Muncul ---
+    // Karena konten detail dibuat lewat innerHTML, kita perlu "mengintersepsi" fungsinya
+    const originalShowDetail = window.showDetail;
+    window.showDetail = async function(fullBarcode) {
+        await originalShowDetail(fullBarcode); // Jalankan fungsi asli dulu
+        
+        // Setelah HTML detail muncul, baru kita ganti labelnya
+        const labels = document.querySelectorAll('.price-label');
+        if (labels.length >= 2) {
+            labels[0].innerText = t.regStoreLabel;
+            labels[1].innerText = t.strStoreLabel;
+        }
+
+        // Terjemahkan label statis di bagian bawah detail
+        const infoLabels = document.querySelectorAll('#detailContainer span[style*="color:#888"]');
+        if (infoLabels.length >= 3) {
+            infoLabels[0].innerText = t.barcodeLabel;
+            infoLabels[1].innerText = t.regPromoLabel;
+            infoLabels[2].innerText = t.strPromoLabel;
+        }
+    };
+}
+
+// Jalankan fungsi saat halaman siap
+document.addEventListener('DOMContentLoaded', applyPriceLanguage);
 </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mms-x-v1.0.5'; // Pastikan versi ini sama dengan di HTML
+const CACHE_NAME = 'mms-x-v1.0.6'; // Pastikan versi ini sama dengan di HTML
 const ASSETS_TO_CACHE = [
   './',
   './manifest.json',

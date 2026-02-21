@@ -256,8 +256,7 @@ function navigateTo(url) {
         width: { min: 640, ideal: 1920, max: 1920 }, // Resolusi fleksibel
         height: { min: 480, ideal: 1080, max: 1080 }, 
         facingMode: "environment",
-        focusMode: "continuous", // Mencoba memaksa autofocus
-        advanced: { zoom: 1.0 }
+        focusMode: "continuous" // Mencoba memaksa autofocus
     };
     
     if (deviceId) constraints.deviceId = { exact: deviceId };
@@ -267,7 +266,6 @@ function navigateTo(url) {
             type: "LiveStream", 
             target: document.getElementById("reader"), 
             constraints: constraints,
-            willReadFrequently: true,
             // PENTING: Batasi area scan hanya di tengah (kotak merah)
             // Ini membantu menghindari distorsi di pinggir botol
             area: { 
@@ -278,24 +276,17 @@ function navigateTo(url) {
             },
         },
         locator: {
-            patchSize: "large", // "medium" lebih baik untuk barcode standar drpd "small"
+            patchSize: "medium", // "medium" lebih baik untuk barcode standar drpd "small"
             halfSample: false,   // JANGAN dikompres, butuh ketajaman penuh
         },
         numOfWorkers: 4,      // Gunakan 4 core CPU (lebih ngebut)
-        frequency: 25,        // Scan 10x per detik
+        frequency: 10,        // Scan 10x per detik
         decoder: { 
             readers: [
                 "upc_reader",
                 "ean_reader",      // Wajib untuk produk retail (899...)
                 "code_128_reader"  // Cadangan untuk barcode logistik
             ],
-            debug: {
-            showCanvas: true,
-            drawBoundingBox: true,
-            showFrequency: true,
-            drawScanline: true,
-            showPattern: true
-        }
             multiple: false
         },
         locate: true

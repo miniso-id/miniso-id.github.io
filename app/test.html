@@ -7,7 +7,7 @@
     <title>MMS-X</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script type="text/javascript" src="https://unpkg.com/@zxing/library@latest"></script>
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
     
     <style>
         :root {
@@ -20,30 +20,56 @@
             --sidebar-width: 280px;
         }
 
-        body { opacity: 0; transition: opacity 0.2s ease-in; margin: 0; padding: 0; font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto; background: #ffffff; color: var(--text-dark); height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden; }
-        body.fade-in { opacity: 1; }
-        .fade-out { opacity: 0 !important; transition: opacity 0.2s ease-out; }
+/* Animasi Masuk Halaman */
+body {
+    opacity: 0;
+    transition: opacity 0.2s ease-in;
+}
+
+body.fade-in {
+    opacity: 1;
+}
+
+/* Animasi Keluar Halaman */
+.fade-out {
+    opacity: 0 !important;
+    transition: opacity 0.2s ease-out;
+}
+
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { 
+            margin: 0; padding: 0; 
+            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto; 
+            background: #ffffff; color: var(--text-dark); 
+            height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden;
+        }
 
         .sidebar { width: var(--sidebar-width); background: var(--miniso-red); color: #fff; position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 9500; padding: 25px; }
         .sidebar.active { transform: translateX(0); }
         .sidebar a { color: #fff; text-decoration: none; display: block; padding: 15px; border-radius: 12px; margin-bottom: 10px; font-weight: 600; background: rgba(255,255,255,0.1); }
         #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 9000; display: none; backdrop-filter: blur(4px); }
 
-        #ui-header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); padding: calc(20px + env(safe-area-inset-top)) 16px 12px 16px; border-bottom: 1px solid #eee; z-index: 1000; width: 100%; flex-shrink: 0; }
+        #ui-header { 
+            background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(15px); 
+            padding: calc(20px + env(safe-area-inset-top)) 16px 12px 16px; 
+            border-bottom: 1px solid #eee; 
+            z-index: 1000; 
+            width: 100%; 
+            flex-shrink: 0; 
+        }
         .top-bar { display: flex; gap: 10px; align-items: center; max-width: 1200px; margin-inline: auto; width: 100%; }
         .search-container { position: relative; flex: 1; }
         #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
         #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
-        /* Tampilan Reader ZXing */
         #reader { 
             display:none; width:100%; max-width:340px; aspect-ratio:1/1; 
             margin:15px auto; background:#000; border-radius:20px; 
             overflow:hidden; position:relative; border: 4px solid white; 
             box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
         }
-        #video { width: 100%; height: 100%; object-fit: cover; }
+        #reader video { width: 100%; height: 100%; object-fit: cover; }
         .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
         .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; }
         #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
@@ -92,9 +118,8 @@
 <body>
 
 <div id="page-loader" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:30000; align-items:center; justify-content:center; backdrop-filter:blur(2px);">
-    <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--miniso-red); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+    <div class="spinner" style="border-top-color: var(--miniso-red); width: 40px; height: 40px; border-width: 4px;"></div>
 </div>
-<style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
 
 <div id="sidebar" class="sidebar">
     <h2>MMS-X</h2>
@@ -140,19 +165,45 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
-    document.addEventListener("DOMContentLoaded", () => {
-        document.body.classList.add("fade-in");
-    });
 
+// Jalankan saat halaman dimuat
+document.addEventListener("DOMContentLoaded", () => {
+    document.body.classList.add("fade-in");
+});
+
+function navigateTo(url) {
+    const loader = document.getElementById('page-loader');
+    if (loader) loader.style.display = 'flex';
+    document.body.classList.add("fade-out");
+    setTimeout(() => { window.location.href = url; }, 200); 
+}
+
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Service Worker Registered!', reg.scope))
+                .catch(err => console.log('Service Worker Failed:', err));
+        });
+    }
+    
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let scanning = false, lastScroll = 0, timer;
     let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
-    
-    // Inisialisasi ZXing
+
+    // INISIALISASI ZXING
     const codeReader = new ZXing.BrowserMultiFormatReader();
+
+    function openLightbox(src) {
+        if(!src || src.includes('placeholder')) return;
+        const lb = document.getElementById('lightbox');
+        document.getElementById('lightboxImg').src = src;
+        lb.classList.add('active');
+    }
+
+    function closeLightbox() { document.getElementById('lightbox').classList.remove('active'); }
 
     function toggleSidebar() { 
         document.getElementById("sidebar").classList.toggle("active");
@@ -169,10 +220,10 @@
     async function search() {
         const q = document.getElementById("searchInput").value.trim();
         const list = document.getElementById("listContainer");
-        if(!q) return;
-        let query = _supabase.from('export').select('*').ilike('Barcode', `%${q}%`);
+        let query = _supabase.from('export').select('*');
+        if (q) query = query.ilike('Barcode', `%${q}%`);
         let { data } = await query.limit(1);
-        if(data && data.length > 0) {
+        if(data) {
             list.innerHTML = data.map(p => `
                 <div class="list-item" onclick="showDetail('${p.Barcode}')">
                     <div class="list-img-box" onclick="event.stopPropagation(); openLightbox('${p.Image}')">
@@ -191,10 +242,10 @@
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
     async function startScan(deviceId = null) {
-        scanning = true;
+        scanning = true; 
         document.getElementById("reader").style.display = "block";
         
-        // Setting Resolusi 1920x1080 (Full HD)
+        // Setting Resolusi 1920x1080 sesuai permintaan
         const constraints = {
             video: {
                 deviceId: deviceId ? { exact: deviceId } : undefined,
@@ -205,27 +256,28 @@
         };
 
         try {
-            codeReader.decodeFromConstraints(constraints, 'video', (result, err) => {
+            // ZXing decode dari elemen video
+            codeReader.decodeFromConstraints(constraints, 'video', async (result, err) => {
                 if (result) {
                     const code = result.getText();
-                    handleScanSuccess(code);
+                    const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
+                    
+                    if(data) { 
+                        document.getElementById("beepOk").play(); 
+                        stopScan(); 
+                        document.getElementById("searchInput").blur(); 
+                        document.getElementById("searchInput").value = code; 
+                        showDetail(code); 
+                    }
+                }
+                if (err && !(err instanceof ZXing.NotFoundException)) {
+                    console.error(err);
                 }
             });
             updateCameraList();
-        } catch (err) {
-            console.error("Gagal memulai ZXing:", err);
-            // Fallback jika deviceId tidak ditemukan
-            if(deviceId) startScan(null);
-        }
-    }
-
-    async function handleScanSuccess(code) {
-        const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
-        if(data) { 
-            document.getElementById("beepOk").play(); 
-            stopScan(); 
-            document.getElementById("searchInput").value = code; 
-            showDetail(code); 
+        } catch (error) {
+            console.error(error);
+            if(deviceId) startScan(null); // Fallback jika deviceId gagal
         }
     }
 
@@ -233,10 +285,8 @@
         const devices = await codeReader.listVideoInputDevices();
         const final = devices.filter(d => !d.label.toLowerCase().includes('front'));
         const source = document.getElementById("videoSource");
-        
-        if (final.length <= 1) { 
-            document.getElementById("cameraControl").style.display = "none"; 
-        } else {
+        if (final.length <= 1) { document.getElementById("cameraControl").style.display = "none"; }
+        else {
             document.getElementById("cameraControl").style.display = "block";
             source.innerHTML = final.map(d => `<option value="${d.deviceId}" ${d.deviceId === lastSelectedDeviceId ? 'selected' : ''}>${d.label || 'Kamera'}</option>`).join("");
         }
@@ -245,12 +295,12 @@
     document.getElementById("videoSource").onchange = (e) => { 
         lastSelectedDeviceId = e.target.value; 
         localStorage.setItem('preferredCameraId', lastSelectedDeviceId); 
-        codeReader.reset();
+        codeReader.reset(); // Stop dulu sebelum ganti
         startScan(lastSelectedDeviceId); 
     };
 
     function stopScan() { 
-        codeReader.reset();
+        codeReader.reset(); // ZXing stop
         scanning = false; 
         document.getElementById("reader").style.display = "none"; 
         document.getElementById("cameraControl").style.display = "none"; 
@@ -260,15 +310,14 @@
         lastScroll = document.getElementById("scrollContainer").scrollTop;
         const { data: p } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();
         if(!p) return;
-        
         document.getElementById("listContainer").style.display = "none";
         document.getElementById("ui-header").style.display = "none";
-        
         const regPrice = cleanPrice(p["Regular Store Price"]);
         const strPrice = cleanPrice(p["Street Store Price"]);
         const promoText = (p["Extra Promo"] || "").trim();
-        const discountLabel = (promoText !== "" && promoText !== "NORMAL PRICE") ? `<div class="promo-badge">${promoText}</div>` : "";
-        
+        const discountLabel = (promoText !== "" && promoText !== "NORMAL PRICE" && p["Regular Store Promo"] !== "NORMAL") 
+            ? `<div class="promo-badge">${promoText}</div>` 
+            : "";
         const det = document.getElementById("detailContainer");
         det.innerHTML = `
             <div class="product-card">
@@ -292,16 +341,22 @@
                     </div>
                     <div style="border-top: 1px solid #eee; padding-top: 20px;">
                         <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px;">
-                            <span style="color:#888; font-weight:600;">BARCODE</span><span style="font-weight:700;">${p.Barcode}</span>
+                            <span style="color:#888; font-weight:600;">BARCODE</span><span style="font-weight:700; word-break:break-all; text-align:right; max-width:60%;">${p.Barcode}</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px;">
+                            <span style="color:#888; font-weight:600;">REG PROMO</span><span style="font-weight:700; color:var(--promo-blue)">${p["Regular Store Promo"] || '-'}</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:12px;">
+                            <span style="color:#888; font-weight:600;">STR PROMO</span><span style="font-weight:700; color:var(--promo-green)">${p["Street Store Promo"] || '-'}</span>
                         </div>
                     </div>
                 </div>
             </div>
         `;
         det.style.display = "block";
+        det.classList.add('active');
         document.getElementById("btnBackFloating").style.display = "flex";
         document.getElementById("scrollContainer").scrollTo(0, 0);
-        applyLanguageToDetail(); // Re-apply translation
     }
 
     function back() {
@@ -313,41 +368,78 @@
         startScan(lastSelectedDeviceId);
     }
 
-    function openLightbox(src) {
-        if(!src || src.includes('placeholder')) return;
-        document.getElementById('lightboxImg').src = src;
-        document.getElementById('lightbox').classList.add('active');
-    }
-    function closeLightbox() { document.getElementById('lightbox').classList.remove('active'); }
-
-    // Start App
     startScan(lastSelectedDeviceId);
 </script>
 
 <script>
-// Logic Bahasa Tetap Sama
+// Data Terjemahan
 const priceTranslations = {
-    id: { searchPlaceholder: "Scan / Input Barcode...", tapHint: "ARAHKAN BARCODE • OTOMATIS SCAN", sidebarHome: "Beranda", regStoreLabel: "Toko Reguler", strStoreLabel: "Toko Ruko", barcodeLabel: "BARCODE" },
-    en: { searchPlaceholder: "Scan / Enter Barcode...", tapHint: "POINT AT BARCODE • AUTO SCAN", sidebarHome: "Home", regStoreLabel: "Regular Store", strStoreLabel: "Street Store", barcodeLabel: "BARCODE" },
-    cn: { searchPlaceholder: "扫描 / 输入条形码...", tapHint: "对准条形码 • 自动扫描", sidebarHome: "首页", regStoreLabel: "常规店价格", strStoreLabel: "街边店价格", barcodeLabel: "条码" }
+    id: {
+        searchPlaceholder: "Scan / Input Barcode...",
+        tapHint: "ARAHKAN BARCODE • OTOMATIS SCAN",
+        sidebarHome: "Beranda",
+        regStoreLabel: "Toko Reguler",
+        strStoreLabel: "Toko Ruko",
+        barcodeLabel: "BARCODE",
+        regPromoLabel: "PROMO REGULER",
+        strPromoLabel: "PROMO RUKO",
+        generalCat: "UMUM"
+    },
+    en: {
+        searchPlaceholder: "Scan / Enter Barcode...",
+        tapHint: "POINT AT BARCODE • AUTO SCAN",
+        sidebarHome: "Home",
+        regStoreLabel: "Regular Store",
+        strStoreLabel: "Street Store",
+        barcodeLabel: "BARCODE",
+        regPromoLabel: "REGULAR STORE PROMO",
+        strPromoLabel: "STREET STORE PROMO",
+        generalCat: "GENERAL"
+    },
+    cn: {
+        searchPlaceholder: "扫描 / 输入条形码...",
+        tapHint: "对准条形码 • 自动扫描",
+        sidebarHome: "首页",
+        regStoreLabel: "常规店价格",
+        strStoreLabel: "街边店价格",
+        barcodeLabel: "条码",
+        regPromoLabel: "常规促销",
+        strPromoLabel: "街边店促销",
+        generalCat: "普通"
+    }
 };
 
-function applyLanguageToDetail() {
+function applyPriceLanguage() {
     const lang = localStorage.getItem('mms_lang') || 'id';
     const t = priceTranslations[lang];
-    const labels = document.querySelectorAll('.price-label');
-    if (labels.length >= 2) {
-        labels[0].innerText = t.regStoreLabel;
-        labels[1].innerText = t.strStoreLabel;
-    }
+
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.placeholder = t.searchPlaceholder;
+    
+    const tapHint = document.querySelector('.tap-hint');
+    if (tapHint) tapHint.innerText = t.tapHint;
+
+    const sidebarHome = document.querySelector('#sidebar a');
+    if (sidebarHome) sidebarHome.innerText = t.sidebarHome;
+
+    const originalShowDetail = window.showDetail;
+    window.showDetail = async function(fullBarcode) {
+        await originalShowDetail(fullBarcode);
+        const labels = document.querySelectorAll('.price-label');
+        if (labels.length >= 2) {
+            labels[0].innerText = t.regStoreLabel;
+            labels[1].innerText = t.strStoreLabel;
+        }
+        const infoLabels = document.querySelectorAll('#detailContainer span[style*="color:#888"]');
+        if (infoLabels.length >= 3) {
+            infoLabels[0].innerText = t.barcodeLabel;
+            infoLabels[1].innerText = t.regPromoLabel;
+            infoLabels[2].innerText = t.strPromoLabel;
+        }
+    };
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    const lang = localStorage.getItem('mms_lang') || 'id';
-    const t = priceTranslations[lang];
-    document.getElementById('searchInput').placeholder = t.searchPlaceholder;
-    document.querySelector('.tap-hint').innerText = t.tapHint;
-});
+document.addEventListener('DOMContentLoaded', applyPriceLanguage);
 </script>
 </body>
 </html>

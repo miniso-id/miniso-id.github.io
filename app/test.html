@@ -249,7 +249,7 @@ function navigateTo(url) {
     scanning = true; 
     document.getElementById("reader").style.display = "block";
     
-    // 1. Definisikan Hints untuk ZXing (Kunci Ketajaman)
+    // 1. Definisikan Hints untuk ZXing (Kunci Ketajaman & 360 Derajat)
     const hints = new Map();
     const formats = [
         ZXing.BarcodeFormat.EAN_13,
@@ -258,20 +258,28 @@ function navigateTo(url) {
         ZXing.BarcodeFormat.UPC_A,
         ZXing.BarcodeFormat.UPC_E
     ];
+    
     hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, true); // Memaksa algoritma mencari lebih detail
-    hints.set(ZXing.DecodeHintType.ASSUME_CODE_39_CHECK_DIGIT, true);
+    
+    // TRY_HARDER wajib aktif untuk mencari barcode miring/distorsi
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true); 
+    
+    // CHARACTER_SET membantu pembacaan data yang lebih stabil
     hints.set(ZXing.DecodeHintType.CHARACTER_SET, 'utf-8');
+    
+    // PURE_BARCODE false memberi tahu scanner bahwa ada background di sekitar barcode
     hints.set(ZXing.DecodeHintType.PURE_BARCODE, false);
 
-    // 2. Setting Resolusi Tinggi & Frame Rate
+    // 2. Setting Resolusi Tinggi & Aspect Ratio
     const constraints = {
         video: {
             deviceId: deviceId ? { exact: deviceId } : undefined,
             width: { min: 1280, ideal: 1920, max: 2560 },
             height: { min: 720, ideal: 1080, max: 1440 },
-            frameRate: { ideal: 30, max: 60 }, // FPS tinggi mengurangi motion blur
-            facingMode: "environment"
+            frameRate: { ideal: 30, max: 60 },
+            facingMode: "environment",
+            // Mengunci aspect ratio 16:9 agar barcode tidak terdistorsi/gepeng saat miring
+            aspectRatio: { ideal: 1.7777777778 }
         }
     };
 
@@ -282,24 +290,33 @@ function navigateTo(url) {
         
         updateCameraList(backCameras, selectedId);
 
-        // 3. Gunakan hints dalam pembacaan
+        // 3. Pasang hints ke reader sebelum mulai
         codeReader.hints = hints;
 
+        // Gunakan decodeFromConstraints untuk menerapkan setting video di atas
         await codeReader.decodeFromConstraints(constraints, 'videoElement', (result, err) => {
-            if (result) onDetected(result.text);
+            if (result) {
+                // ZXing secara otomatis mendeteksi rotasi jika TRY_HARDER aktif
+                onDetected(result.text);
+            }
         });
 
-        // 4. Maksimalkan Hardware Focus
+        // 4. Maksimalkan Hardware Focus & Zoom
         const videoTrack = document.getElementById('videoElement').srcObject.getVideoTracks()[0];
         const capabilities = videoTrack.getCapabilities();
         
         const advanced = {};
+        
+        // Paksa Continuous Focus (Sangat penting untuk angle miring)
         if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
             advanced.focusMode = 'continuous';
         }
-        // Jika gambar masih kurang tajam, tambahkan sedikit zoom (perangkat modern mendukung ini)
+
+        // Gunakan sedikit Zoom (0.5 di atas minimum) 
+        // Ini membantu sensor memisahkan garis barcode yang merapat akibat angle miring
         if (capabilities.zoom) {
-            advanced.zoom = capabilities.zoom.min + 0.5; // Zoom sedikit untuk deteksi lebih baik
+            const targetZoom = Math.min(capabilities.zoom.min + 0.5, capabilities.zoom.max);
+            advanced.zoom = targetZoom;
         }
 
         if (Object.keys(advanced).length > 0) {
@@ -308,7 +325,11 @@ function navigateTo(url) {
 
     } catch (err) {
         console.error("Gagal optimasi kamera:", err);
-        if(deviceId) { codeReader.reset(); startScan(null); }
+        // Fallback jika deviceId bermasalah
+        if(deviceId) { 
+            codeReader.reset(); 
+            startScan(null); 
+        }
     }
 }
     function updateCameraList(devices, currentId) {

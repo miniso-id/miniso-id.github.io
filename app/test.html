@@ -174,42 +174,62 @@
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
     async function startScan(deviceId = null) {
-        scanning = true;
-        document.getElementById("reader").style.display = "block";
-        const constraints = { video: { deviceId: deviceId ? { exact: deviceId } : undefined, width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: "environment" } };
+    if (scanning) stopScan();
+    
+    scanning = true;
+    document.getElementById("reader").style.display = "block";
 
-        try {
-            if (!deviceId) {
-                const devices = await codeReader.listVideoInputDevices();
-                const back = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('environment'));
-                deviceId = back ? back.deviceId : (devices.length ? devices[devices.length-1].deviceId : null);
-            }
+    // LOGIKA CONSTRAINT:
+    // Jika ada deviceId, pakai itu. Jika tidak, pakai default environment (belakang).
+    const videoConstraints = deviceId 
+        ? { deviceId: { exact: deviceId } } 
+        : { facingMode: { ideal: "environment" } };
 
-            codeReader.decodeFromConstraints(constraints, 'video-canvas', async (result) => {
-                if (result) {
-                    const code = result.text;
-                    const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
-                    if(data) {
-                        document.getElementById("beepOk").play();
-                        stopScan();
-                        document.getElementById("searchInput").value = code;
-                        showDetail(code);
-                    }
+    const constraints = {
+        video: {
+            ...videoConstraints,
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+        }
+    };
+
+    try {
+        await codeReader.decodeFromConstraints(constraints, 'video-canvas', async (result) => {
+            if (result) {
+                const code = result.text;
+                const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
+                if(data) {
+                    document.getElementById("beepOk").play();
+                    stopScan();
+                    document.getElementById("searchInput").value = code;
+                    showDetail(code);
                 }
-            });
+            }
+        });
 
-            const video = document.getElementById('video-canvas');
-            video.onplaying = async () => {
-                const track = video.srcObject.getVideoTracks()[0];
-                const cap = track.getCapabilities();
-                const adv = {};
-                if (cap.focusMode && cap.focusMode.includes('continuous')) adv.focusMode = "continuous";
-                if (cap.zoom) adv.zoom = Math.min(1, cap.zoom.max);
-                if (Object.keys(adv).length > 0) await track.applyConstraints({ advanced: [adv] });
-            };
-            updateCameraList();
-        } catch (err) { console.error(err); }
+        // Pengaturan Focus & Zoom Otomatis setelah video jalan
+        const video = document.getElementById('video-canvas');
+        video.onplaying = async () => {
+            const track = video.srcObject.getVideoTracks()[0];
+            const cap = track.getCapabilities();
+            const adv = {};
+            
+            if (cap.focusMode && cap.focusMode.includes('continuous')) adv.focusMode = "continuous";
+            // HP modern sering butuh sedikit zoom (1.2x - 1.5x) untuk fokus jarak dekat barcode
+            if (cap.zoom) adv.zoom = Math.min(1.2, cap.zoom.max); 
+            
+            if (Object.keys(adv).length > 0) await track.applyConstraints({ advanced: [adv] });
+        };
+
+        // Update list kamera (pastikan label sudah muncul)
+        updateCameraList();
+
+    } catch (err) {
+        console.error("Gagal memulai scan:", err);
+        // Jika error "exact" deviceId, coba reset tanpa deviceId (fallback)
+        if (deviceId) startScan(null);
     }
+}
 
     function stopScan() { codeReader.reset(); scanning = false; document.getElementById("reader").style.display = "none"; document.getElementById("cameraControl").style.display = "none"; }
 
@@ -229,16 +249,40 @@
     };
 
     async function updateCameraList() {
+    try {
+        // Minta izin kamera dulu agar label (nama kamera) muncul
+        await navigator.mediaDevices.getUserMedia({ video: true });
+        
         const devices = await navigator.mediaDevices.enumerateDevices();
-        const final = devices.filter(d => d.kind === 'videoinput' && !d.label.toLowerCase().includes('front'));
-        const source = document.getElementById("videoSource");
-        if (final.length <= 1) { document.getElementById("cameraControl").style.display = "none"; }
-        else {
-            document.getElementById("cameraControl").style.display = "block";
-            source.innerHTML = final.map(d => `<option value="${d.deviceId}" ${d.deviceId === lastSelectedDeviceId ? 'selected' : ''}>${d.label || 'Kamera'}</option>`).join("");
-        }
-    }
+        
+        // Filter: Hanya ambil videoinput dan blokir yang mengandung kata kunci kamera depan
+        const backCameras = devices.filter(d => {
+            const label = d.label.toLowerCase();
+            return d.kind === 'videoinput' && 
+                   !label.includes('front') && 
+                   !label.includes('user') && 
+                   !label.includes('selfie');
+        });
 
+        const source = document.getElementById("videoSource");
+        
+        if (backCameras.length <= 1) {
+            // Jika hanya 1 kamera belakang, sembunyikan dropdown
+            document.getElementById("cameraControl").style.display = "none";
+        } else {
+            document.getElementById("cameraControl").style.display = "block";
+            source.innerHTML = backCameras.map((d, index) => {
+                // Beri nama yang rapi: Gunakan label asli atau fallback ke "Camera Depan/Belakang [index]"
+                const label = d.label || `Lensa Belakang ${index + 1}`;
+                return `<option value="${d.deviceId}" ${d.deviceId === lastSelectedDeviceId ? 'selected' : ''}>${label}</option>`;
+            }).join("");
+        }
+        
+        return backCameras;
+    } catch (err) {
+        console.error("Gagal mendeteksi kamera:", err);
+    }
+}
     document.getElementById("videoSource").onchange = (e) => {
         lastSelectedDeviceId = e.target.value;
         localStorage.setItem('preferredCameraId', lastSelectedDeviceId);

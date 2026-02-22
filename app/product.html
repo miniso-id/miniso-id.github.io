@@ -648,7 +648,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
                     const item = valid.class;
                     const lang = localStorage.getItem('mms_lang') || 'id';
                     const t = prodTranslations[lang];
-                    document.getElementById('aiStatus').innerText = `${t.aiDetecting}${translatedName.toUpperCase()}`;
+                    document.getElementById('aiStatus').innerText = `${t.aiDetecting}${item.toUpperCase()}`;
                     
                     const searchInput = document.getElementById('searchInput');
                     if (searchInput.value !== item) {

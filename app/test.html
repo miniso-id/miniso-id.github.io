@@ -258,8 +258,7 @@ function navigateTo(url) {
 
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
-// FUNGSI SCAN ZXING YANG DIPERKETAT
-    async function startScan(deviceId = null) {
+async function startScan(deviceId = null) {
         scanning = true; 
         document.getElementById("reader").style.display = "block";
         const videoElement = document.getElementById("zxing-video");
@@ -267,64 +266,74 @@ function navigateTo(url) {
         codeReader.reset();
 
         try {
-            // 1. Ambil daftar perangkat terlebih dahulu secara paksa
+            // LANGKAH 1: Pancing izin kamera agar label (nama kamera) bisa dibaca browser
+            // Jika kita tidak melakukan ini, listVideoInputDevices seringkali kosong/anonim
+            const initialStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            initialStream.getTracks().forEach(track => track.stop()); // Matikan pancingan segera
+
+            // LANGKAH 2: Ambil daftar perangkat yang sekarang sudah memiliki Label
             const videoInputDevices = await codeReader.listVideoInputDevices();
             
-            // 2. Filter hanya kamera belakang
-            const rearCameras = videoInputDevices.filter(d => 
-                !d.label.toLowerCase().includes('front') && 
-                !d.label.toLowerCase().includes('user') &&
-                !d.label.toLowerCase().includes('selfie')
-            );
+            // LANGKAH 3: Filter ketat untuk memblokir kamera depan
+            const rearCameras = videoInputDevices.filter(d => {
+                const label = d.label.toLowerCase();
+                return !label.includes('front') && 
+                       !label.includes('user') && 
+                       !label.includes('selfie') &&
+                       !label.includes('face');
+            });
 
-            // 3. Tentukan device ID yang akan digunakan
+            // LANGKAH 4: Tentukan ID target
             let targetDeviceId;
+            
+            // Cek apakah ada ID yang tersimpan di localStorage dan apakah itu kamera belakang
             if (deviceId && rearCameras.some(d => d.deviceId === deviceId)) {
-                // Gunakan pilihan terakhir jika valid (kamera belakang)
                 targetDeviceId = deviceId;
             } else if (rearCameras.length > 0) {
-                // Jika tidak ada pilihan tersimpan, ambil kamera belakang pertama yang tersedia
-                targetDeviceId = rearCameras[0].deviceId;
+                // Pilih kamera belakang terakhir di daftar (biasanya kamera utama pada Android)
+                targetDeviceId = rearCameras[rearCameras.length - 1].deviceId;
             }
 
+            // LANGKAH 5: Jalankan kamera dengan batasan ketat
             const constraints = {
                 video: {
                     deviceId: targetDeviceId ? { exact: targetDeviceId } : undefined,
-                    facingMode: { ideal: "environment" }, // Paksa mode lingkungan
+                    facingMode: { exact: "environment" }, // "exact" lebih kuat daripada "ideal"
                     width: { ideal: 1920 },
-                    height: { ideal: 1080 },
-                    frameRate: { ideal: 60 }
+                    height: { ideal: 1080 }
                 }
             };
 
-            // Jalankan stream
             const stream = await navigator.mediaDevices.getUserMedia(constraints);
             videoElement.srcObject = stream;
             
-            // Terapkan Zoom 1x jika didukung
+            // Zoom & Focus (Opsional)
             const track = stream.getVideoTracks()[0];
             const capabilities = track.getCapabilities();
             if (capabilities.zoom) {
                 track.applyConstraints({ advanced: [{ zoom: 1 }] }).catch(() => {});
             }
 
-            // Mulai proses decoding
-            codeReader.decodeFromVideoElement(videoElement, async (result, err) => {
+            // Mulai Decode
+            codeReader.decodeFromVideoElement(videoElement, (result, err) => {
                 if (result) {
-                    const code = result.text;
                     document.getElementById("beepOk").play(); 
                     stopScan(); 
+                    const code = result.text;
                     document.getElementById("searchInput").value = code; 
                     showDetail(code);
                 }
             });
             
-            // Update dropdown UI
+            // Update Dropdown agar user hanya bisa pilih kamera belakang lainnya
             renderCameraOptions(rearCameras, targetDeviceId);
 
         } catch (err) {
-            console.error("Gagal akses kamera belakang:", err);
-            alert("Kamera belakang tidak dapat diakses atau diblokir.");
+            console.error("Kamera error:", err);
+            // Jika gagal karena "exact" environment, coba fallback sekali lagi tanpa exact
+            if(err.name === "OverconstrainedError") {
+                alert("Kamera belakang tidak ditemukan atau tidak diizinkan.");
+            }
         }
     }
 

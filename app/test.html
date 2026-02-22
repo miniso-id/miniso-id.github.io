@@ -87,117 +87,129 @@
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const codeReader = new ZXing.BrowserMultiFormatReader();
     let net = null; 
-    let activeMode = null; // 'barcode' atau 'ai'
+    let isAiScanning = false;
     let stream = null;
+    // Mengambil kamera terakhir yang dipilih pengguna sesuai instruksi simpanan [cite: 2026-02-22]
+    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId'); 
 
-    // Load AI Model
-    async function loadModel() {
-        try {
-            console.log("Memuat AI...");
-            net = await mobilenet.load();
-            console.log("AI Siap!");
-        } catch (e) {
-            alert("Gagal memuat AI: " + e.message);
-        }
-    }
-    loadModel();
-
-    // Fungsi Stop Kamera
-    function stopCamera() {
-        if (stream) {
-            stream.getTracks().forEach(t => t.stop());
-            stream = null;
-        }
-        codeReader.reset();
-        document.getElementById('reader').style.display = 'none';
-        activeMode = null;
-    }
-
-    // --- MODE BARCODE ---
-    document.getElementById('scanBtn').onclick = async () => {
-        if (activeMode === 'barcode') {
-            stopCamera();
-            return;
-        }
-        stopCamera();
-        activeMode = 'barcode';
-        document.getElementById('reader').style.display = 'block';
-        document.getElementById('aiLabel').style.display = 'none';
-        
-        try {
-            await codeReader.decodeFromVideoDevice(undefined, 'videoElement', (result, err) => {
-                if (result) {
-                    document.getElementById('searchInput').value = result.text;
-                    searchDatabase(result.text, true); // cari barcode
-                    stopCamera();
-                }
-            });
-        } catch (e) {
-            console.error(e);
-        }
-    };
-
-    // --- MODE AI VISION ---
-    document.getElementById('aiBtn').onclick = async () => {
-        if (!net) return alert("AI sedang bersiap, coba lagi dalam 3 detik...");
-        if (activeMode === 'ai') {
-            stopCamera();
-            return;
-        }
-        stopCamera();
-        activeMode = 'ai';
-        document.getElementById('reader').style.display = 'block';
+    // 1. Fungsi Memuat AI dengan Indikator Status
+    async function initAI() {
         const labelEl = document.getElementById('aiLabel');
+        try {
+            console.log("Loading MobileNet...");
+            net = await mobilenet.load();
+            console.log("AI Model Loaded!");
+            if(labelEl) labelEl.innerText = "AI READY";
+        } catch (e) {
+            console.error("AI Load Failed", e);
+            if(labelEl) labelEl.innerText = "AI ERROR";
+        }
+    }
+    initAI();
+
+    // 2. Logika Utama AI Vision
+    async function startAiVision() {
+        if (!net) return alert("AI sedang mendownload data (sekitar 3MB), tunggu sebentar...");
+        
+        const video = document.getElementById('videoElement');
+        const labelEl = document.getElementById('aiLabel');
+        
+        isAiScanning = true;
+        document.getElementById('reader').style.display = 'block';
         labelEl.style.display = 'block';
-        labelEl.innerText = "AI AKTIF: ARAHKAN KE BENDA";
+        labelEl.innerText = "MENCARI BENDA...";
 
         try {
-            const video = document.getElementById('videoElement');
-            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            // Gunakan deviceId terakhir jika ada
+            const constraints = { 
+                video: { 
+                    deviceId: lastSelectedDeviceId ? { exact: lastSelectedDeviceId } : undefined,
+                    facingMode: "environment" 
+                } 
+            };
+            
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
             video.srcObject = stream;
 
-            const aiLoop = async () => {
-                if (activeMode !== 'ai') return;
-                const predictions = await net.classify(video);
-                if (predictions.length > 0) {
-                    const top = predictions[0];
-                    labelEl.innerText = "AI: " + top.className.split(',')[0].toUpperCase();
-                    if (top.probability > 0.6) {
-                        searchDatabase(top.className.split(',')[0], false); // cari nama
-                    }
-                }
-                setTimeout(aiLoop, 1500);
+            // Memastikan video benar-benar berputar sebelum AI mulai bekerja
+            video.onloadedmetadata = () => {
+                video.play();
+                runAiInference();
             };
-            aiLoop();
-        } catch (e) {
-            alert("Kamera AI error: " + e.message);
-        }
-    };
 
-    async function searchDatabase(keyword, isBarcode) {
-        let query = _supabase.from('export').select('*');
-        if (isBarcode) {
-            query = query.ilike('Barcode', `%${keyword}%`);
-        } else {
-            query = query.ilike('Name', `%${keyword}%`);
-        }
-        
-        const { data } = await query.limit(10);
-        if (data && data.length > 0) {
-            const container = document.getElementById('listContainer');
-            container.innerHTML = data.map(p => `
-                <div class="list-item">
-                    <img class="list-img" src="${p.Image}" onerror="this.src='https://via.placeholder.com/60'">
-                    <div class="list-info">
-                        <h4 style="margin:0; font-size:14px;">${p.Name}</h4>
-                        <p style="margin:2px 0; font-size:11px; color:#888;">${p.Barcode}</p>
-                    </div>
-                </div>
-            `).join('');
+        } catch (e) {
+            alert("Kamera Error: " + e.message);
+            stopScanning();
         }
     }
+
+    // 3. Fungsi Deteksi (Inference) yang Berulang
+    async function runAiInference() {
+        const video = document.getElementById('videoElement');
+        const labelEl = document.getElementById('aiLabel');
+
+        if (!isAiScanning || !video) return;
+
+        try {
+            // Analisis gambar dari video
+            const predictions = await net.classify(video);
+            
+            if (predictions.length > 0) {
+                const topResult = predictions[0];
+                const itemName = topResult.className.split(',')[0]; // Ambil nama utama
+                
+                labelEl.innerText = `AI: ${itemName.toUpperCase()} (${(topResult.probability * 100).toFixed(0)}%)`;
+
+                // Jika AI yakin di atas 60%, langsung cari di database
+                if (topResult.probability > 0.60) {
+                    searchDatabase(itemName);
+                }
+            }
+        } catch (err) {
+            console.error("Inference error:", err);
+        }
+
+        // Ulangi setiap 1 detik agar tidak memberatkan processor
+        setTimeout(runAiInference, 1000);
+    }
+
+    async function searchDatabase(keyword) {
+        // Logika pencarian ke tabel Supabase 'export'
+        const { data } = await _supabase.from('export')
+            .select('*')
+            .ilike('Name', `%${keyword}%`) // Mencari nama yang mirip
+            .limit(10);
+        
+        if (data && data.length > 0) {
+            renderResults(data);
+        }
+    }
+
+    function renderResults(data) {
+        const container = document.getElementById('listContainer');
+        container.innerHTML = data.map(p => `
+            <div class="list-item" onclick="showDetail('${p.Barcode}')">
+                <div class="list-img-box"><img src="${p.Image || ''}"></div>
+                <div class="list-info">
+                    <div class="list-name">${p.Name}</div>
+                    <div class="list-bc">${p.Barcode}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function stopScanning() {
+        isAiScanning = false;
+        if (stream) stream.getTracks().forEach(t => t.stop());
+        document.getElementById('reader').style.display = 'none';
+    }
+
+    // Pasang event ke tombol AI
+    document.getElementById('aiBtn').onclick = () => {
+        if (isAiScanning) stopScanning();
+        else startAiVision();
+    };
 </script>
 </body>
 </html>

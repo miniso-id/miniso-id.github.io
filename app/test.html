@@ -147,12 +147,12 @@ body.fade-in {
     <script type="module">
 import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
 
-window.aiEmbedder = await pipeline(
-  'feature-extraction',
-  'Xenova/all-MiniLM-L6-v2'
+window.imageClassifier = await pipeline(
+  'image-classification',
+  'Xenova/mobilenetv2_100_224'
 );
 
-console.log("AI Ready 🚀");
+console.log("AI Vision Ready 🚀");
 </script>
 </head>
 <body>
@@ -210,6 +210,10 @@ console.log("AI Ready 🚀");
                 <button id="scanBtn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                 </button>
+                <button id="aiPhotoBtn" title="AI Foto"
+style="width:38px;height:34px;background:#007bff;color:white;border:none;border-radius:10px;margin-left:6px;">
+📷
+</button>
             </div>
         </div>
         <div id="catFilterContainer">
@@ -245,6 +249,47 @@ async function getEmbedding(text) {
     });
     return Array.from(output.data);
 }
+
+// buka kamera AI
+document.getElementById("aiPhotoBtn").onclick = async () => {
+    const box = document.getElementById("aiCameraBox");
+    const video = document.getElementById("aiVideo");
+
+    box.style.display = "flex";
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" }
+    });
+
+    video.srcObject = stream;
+};
+
+// foto & tebak
+document.getElementById("aiSnap").onclick = async () => {
+    const video = document.getElementById("aiVideo");
+    const canvas = document.getElementById("aiCanvas");
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+
+    // loading indicator optional
+    console.log("AI analyzing...");
+
+    const result = await window.imageClassifier(canvas);
+    const label = result[0].label;
+
+    console.log("AI Tebak:", label);
+
+    // tutup kamera
+    document.getElementById("aiCameraBox").style.display = "none";
+    video.srcObject.getTracks().forEach(t => t.stop());
+
+    // masukkan ke search kamu
+    document.getElementById("searchInput").value = label;
+    search();
+};
 
 // cosine similarity
 function cosineSim(a, b) {
@@ -735,5 +780,22 @@ function applyProductLanguage() {
 
 document.addEventListener('DOMContentLoaded', applyProductLanguage);
 </script>
+    <div id="aiCameraBox" style="
+display:none;
+position:fixed;
+inset:0;
+background:#000;
+z-index:15000;
+align-items:center;
+justify-content:center;
+flex-direction:column;
+">
+  <video id="aiVideo" autoplay playsinline style="width:100%;max-width:420px;border-radius:16px;"></video>
+  <button id="aiSnap"
+    style="margin-top:12px;padding:12px 24px;border:none;border-radius:12px;background:#e61523;color:#fff;font-weight:bold;">
+    FOTO & TEBAK
+  </button>
+  <canvas id="aiCanvas" style="display:none;"></canvas>
+</div>
 </body>
 </html>

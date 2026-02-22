@@ -447,6 +447,11 @@ if(localStorage.getItem('mms_auth') === 'true') {
                 }
             });
 
+            if (aiDetector && !aiActive) {
+            aiActive = true;
+            runAIDetection();
+        }
+
             const videoTrack = document.getElementById('videoElement').srcObject.getVideoTracks()[0];
             const capabilities = videoTrack.getCapabilities();
             

@@ -126,10 +126,15 @@
     let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
 
     // 1. INISIALISASI ZXING DENGAN TRY_HARDER
-    const hints = new Map();
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.UPC_A]);
-    const codeReader = new ZXing.BrowserMultiFormatReader(hints);
+// Tambahkan format spesifik agar lebih ringan
+const hints = new Map();
+hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+    ZXing.BarcodeFormat.EAN_13, 
+    ZXing.BarcodeFormat.EAN_8, 
+    ZXing.BarcodeFormat.UPC_A
+]);
+const codeReader = new ZXing.BrowserMultiFormatReader(hints);
 
     function toggleSidebar() { 
         document.getElementById("sidebar").classList.toggle("active");
@@ -166,8 +171,8 @@
             video: {
                 deviceId: deviceId ? { exact: deviceId } : undefined,
                 facingMode: deviceId ? undefined : "environment",
-                width: { ideal: 1280 }, // Gunakan 720p untuk kecepatan
-                height: { ideal: 720 }
+                width: { ideal: 1920 }, // Gunakan 720p untuk kecepatan
+                height: { ideal: 1080 }
             }
         };
 

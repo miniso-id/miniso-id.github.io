@@ -4,191 +4,147 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X</title>
+    <title>MMS-X | AI Search</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://unpkg.com/@zxing/library@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     
     <style>
         :root {
             --miniso-red: #e61523;
-            --miniso-soft: #fff1f2;
-            --text-dark: #1a1a1a;
-            --promo-blue: #007bff;
-            --promo-green: #28a745;
             --bg-gray: #f4f4f4;
-            --sidebar-width: 280px;
+            --text-dark: #1a1a1a;
         }
 
-        body { opacity: 0; transition: opacity 0.2s ease-in; margin: 0; padding: 0; font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto; background: #ffffff; color: var(--text-dark); height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden; }
-        body.fade-in { opacity: 1; }
-        .fade-out { opacity: 0 !important; transition: opacity 0.2s ease-out; }
-
-        /* Login Overlay */
-        #loginOverlay { position: fixed; inset: 0; background: var(--bg-gray); z-index: 20000; display: flex; align-items: center; justify-content: center; }
-        .login-box { background: white; width: 90%; max-width: 350px; padding: 35px 25px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); text-align: center; }
-        .login-box h2 { color: var(--miniso-red); margin: 0 0 10px 0; font-weight: 800; font-size: 28px; }
-        .login-box p { color: #666; font-size: 14px; margin-bottom: 25px; }
-        .login-box label { display: block; text-align: left; font-size: 11px; font-weight: 800; color: #999; margin: 0 0 5px 5px; text-transform: uppercase; }
-        .login-box input, .login-box select { width: 100%; height: 48px; margin-bottom: 15px; padding: 0 15px; border-radius: 12px; border: 1.5px solid #eee; background: #f9f9f9; outline: none; font-size: 15px; transition: 0.3s; }
-        .btn-login { width: 100%; height: 50px; background: var(--miniso-red); color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 10px; }
-
-        /* Layout & UI */
-        .sidebar { width: var(--sidebar-width); background: var(--miniso-red); color: #fff; position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 9500; padding: 25px; }
-        .sidebar.active { transform: translateX(0); }
-        .sidebar a { color: #fff; text-decoration: none; display: block; padding: 15px; border-radius: 12px; margin-bottom: 10px; font-weight: 600; background: rgba(255,255,255,0.1); }
-        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 9000; display: none; backdrop-filter: blur(4px); }
-        #ui-header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); padding: calc(20px + env(safe-area-inset-top)) 16px 12px 16px; border-bottom: 1px solid #eee; z-index: 1000; width: 100%; flex-shrink: 0; }
-        .top-bar { display: flex; gap: 10px; align-items: center; max-width: 1200px; margin-inline: auto; width: 100%; }
-        .search-container { position: relative; flex: 1; }
-        #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
-        #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-
-        /* Scanner Style */
-        #reader { display:none; width:100%; max-width:340px; aspect-ratio:1/1; margin:15px auto; background:#000; border-radius:20px; overflow:hidden; position:relative; border: 4px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
-        #reader video { width: 100%; height: 100%; object-fit: cover; }
-        .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
-        .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; }
+        body { margin: 0; font-family: -apple-system, sans-serif; background: #fff; overflow: hidden; height: 100vh; }
         
-        /* List & Detail */
-        .main-content { flex: 1; overflow-y: auto; padding: 0 16px; }
-        #listContainer { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 16px 0 80px 0; }
-        .list-item { display: flex; align-items: center; gap: 14px; padding: 12px; background: white; border-radius: 16px; border: 1px solid #f0f0f0; cursor: pointer; }
-        .list-img-box { width: 70px; height: 70px; background: #f9f9f9; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
-        .list-img-box img { width: 100%; height: 100%; object-fit: contain; }
-        .list-info { flex: 1; min-width: 0; }
-        .list-cat { font-size: 10px; color: var(--miniso-red); font-weight: 800; text-transform: uppercase; }
-        .list-name { font-weight: 700; font-size: 14px; color: #111; }
-        
-        #detailContainer { display: none; padding-top: 20px; padding-bottom: 80px; max-width: 700px; margin: 0 auto; width: 100%; }
-        .product-card { background: white; border-radius: 20px; overflow: hidden; border: 1px solid #eee; animation: slideUp 0.3s ease-out; }
-        .image-box { text-align: center; padding: 20px; border-bottom: 1px solid #f5f5f5; }
-        .image-box img { max-width: 100%; height: 300px; object-fit: contain; }
-        .p-info { padding: 24px; }
-        .price-comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-        .price-item { padding: 14px; border-radius: 14px; border-bottom: 4px solid #ddd; background: var(--bg-gray); }
-        .price-item.reg { border-bottom-color: var(--miniso-red); background: var(--miniso-soft); }
-        .price-val { font-size: 19px; font-weight: 800; }
+        /* Header AI Style */
+        #ai-header {
+            padding: calc(20px + env(safe-area-inset-top)) 16px 15px;
+            background: white;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+        }
 
-        .floating-back { position: fixed; top: calc(25px + env(safe-area-inset-top)); left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 9999; cursor: pointer; border: 1px solid #eee; }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        /* Video Container */
+        #vision-container {
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto;
+            aspect-ratio: 1/1;
+            position: relative;
+            background: #000;
+            border-radius: 30px;
+            overflow: hidden;
+            border: 5px solid #fff;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        }
+
+        #videoElement { width: 100%; height: 100%; object-fit: cover; }
+
+        /* AI Prediction Label */
+        #ai-status-box {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: rgba(230, 21, 35, 0.9);
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-weight: 800;
+            font-size: 14px;
+            text-transform: uppercase;
+            backdrop-filter: blur(5px);
+        }
+
+        /* Scan Button */
+        .btn-capture {
+            width: 70px;
+            height: 70px;
+            background: var(--miniso-red);
+            border: 5px solid #fff;
+            border-radius: 50%;
+            margin: -35px auto 0;
+            position: relative;
+            z-index: 10;
+            box-shadow: 0 5px 15px rgba(230, 21, 35, 0.4);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Results Area */
+        .results-section {
+            padding: 20px 16px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .ai-card {
+            background: #f9f9f9;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            gap: 15px;
+            border: 1px solid #eee;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .ai-card img { width: 60px; height: 60px; border-radius: 10px; object-fit: contain; background: #fff; }
+
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        #loading-overlay {
+            position: fixed; inset: 0; background: white; z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
     </style>
 </head>
 <body>
 
-<div id="loginOverlay">
-    <div class="login-box">
-        <h2>MMS-X</h2>
-        <p>Silakan masuk ke akun Anda</p>
-        <label>Login As</label>
-        <select id="loginAs">
-            <option value="Administrator">Administrator</option>
-            <option value="Area">Area</option>
-            <option value="Store">Store</option>
-        </select>
-        <label>Username</label>
-        <input type="text" id="username" placeholder="Username">
-        <label>Password</label>
-        <input type="password" id="password" placeholder="••••••••">
-        <button class="btn-login" onclick="checkLogin()">MASUK</button>
-        <p id="loginError" style="color:var(--miniso-red); font-size:12px; margin-top:15px; font-weight:700; display:none;">Login Gagal!</p>
+    <div id="loading-overlay">
+        <h2 style="color: var(--miniso-red);">MMS-X AI</h2>
+        <p>Memuat Model Intelijen...</p>
     </div>
-</div>
 
-<div id="sidebar" class="sidebar">
-    <h2>MMS-X</h2>
-    <a href="https://miniso-id.github.io/app/" onclick="toggleSidebar()">Home</a>
-    <a href="#" onclick="logout()" style="background:rgba(0,0,0,0.2); margin-top:20px;">Logout</a>
-</div>
-<div id="overlay" onclick="toggleSidebar()"></div>
-
-<div id="btnBackFloating" class="floating-back" onclick="back()">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-</div>
-
-<div id="appContent" style="display:flex; height: 100vh; flex-direction: column;">
-    <header id="ui-header">
-        <div class="top-bar">
-            <button onclick="toggleSidebar()" style="background:none; border:none; padding:10px 5px; cursor:pointer;">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-            </button>
-            <div class="search-container">
-                <input id="searchInput" placeholder="Cari nama / barcode..." autocomplete="off">
-                <button id="scanBtn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                </button>
-            </div>
-        </div>
-        <div id="catFilterContainer" style="display:flex; gap:8px; overflow-x:auto; padding-top:10px;">
-            <div class="cat-chip active" style="padding:8px 16px; background:#f0f0f0; border-radius:20px; font-size:12px; font-weight:700;">All</div>
-        </div>
-        <div id="reader">
-            <video id="videoElement" playsinline></video>
-            <div class="focus-guide"></div>
-            <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK FOKUS</div>
-        </div>
-        <div id="cameraControl"><select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:none;"></select></div>
+    <header id="ai-header">
+        <h2 style="margin:0; font-size: 18px;">Pencarian Visual AI</h2>
+        <select id="videoSource" style="margin-top:10px; border-radius: 8px; padding: 5px;"></select>
     </header>
 
-    <main class="main-content" id="scrollContainer">
-        <div id="listContainer"></div>
-        <div id="detailContainer"></div>
-    </main>
-</div>
+    <div id="vision-container">
+        <video id="videoElement" autoplay playsinline></video>
+        <div id="ai-status-box">MENGAMATI...</div>
+    </div>
 
-<audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
+    <div class="btn-capture" onclick="searchByAI()">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="white"><path d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6m0-2a5 5 0 1 1 0 10 5 5 0 0 1 0-10M19 19H5V8h14v11M12 6a9 9 0 1 1 0 18 9 9 0 0 1 0-18m7-4h-3l-1-2h-6l-1 2H5C3.9 2 3 2.9 3 4v15c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+    </div>
+
+    <div class="results-section" id="aiResults">
+        <p style="text-align: center; color: #888;">Arahkan kamera ke produk dan tekan tombol merah untuk mencari.</p>
+    </div>
 
 <script>
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const _userSupabase = _supabase;
 
-    let net; // TensorFlow MobileNet
-    const codeReader = new ZXing.BrowserMultiFormatReader();
-    let scanning = false, lastScroll = 0, currentCategory = 'All';
-    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId'); // Mengambil kamera terakhir
+    let net;
+    let currentPrediction = "";
+    let lastCameraId = localStorage.getItem('preferredCameraId'); // Konsistensi kamera
 
-    // Load Model TensorFlow saat startup
-    async function loadTF() {
-        console.log("Loading AI Model...");
+    async function initAI() {
         net = await mobilenet.load();
-        console.log("AI Ready!");
+        document.getElementById('loading-overlay').style.display = 'none';
+        setupCamera(lastCameraId);
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-        document.body.classList.add("fade-in");
-        loadTF();
-        if(localStorage.getItem('mms_auth') === 'true') document.getElementById('loginOverlay').style.display = 'none';
-    });
-
-    async function checkLogin() {
-        const role = document.getElementById('loginAs').value;
-        const user = document.getElementById('username').value;
-        const pass = document.getElementById('password').value;
-        const { data } = await _userSupabase.from('users').select('*').eq('login as', role).eq('username', user).eq('password', pass).maybeSingle();
-        if (data) {
-            localStorage.setItem('mms_auth', 'true');
-            document.getElementById('loginOverlay').style.display = 'none';
-        } else {
-            document.getElementById('loginError').style.display = 'block';
-        }
-    }
-
-    function toggleSidebar() { 
-        document.getElementById("sidebar").classList.toggle("active");
-        document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none";
-    }
-
-    /* LOGIKA SCANNER + AI */
-    document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
-
-    async function startScan(deviceId = null) {
-        scanning = true;
-        document.getElementById("reader").style.display = "block";
-        
+    async function setupCamera(deviceId = null) {
+        const video = document.getElementById('videoElement');
         const constraints = {
             video: { 
                 deviceId: deviceId ? { exact: deviceId } : undefined,
@@ -196,120 +152,67 @@
             }
         };
 
-        try {
-            const videoDevices = await codeReader.listVideoInputDevices();
-            const backCameras = videoDevices.filter(d => !d.label.toLowerCase().includes('front'));
-            // Prioritas: Manual select > lastSelectedDeviceId > camera default
-            let selectedId = deviceId || lastSelectedDeviceId || (backCameras.length > 0 ? backCameras[0].deviceId : videoDevices[0].deviceId);
-            
-            updateCameraList(backCameras, selectedId);
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
 
-            await codeReader.decodeFromConstraints(constraints, 'videoElement', (result) => {
-                if (result) onDetected(result.text);
-            });
+        // Update list kamera
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        const select = document.getElementById('videoSource');
+        
+        select.innerHTML = videoDevices.map(d => 
+            `<option value="${d.deviceId}" ${d.deviceId === deviceId ? 'selected' : ''}>${d.label || 'Kamera'}</option>`
+        ).join('');
 
-            // Mulai Analisis TensorFlow AI
-            const video = document.getElementById('videoElement');
-            video.onloadeddata = () => runAIAnalysis();
+        select.onchange = (e) => {
+            localStorage.setItem('preferredCameraId', e.target.value); // Simpan pilihan
+            setupCamera(e.target.value);
+        };
 
-        } catch (err) {
-            console.error(err);
-            if(deviceId) { stopScan(); startScan(null); }
-        }
+        // Mulai analisis kontinyu
+        detectFrame();
     }
 
-    async function runAIAnalysis() {
-        if (!scanning || !net) return;
+    async function detectFrame() {
         const video = document.getElementById('videoElement');
-        try {
-            const predictions = await net.classify(video);
-            if (predictions.length > 0) {
-                const hint = document.querySelector('.tap-hint');
-                hint.innerHTML = `DETECTED: <span style="color:var(--miniso-red)">${predictions[0].className.toUpperCase()}</span>`;
-            }
-        } catch (e) {}
-        if (scanning) requestAnimationFrame(runAIAnalysis);
-    }
-
-    function updateCameraList(devices, currentId) {
-        const source = document.getElementById("videoSource");
-        if (devices.length > 1) {
-            document.getElementById("cameraControl").style.display = "block";
-            source.style.display = "block";
-            source.innerHTML = devices.map(d => `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>${d.label || 'Camera'}</option>`).join("");
+        const predictions = await net.classify(video);
+        
+        if (predictions.length > 0) {
+            currentPrediction = predictions[0].className.split(',')[0];
+            document.getElementById('ai-status-box').innerText = "MELIHAT: " + currentPrediction;
         }
+        
+        requestAnimationFrame(detectFrame);
     }
 
-    document.getElementById("videoSource").onchange = (e) => {
-        lastSelectedDeviceId = e.target.value;
-        localStorage.setItem('preferredCameraId', lastSelectedDeviceId); // Simpan pilihan terakhir
-        stopScan();
-        startScan(lastSelectedDeviceId);
-    };
+    async function searchByAI() {
+        const resultsDiv = document.getElementById('aiResults');
+        resultsDiv.innerHTML = `<p style="text-align:center;">Mencari produk: <b>${currentPrediction}</b>...</p>`;
 
-    function stopScan() {
-        codeReader.reset();
-        scanning = false;
-        document.getElementById("reader").style.display = "none";
-        document.getElementById("cameraControl").style.display = "none";
-    }
+        // Cari di database berdasarkan hasil prediksi AI
+        const { data } = await _supabase
+            .from('export')
+            .select('*')
+            .or(`Name.ilike.%${currentPrediction}%,Category.ilike.%${currentPrediction}%`)
+            .limit(5);
 
-    async function onDetected(code) {
-        document.getElementById("beepOk").play();
-        stopScan();
-        document.getElementById("searchInput").value = code;
-        showDetail(code);
-    }
-
-    /* FUNGSI DATA */
-    async function search() {
-        const q = document.getElementById("searchInput").value.trim();
-        let { data } = await _supabase.from('export').select('*').or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`).limit(100);
-        if(data) {
-            document.getElementById("listContainer").innerHTML = data.map(p => `
-                <div class="list-item" onclick="showDetail('${p.Barcode}')">
-                    <div class="list-img-box"><img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/150'"></div>
-                    <div class="list-info">
-                        <div class="list-cat">${p.Category || 'GENERAL'}</div>
-                        <div class="list-name">${p.Name}</div>
+        if (data && data.length > 0) {
+            resultsDiv.innerHTML = `<h4>Produk Terkait:</h4>` + data.map(p => `
+                <div class="ai-card">
+                    <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/150'">
+                    <div>
+                        <div style="font-size:10px; color:red; font-weight:800;">${p.Category}</div>
+                        <div style="font-weight:700;">${p.Name}</div>
+                        <div style="color:#28a745; font-weight:800; margin-top:5px;">Rp${parseInt(p["Regular Store Price"]).toLocaleString('id-ID')}</div>
                     </div>
                 </div>
             `).join('');
+        } else {
+            resultsDiv.innerHTML = `<p style="text-align:center; color:#888;">Tidak ditemukan produk yang mirip di database.</p>`;
         }
     }
-    document.getElementById("searchInput").oninput = search;
 
-    async function showDetail(bc) {
-        const { data: p } = await _supabase.from('export').select('*').ilike('Barcode', `%${bc}%`).maybeSingle();
-        if(!p) return;
-        document.getElementById("listContainer").style.display = "none";
-        document.getElementById("ui-header").style.display = "none";
-        document.getElementById("detailContainer").style.display = "block";
-        document.getElementById("btnBackFloating").style.display = "flex";
-        
-        document.getElementById("detailContainer").innerHTML = `
-            <div class="product-card">
-                <div class="image-box"><img src="${p.Image || ''}"></div>
-                <div class="p-info">
-                    <span style="color:red; font-weight:800; font-size:12px;">${p.Category}</span>
-                    <h3>${p.Name}</h3>
-                    <div class="price-comparison-grid">
-                        <div class="price-item reg"><small>Regular</small><br><span class="price-val">Rp${parseInt(p["Regular Store Price"] || 0).toLocaleString()}</span></div>
-                        <div class="price-item"><small>Street</small><br><span class="price-val">Rp${parseInt(p["Street Store Price"] || 0).toLocaleString()}</span></div>
-                    </div>
-                    <p style="font-size:12px; color:#666;">Barcode: ${p.Barcode}</p>
-                </div>
-            </div>`;
-    }
-
-    function back() {
-        document.getElementById("detailContainer").style.display = "none";
-        document.getElementById("ui-header").style.display = "block";
-        document.getElementById("listContainer").style.display = "grid";
-        document.getElementById("btnBackFloating").style.display = "none";
-    }
-
-    function logout() { localStorage.clear(); location.reload(); }
+    initAI();
 </script>
 </body>
 </html>

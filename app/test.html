@@ -194,6 +194,8 @@ function navigateTo(url) {
     let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
 
     // INISIALISASI ZXING
+    const hints = new Map();
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
     const codeReader = new ZXing.BrowserMultiFormatReader();
 
     function openLightbox(src) {

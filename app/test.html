@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X</title>
+    <title>MMS-X | AI Scanner</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
@@ -20,211 +20,96 @@
             --sidebar-width: 280px;
         }
 
-/* Animasi Masuk Halaman */
-body {
-    opacity: 0;
-    transition: opacity 0.2s ease-in;
-}
+        body { opacity: 0; transition: opacity 0.2s ease-in; margin: 0; font-family: -apple-system, sans-serif; overflow: hidden; height: 100vh; }
+        body.fade-in { opacity: 1; }
+        .fade-out { opacity: 0 !important; }
 
-body.fade-in {
-    opacity: 1;
-}
+        /* --- LOGIN & UI --- */
+        #loginOverlay { position: fixed; inset: 0; background: var(--bg-gray); z-index: 20000; display: flex; align-items: center; justify-content: center; }
+        .login-box { background: white; width: 90%; max-width: 350px; padding: 35px 25px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); text-align: center; }
+        .btn-login { width: 100%; height: 50px; background: var(--miniso-red); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; }
 
-/* Animasi Keluar Halaman */
-.fade-out {
-    opacity: 0 !important;
-    transition: opacity 0.2s ease-out;
-}
-
-        /* --- LOGIN OVERLAY (TEMA SEPADAN) --- */
-        #loginOverlay {
-            position: fixed; inset: 0; background: var(--bg-gray); 
-            z-index: 20000; display: flex; align-items: center; justify-content: center;
-        }
-        .login-box {
-            background: white; width: 90%; max-width: 350px; padding: 35px 25px; 
-            border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); text-align: center;
-        }
-        .login-box h2 { color: var(--miniso-red); margin: 0 0 10px 0; font-weight: 800; font-size: 28px; }
-        .login-box p { color: #666; font-size: 14px; margin-bottom: 25px; }
-        .login-box label { display: block; text-align: left; font-size: 11px; font-weight: 800; color: #999; margin: 0 0 5px 5px; text-transform: uppercase; }
-        .login-box input, .login-box select { 
-            width: 100%; height: 48px; margin-bottom: 15px; padding: 0 15px; 
-            border-radius: 12px; border: 1.5px solid #eee; background: #f9f9f9; outline: none; font-size: 15px; transition: 0.3s;
-        }
-        .login-box input:focus { border-color: var(--miniso-red); background: white; }
-        .btn-login { 
-            width: 100%; height: 50px; background: var(--miniso-red); color: white; 
-            border: none; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 10px;
-        }
-        .btn-login:active { transform: scale(0.98); }
-
-        /* --- STYLE ASLI --- */
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { 
-            margin: 0; padding: 0; 
-            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto; 
-            background: #ffffff; color: var(--text-dark); 
-            height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden;
-        }
-
-        .sidebar { width: var(--sidebar-width); background: var(--miniso-red); color: #fff; position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 9500; padding: 25px; }
+        .sidebar { width: var(--sidebar-width); background: var(--miniso-red); color: #fff; position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); transition: 0.4s; z-index: 9500; padding: 25px; }
         .sidebar.active { transform: translateX(0); }
-        .sidebar a { color: #fff; text-decoration: none; display: block; padding: 15px; border-radius: 12px; margin-bottom: 10px; font-weight: 600; background: rgba(255,255,255,0.1); }
         #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 9000; display: none; backdrop-filter: blur(4px); }
 
-        #ui-header { 
-            background: rgba(255, 255, 255, 0.95); 
-            backdrop-filter: blur(15px); 
-            padding: calc(20px + env(safe-area-inset-top)) 16px 12px 16px; 
-            border-bottom: 1px solid #eee; 
-            z-index: 1000; 
-            width: 100%; 
-            flex-shrink: 0; 
-        }
-        .top-bar { display: flex; gap: 10px; align-items: center; max-width: 1200px; margin-inline: auto; width: 100%; }
+        #ui-header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); padding: calc(20px + env(safe-area-inset-top)) 16px 12px 16px; border-bottom: 1px solid #eee; z-index: 1000; }
+        .top-bar { display: flex; gap: 10px; align-items: center; }
         .search-container { position: relative; flex: 1; }
-        #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
-        #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; }
+        #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
 
-        #catFilterContainer { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 4px 0; scrollbar-width: none; width: 100%; }
-        #catFilterContainer::-webkit-scrollbar { display: none; }
-        .cat-chip { padding: 8px 16px; background: #f0f0f0; border-radius: 20px; font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; border: 1px solid transparent; transition: 0.2s; flex-shrink: 0; text-transform: uppercase; }
+        #catFilterContainer { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 4px 0; scrollbar-width: none; }
+        .cat-chip { padding: 8px 16px; background: #f0f0f0; border-radius: 20px; font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; }
         .cat-chip.active { background: var(--miniso-red); color: white; }
 
-        #reader { 
-            display:none; width:100%; max-width:340px; aspect-ratio:1/1; 
-            margin:15px auto; background:#000; border-radius:20px; 
-            overflow:hidden; position:relative; border: 4px solid white; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
-        }
-        #reader video { width: 100%; height: 100%; object-fit: cover; }
+        #reader { display:none; width:100%; max-width:340px; aspect-ratio:1/1; margin:15px auto; background:#000; border-radius:20px; overflow:hidden; position:relative; border: 4px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+        #videoElement { width: 100%; height: 100%; object-fit: cover; }
         .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
-        .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; }
-        #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
+        .ai-status { position: absolute; top: 10px; left: 0; width: 100%; text-align: center; color: #00ff00; font-size: 10px; font-weight: bold; z-index: 10; text-shadow: 1px 1px 2px #000; }
 
-        .main-content { flex: 1; overflow-y: auto; overflow-x: hidden; width: 100%; padding: 0 16px; }
-        #listContainer { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 16px 0 80px 0; width: 100%; }
-        
-        @media (min-width: 768px) { #listContainer { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; } }
-
-        .list-item { display: flex; align-items: center; gap: 14px; padding: 12px; background: white; border-radius: 16px; border: 1px solid #f0f0f0; transition: 0.2s; cursor: pointer; width: 100%; min-width: 0; }
-        .list-item:active { transform: scale(0.98); background: #fafafa; }
-        .list-img-box { width: 70px; height: 70px; background: #f9f9f9; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; border: 1px solid #f0f0f0; }
+        .main-content { flex: 1; overflow-y: auto; padding: 0 16px; }
+        #listContainer { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 16px 0 80px 0; }
+        .list-item { display: flex; align-items: center; gap: 14px; padding: 12px; background: white; border-radius: 16px; border: 1px solid #f0f0f0; }
+        .list-img-box { width: 70px; height: 70px; background: #f9f9f9; border-radius: 12px; overflow: hidden; flex-shrink: 0; }
         .list-img-box img { width: 100%; height: 100%; object-fit: contain; }
-        .list-info { flex: 1; min-width: 0; }
-        .list-cat { font-size: 10px; color: var(--miniso-red); font-weight: 800; text-transform: uppercase; margin-bottom: 2px; }
-        .list-name { font-weight: 700; font-size: 14px; color: #111; line-height: 1.4; margin-bottom: 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
-        .list-bc { font-size: 11px; color: #888; word-break: break-all; line-height: 1.2; }
 
-        #detailContainer { display: none; padding-top: 20px; padding-bottom: 80px; max-width: 700px; margin: 0 auto; width: 100%; }
-        .product-card { background: white; border-radius: 20px; overflow: hidden; border: 1px solid #eee; width: 100%; animation: slideUp 0.3s ease-out; }
-        .image-box { background: #fff; text-align: center; padding: 20px; position: relative; border-bottom: 1px solid #f5f5f5; }
-        .image-box img { max-width: 100%; height: 300px; object-fit: contain; cursor: zoom-in; }
-        .promo-badge { position: absolute; bottom: 15px; right: 15px; background: #ff9800; color: white; padding: 5px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; z-index: 10; }
-        .p-info { padding: 24px; }
-        .p-cat { font-size: 11px; font-weight: 800; color: var(--miniso-red); text-transform: uppercase; margin-bottom: 8px; display: block; }
-        .p-title { font-size: 22px; font-weight: 800; margin: 0 0 10px 0; color: #000; line-height: 1.3; word-break: break-word; }
-        .p-desc { font-size: 14px; color: #555; margin-bottom: 20px; line-height: 1.6; word-break: break-word; }
-        
-        .price-comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-        .price-item { padding: 14px; border-radius: 14px; border-bottom: 4px solid #ddd; background: var(--bg-gray); }
-        .price-item.reg { border-bottom-color: var(--miniso-red); background: var(--miniso-soft); }
-        .price-item.str { border-bottom-color: var(--promo-green); }
-        .price-label { font-size: 10px; font-weight: 800; color: #777; margin-bottom: 5px; text-transform: uppercase; display: block; }
-        .price-val { font-size: 19px; font-weight: 800; color: #222; }
-        .price-item.reg .price-val { color: var(--miniso-red); }
-
-        #lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1); padding: 24px; cursor: pointer; backdrop-filter: blur(12px); }
-        #lightbox.active { display: flex; opacity: 1; }
-        #lightbox img { max-width: 95%; max-height: 85vh; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(0.8) translateY(20px); transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        #lightbox.active img { transform: scale(1) translateY(0); }
-
-        .floating-back { position: fixed; top: calc(25px + env(safe-area-inset-top)); left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 9999; cursor: pointer; border: 1px solid #eee; }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        #detailContainer { display: none; padding-top: 20px; padding-bottom: 80px; }
+        .product-card { background: white; border-radius: 20px; overflow: hidden; border: 1px solid #eee; }
+        .price-comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
+        .price-item { padding: 12px; border-radius: 12px; background: var(--bg-gray); }
+        .price-item.reg { background: var(--miniso-soft); border-bottom: 3px solid var(--miniso-red); }
+        .floating-back { position: fixed; top: 30px; left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 9999; }
     </style>
-
-    <script type="module">
-import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
-
-window.imageClassifier = await pipeline(
-  'image-classification',
-  'Xenova/mobilenetv2_100_224'
-);
-
-console.log("AI Vision Ready 🚀");
-</script>
 </head>
 <body>
-
-<div id="page-loader" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:30000; align-items:center; justify-content:center; backdrop-filter:blur(2px);">
-    <div class="spinner" style="border-top-color: var(--miniso-red); width: 40px; height: 40px; border-width: 4px;"></div>
-</div>
 
 <div id="loginOverlay">
     <div class="login-box">
         <h2>MMS-X</h2>
-        <p>Silakan masuk ke akun Anda</p>
-        
-        <label>Login As</label>
-        <select id="loginAs">
+        <p>Silakan masuk</p>
+        <select id="loginAs" style="width:100%; height:45px; margin-bottom:10px; border-radius:8px;">
             <option value="Administrator">Administrator</option>
             <option value="Area">Area</option>
             <option value="Store">Store</option>
         </select>
-        
-        <label>Username</label>
-        <input type="text" id="username" placeholder="Username" autocomplete="off">
-        
-        <label>Password</label>
-        <input type="password" id="password" placeholder="••••••••">
-        
+        <input type="text" id="username" placeholder="Username" style="width:100%; height:45px; margin-bottom:10px; padding:0 10px; border-radius:8px; border:1px solid #ddd;">
+        <input type="password" id="password" placeholder="Password" style="width:100%; height:45px; margin-bottom:20px; padding:0 10px; border-radius:8px; border:1px solid #ddd;">
         <button class="btn-login" onclick="checkLogin()">MASUK</button>
-        <p id="loginError" style="color:var(--miniso-red); font-size:12px; margin-top:15px; font-weight:700; display:none;">Login Gagal! Periksa data Anda.</p>
+        <p id="loginError" style="color:red; display:none; font-size:12px;">Login Gagal!</p>
     </div>
 </div>
 
 <div id="sidebar" class="sidebar">
     <h2>MMS-X</h2>
-    <a href="https://miniso-id.github.io/app/" onclick="toggleSidebar()">Home</a>
-    <a href="#" onclick="logout()" style="background:rgba(0,0,0,0.2); margin-top:20px;">Logout</a>
+    <a href="#" onclick="logout()">Logout</a>
 </div>
 <div id="overlay" onclick="toggleSidebar()"></div>
 
 <div id="btnBackFloating" class="floating-back" onclick="back()">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-</div>
-
-<div id="lightbox" onclick="closeLightbox()">
-    <img id="lightboxImg" src="">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
 </div>
 
 <div id="appContent" style="display:flex; height: 100vh; flex-direction: column;">
     <header id="ui-header">
         <div class="top-bar">
-            <button onclick="toggleSidebar()" style="background:none; border:none; padding:10px 5px; cursor:pointer;">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            <button onclick="toggleSidebar()" style="background:none; border:none;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             <div class="search-container">
-                <input id="searchInput" placeholder="Cari nama / barcode..." autocomplete="off">
+                <input id="searchInput" placeholder="Cari produk...">
                 <button id="scanBtn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                 </button>
-                <button id="aiPhotoBtn" title="AI Foto"
-style="width:38px;height:34px;background:#007bff;color:white;border:none;border-radius:10px;margin-left:6px;">
-📷
-</button>
             </div>
         </div>
-        <div id="catFilterContainer">
-            <div class="cat-chip active" onclick="filterCat('All', this)">All</div>
-        </div>
+        <div id="catFilterContainer"></div>
         <div id="reader">
+            <div class="ai-status" id="aiStatus">🤖 AI READY</div>
             <video id="videoElement"></video>
             <div class="focus-guide"></div>
-            <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK FOKUS</div>
         </div>
-        <div id="cameraControl"><select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select></div>
+        <div id="cameraControl" style="display:none;"><select id="videoSource" style="width:100%; margin:10px 0; padding:8px; border-radius:8px;"></select></div>
     </header>
 
     <main class="main-content" id="scrollContainer">
@@ -236,184 +121,51 @@ style="width:38px;height:34px;background:#007bff;color:white;border:none;border-
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
-
-// Jalankan saat halaman dimuat
-document.addEventListener("DOMContentLoaded", () => {
-    document.body.classList.add("fade-in");
-});
-
-async function getEmbedding(text) {
-    const output = await window.aiEmbedder(text, {
-        pooling: 'mean',
-        normalize: true
-    });
-    return Array.from(output.data);
-}
-
-// buka kamera AI
-document.getElementById("aiPhotoBtn").onclick = async () => {
-    const box = document.getElementById("aiCameraBox");
-    const video = document.getElementById("aiVideo");
-
-    box.style.display = "flex";
-
-    const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" }
-    });
-
-    video.srcObject = stream;
-};
-
-// foto & tebak
-document.getElementById("aiSnap").onclick = async () => {
-    const video = document.getElementById("aiVideo");
-    const canvas = document.getElementById("aiCanvas");
-    const ctx = canvas.getContext("2d");
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0);
-
-    // loading indicator optional
-    console.log("AI analyzing...");
-
-    const result = await window.imageClassifier(canvas);
-    const label = result[0].label;
-
-    console.log("AI Tebak:", label);
-
-    // tutup kamera
-    document.getElementById("aiCameraBox").style.display = "none";
-    video.srcObject.getTracks().forEach(t => t.stop());
-
-    // masukkan ke search kamu
-    document.getElementById("searchInput").value = label;
-    search();
-};
-
-// cosine similarity
-function cosineSim(a, b) {
-    let dot = 0, normA = 0, normB = 0;
-    for (let i = 0; i < a.length; i++) {
-        dot += a[i] * b[i];
-        normA += a[i] * a[i];
-        normB += b[i] * b[i];
-    }
-    return dot / (Math.sqrt(normA) * Math.sqrt(normB));
-}
-
-function navigateTo(url) {
-    const loader = document.getElementById('page-loader');
-    if (loader) loader.style.display = 'flex';
-    document.body.classList.add("fade-out");
-    setTimeout(() => {
-        window.location.href = url;
-    }, 200); 
-}
-    
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js')
-                .then(reg => console.log('Service Worker Registered!', reg.scope))
-                .catch(err => console.log('Service Worker Failed:', err));
-        });
-    }
-    
+    // --- KONFIGURASI SUPABASE ---
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const USER_SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co"; 
-    const USER_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
-    const _userSupabase = supabase.createClient(USER_SUPABASE_URL, USER_SUPABASE_KEY);
+    // --- STATE ---
+    let scanning = false;
+    let lastScroll = 0;
+    let currentCategory = 'All';
+    const codeReader = new ZXing.BrowserMultiFormatReader();
+    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId'); // [cite: 2026-02-22]
 
-    /* --- LOGIKA LOGIN TERINTEGRASI --- */
+    document.addEventListener("DOMContentLoaded", () => {
+        document.body.classList.add("fade-in");
+        fetchCategories();
+        search();
+    });
+
+    // --- AUTH ---
     async function checkLogin() {
         const role = document.getElementById('loginAs').value;
         const user = document.getElementById('username').value;
         const pass = document.getElementById('password').value;
-        const err = document.getElementById('loginError');
-        const btn = document.querySelector('.btn-login');
-
-        btn.innerText = "LOADING...";
-        err.style.display = 'none';
-
-        try {
-            const { data } = await _userSupabase
-                .from('users') 
-                .select('*')
-                .eq('login as', role)
-                .eq('username', user)
-                .eq('password', pass)
-                .maybeSingle();
-
-            if (data) {
-                localStorage.setItem('mmsx_auth', 'true');
-                localStorage.setItem('mmsx_role', role); 
-                
-                document.getElementById('loginOverlay').style.display = 'none';
-            } else {
-                err.style.display = 'block';
-            }
-        } catch (e) {
-            alert("Error Koneksi Database User");
-        } finally {
-            btn.innerText = "MASUK";
+        const { data } = await _supabase.from('users').select('*').eq('login as', role).eq('username', user).eq('password', pass).maybeSingle();
+        if (data) {
+            localStorage.setItem('mms_auth', 'true');
+            localStorage.setItem('mms_role', role);
+            document.getElementById('loginOverlay').style.display = 'none';
+        } else {
+            document.getElementById('loginError').style.display = 'block';
         }
     }
+    if(localStorage.getItem('mms_auth') === 'true') document.getElementById('loginOverlay').style.display = 'none';
 
-(function autoLoginCheck() {
-    const isAuth = localStorage.getItem('mms_auth'); 
-    const userRole = localStorage.getItem('mms_role');
+    function logout() { localStorage.clear(); location.reload(); }
 
-    if (isAuth === 'true' && userRole !== 'Staff') { 
-        document.addEventListener("DOMContentLoaded", () => {
-            const overlay = document.getElementById('loginOverlay');
-            if(overlay) overlay.style.display = 'none';
-        });
-    }
-})();
-
-if(localStorage.getItem('mms_auth') === 'true') {
-    window.addEventListener('load', () => {
-        const overlay = document.getElementById('loginOverlay');
-        if(overlay) overlay.style.display = 'none';
-    });
-}
-    function logout() {
-    localStorage.clear(); 
-    window.location.href = "index.html"; 
-}
-
-    /* --- INISIALISASI ZXING --- */
-    const codeReader = new ZXing.BrowserMultiFormatReader();
-    let scanning = false, lastScroll = 0, timer;
-    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId'); // Rekaman kamera terakhir
-    let currentCategory = 'All';
-
+    // --- DATA & UI ---
     async function fetchCategories() {
-        const { data, error } = await _supabase.rpc('get_unique_categories');
-
-        if (error) {
-            console.error("Gagal mengambil kategori:", error);
-            return;
-        }
-
+        const { data } = await _supabase.rpc('get_unique_categories');
         if (data) {
             const container = document.getElementById('catFilterContainer');
-            container.innerHTML = '<div class="cat-chip active" onclick="filterCat(\'All\', this)">All</div>';
-
-            data.forEach(item => {
-                const catName = item.category; 
-                const chip = document.createElement('div');
-                chip.className = 'cat-chip';
-                chip.innerText = catName;
-                chip.onclick = () => filterCat(catName, chip);
-                container.appendChild(chip);
-            });
+            container.innerHTML = '<div class="cat-chip active" onclick="filterCat(\'All\', this)">All</div>' + 
+                data.map(item => `<div class="cat-chip" onclick="filterCat('${item.category}', this)">${item.category}</div>`).join('');
         }
     }
-    fetchCategories();
 
     function filterCat(cat, el) {
         document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
@@ -422,249 +174,101 @@ if(localStorage.getItem('mms_auth') === 'true') {
         search();
     }
 
-    function openLightbox(src) {
-        if(!src || src.includes('placeholder')) return;
-        const lb = document.getElementById('lightbox');
-        document.getElementById('lightboxImg').src = src;
-        lb.classList.add('active');
-    }
-
-    function closeLightbox() { document.getElementById('lightbox').classList.remove('active'); }
-
-    function toggleSidebar() { 
-        document.getElementById("sidebar").classList.toggle("active");
-        document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none";
-    }
-
-    function cleanPrice(val) {
-        if(!val) return 0;
-        return parseInt(String(val).replace(/[^0-9]/g, "")) || 0;
-    }
-
-    document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 400); };
-
     async function search() {
         const q = document.getElementById("searchInput").value.trim();
         const list = document.getElementById("listContainer");
         let query = _supabase.from('export').select('*');
         if (currentCategory !== 'All') query = query.eq('Category', currentCategory);
         if (q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
-        let { data } = await query.limit(5000);
+        let { data } = await query.limit(50);
         if(data) {
             list.innerHTML = data.map(p => `
                 <div class="list-item" onclick="showDetail('${p.Barcode}')">
-                    <div class="list-img-box" onclick="event.stopPropagation(); openLightbox('${p.Image}')">
-                        <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/150x150?text=Miniso'" loading="lazy">
-                    </div>
+                    <div class="list-img-box"><img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/150'"></div>
                     <div class="list-info">
-                        <div class="list-cat">${p.Category || 'GENERAL'}</div>
-                        <div class="list-name">${p.Name}</div>
-                        <div class="list-bc">${p.Barcode}</div>
+                        <div style="font-size:10px; color:red; font-weight:800;">${p.Category || 'GENERAL'}</div>
+                        <div style="font-weight:700; font-size:14px;">${p.Name}</div>
+                        <div style="font-size:11px; color:#888;">${p.Barcode}</div>
                     </div>
                 </div>
             `).join('');
         }
     }
 
-async function aiSearch(products, query) {
-    const qEmbed = await getEmbedding(query);
+    document.getElementById("searchInput").oninput = search;
 
-    const scored = await Promise.all(products.map(async p => {
-        if (!p._embed) {
-            p._embed = await getEmbedding(p.Name);
-        }
-        return {
-            ...p,
-            score: cosineSim(qEmbed, p._embed)
-        };
-    }));
-
-    return scored
-        .filter(p => p.score > 0.4)
-        .sort((a,b) => b.score - a.score);
-}
-    
-    /* --- LOGIKA SCANNER ZXING --- */
+    // --- SCANNER & CAMERA ---
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
     async function startScan(deviceId = null) {
-        scanning = true; 
+        scanning = true;
         document.getElementById("reader").style.display = "block";
-        
-        const hints = new Map();
-        const formats = [
-            ZXing.BarcodeFormat.EAN_13,
-            ZXing.BarcodeFormat.EAN_8,
-            ZXing.BarcodeFormat.CODE_128,
-            ZXing.BarcodeFormat.UPC_A,
-            ZXing.BarcodeFormat.UPC_E
-        ];
-        
-        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
-        hints.set(ZXing.DecodeHintType.TRY_HARDER, true); 
-        hints.set(ZXing.DecodeHintType.CHARACTER_SET, 'utf-8');
-        hints.set(ZXing.DecodeHintType.PURE_BARCODE, false);
+        const videoDevices = await codeReader.listVideoInputDevices();
+        const backCams = videoDevices.filter(d => !d.label.toLowerCase().includes('front'));
+        let selectedId = deviceId || (backCams.length > 0 ? backCams[0].deviceId : videoDevices[0].deviceId);
 
-        const constraints = {
-            video: {
-                deviceId: deviceId ? { exact: deviceId } : undefined,
-                width: { min: 1280, ideal: 1920, max: 2560 },
-                height: { min: 720, ideal: 1080, max: 1440 },
-                frameRate: { ideal: 30, max: 60 },
-                facingMode: "environment",
-                aspectRatio: { ideal: 1.7777777778 }
-            }
-        };
+        // Simpan pilihan kamera [cite: 2026-02-22]
+        localStorage.setItem('preferredCameraId', selectedId);
+        updateCameraList(backCams, selectedId);
 
         try {
-            const videoDevices = await codeReader.listVideoInputDevices();
-            const backCameras = videoDevices.filter(d => !d.label.toLowerCase().includes('front'));
-            let selectedId = deviceId || lastSelectedDeviceId || (backCameras.length > 0 ? backCameras[0].deviceId : videoDevices[0].deviceId);
-            
-            updateCameraList(backCameras, selectedId);
-
-            codeReader.hints = hints;
-
-            await codeReader.decodeFromConstraints(constraints, 'videoElement', (result, err) => {
+            await codeReader.decodeFromVideoDevice(selectedId, 'videoElement', (result) => {
                 if (result) {
-                    onDetected(result.text);
+                    document.getElementById("beepOk").play();
+                    document.getElementById("searchInput").value = result.text;
+                    stopScan();
+                    showDetail(result.text);
                 }
             });
+        } catch (err) { console.error(err); }
+    }
 
-            const videoTrack = document.getElementById('videoElement').srcObject.getVideoTracks()[0];
-            const capabilities = videoTrack.getCapabilities();
-            
-            const advanced = {};
-            
-            if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
-                advanced.focusMode = 'continuous';
-            }
-
-            if (capabilities.zoom) {
-                const targetZoom = Math.min(capabilities.zoom.min + 0.5, capabilities.zoom.max);
-                advanced.zoom = targetZoom;
-            }
-
-            if (Object.keys(advanced).length > 0) {
-                await videoTrack.applyConstraints({ advanced: [advanced] });
-            }
-
-        } catch (err) {
-            console.error("Gagal optimasi kamera:", err);
-            if(deviceId) { 
-                codeReader.reset(); 
-                startScan(null); 
-            }
-        }
+    function stopScan() {
+        codeReader.reset();
+        scanning = false;
+        document.getElementById("reader").style.display = "none";
+        document.getElementById("cameraControl").style.display = "none";
     }
 
     function updateCameraList(devices, currentId) {
         const source = document.getElementById("videoSource");
-        const control = document.getElementById("cameraControl");
-        
-        if (devices.length <= 1) {
-            control.style.display = "none";
-        } else {
-            control.style.display = "block";
-            source.innerHTML = devices.map(d => 
-                `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>${d.label || 'Kamera'}</option>`
-            ).join("");
+        if (devices.length > 1) {
+            document.getElementById("cameraControl").style.display = "block";
+            source.innerHTML = devices.map(d => `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>${d.label}</option>`).join("");
+            source.onchange = (e) => { stopScan(); startScan(e.target.value); };
         }
     }
 
-    document.getElementById("videoSource").onchange = (e) => { 
-        lastSelectedDeviceId = e.target.value; 
-        localStorage.setItem('preferredCameraId', lastSelectedDeviceId); 
-        stopScan(); 
-        startScan(lastSelectedDeviceId); 
-    };
-
-    document.getElementById("reader").onclick = async () => {
-        const videoTrack = document.getElementById('videoElement').srcObject?.getVideoTracks()[0];
-        if (videoTrack) {
-            try {
-                const capabilities = videoTrack.getCapabilities();
-                if (capabilities.focusMode) {
-                    await videoTrack.applyConstraints({
-                        advanced: [{ focusMode: 'continuous' }] 
-                    });
-                    console.log("Fokus dipicu ulang");
-                }
-            } catch (e) {
-                console.warn("Fokus manual tidak didukung pada perangkat ini.");
-            }
-        }
-    };
-
-    function stopScan() { 
-        codeReader.reset(); 
-        scanning = false; 
-        document.getElementById("reader").style.display = "none"; 
-        document.getElementById("cameraControl").style.display = "none"; 
-    }
-
-    async function onDetected(code) {
-        const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
-        if(data) { 
-            document.getElementById("beepOk").play(); 
-            stopScan(); 
-            document.getElementById("searchInput").blur(); 
-            document.getElementById("searchInput").value = code; 
-            showDetail(code); 
-        }
-    }
-
-    async function showDetail(fullBarcode) {
+    // --- DETAIL & NAVIGATION ---
+    async function showDetail(barcode) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;
-        const { data: p } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();
-        if(!p) return;
+        const { data: p } = await _supabase.from('export').select('*').ilike('Barcode', `%${barcode}%`).maybeSingle();
+        if (!p) return;
         document.getElementById("listContainer").style.display = "none";
         document.getElementById("ui-header").style.display = "none";
-        const regPrice = cleanPrice(p["Regular Store Price"]);
-        const strPrice = cleanPrice(p["Street Store Price"]);
-        const promoText = (p["Extra Promo"] || "").trim();
-        const discountLabel = (promoText !== "" && promoText !== "NORMAL PRICE" && p["Regular Store Promo"] !== "NORMAL") 
-        ? `<div class="promo-badge">${promoText}</div>` 
-        : "";
-             const det = document.getElementById("detailContainer");
-        det.innerHTML = `
+        document.getElementById("detailContainer").style.display = "block";
+        document.getElementById("btnBackFloating").style.display = "flex";
+        
+        document.getElementById("detailContainer").innerHTML = `
             <div class="product-card">
-                <div class="image-box">
-                    ${discountLabel}
-                    <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/500x500?text=Miniso+Product'" onclick="openLightbox('${p.Image}')">
-                </div>
-                <div class="p-info">
-                    <span class="p-cat">${p.Category || 'GENERAL'}</span>
-                    <h3 class="p-title">${p.Name}</h3>
-                    <p class="p-desc">${p.Description || ''}</p>
+                <img src="${p.Image || ''}" style="width:100%; height:300px; object-fit:contain; padding:20px;">
+                <div style="padding:20px;">
+                    <span style="color:red; font-weight:800; font-size:12px;">${p.Category}</span>
+                    <h2 style="margin:10px 0;">${p.Name}</h2>
+                    <p style="color:#555; font-size:14px;">${p.Description || ''}</p>
                     <div class="price-comparison-grid">
                         <div class="price-item reg">
-                            <span class="price-label">Regular Store</span>
-                            <span class="price-val">Rp${regPrice.toLocaleString('id-ID')}</span>
+                            <small>Regular Store</small><br>
+                            <strong>Rp${parseInt(p["Regular Store Price"] || 0).toLocaleString('id-ID')}</strong>
                         </div>
-                        <div class="price-item str">
-                            <span class="price-label">Street Store</span>
-                            <span class="price-val">Rp${strPrice.toLocaleString('id-ID')}</span>
-                        </div>
-                    </div>
-                    <div style="border-top: 1px solid #eee; padding-top: 20px;">
-                        <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px;">
-                            <span style="color:#888; font-weight:600;">BARCODE</span><span style="font-weight:700; word-break:break-all; text-align:right; max-width:60%;">${p.Barcode}</span>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px;">
-                            <span style="color:#888; font-weight:600;">REG PROMO</span><span style="font-weight:700; color:var(--promo-blue)">${p["Regular Store Promo"] || '-'}</span>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; font-size:12px;">
-                            <span style="color:#888; font-weight:600;">STR PROMO</span><span style="font-weight:700; color:var(--promo-green)">${p["Street Store Promo"] || '-'}</span>
+                        <div class="price-item">
+                            <small>Street Store</small><br>
+                            <strong>Rp${parseInt(p["Street Store Price"] || 0).toLocaleString('id-ID')}</strong>
                         </div>
                     </div>
                 </div>
             </div>
         `;
-        det.style.display = "block";
-        det.classList.add('active');
-        document.getElementById("btnBackFloating").style.display = "flex";
-        document.getElementById("scrollContainer").scrollTo(0, 0);
     }
 
     function back() {
@@ -674,128 +278,69 @@ async function aiSearch(products, query) {
         document.getElementById("btnBackFloating").style.display = "none";
         document.getElementById("scrollContainer").scrollTop = lastScroll;
     }
+
+    function toggleSidebar() {
+        const s = document.getElementById("sidebar");
+        const o = document.getElementById("overlay");
+        s.classList.toggle("active");
+        o.style.display = s.classList.contains("active") ? "block" : "none";
+    }
 </script>
 
-<script>
-const prodTranslations = {
-    id: {
-        loginTitle: "MMS-X",
-        loginDesc: "Silakan masuk ke akun Anda",
-        labelRole: "MASUK SEBAGAI",
-        labelUser: "NAMA PENGGUNA",
-        labelPass: "KATA SANDI",
-        btnMasuk: "MASUK",
-        loginFail: "Login Gagal! Periksa data Anda.",
-        searchPlace: "Cari nama / barcode...",
-        tapHint: "ARAHKAN BARCODE • TAP UNTUK FOKUS",
-        allCat: "SEMUA",
-        regStoreLabel: "Toko Reguler",
-        strStoreLabel: "Toko Ruko",
-        barcodeLabel: "BARCODE",
-        regPromoLabel: "PROMO REGULER",
-        strPromoLabel: "PROMO RUKO"
-    },
-    en: {
-        loginTitle: "MMS-X",
-        loginDesc: "Please login to your account",
-        labelRole: "LOGIN AS",
-        labelUser: "USERNAME",
-        labelPass: "PASSWORD",
-        btnMasuk: "LOGIN",
-        loginFail: "Login Failed! Check your credentials.",
-        searchPlace: "Search name / barcode...",
-        tapHint: "POINT AT BARCODE • TAP TO FOCUS",
-        allCat: "ALL",
-        regStoreLabel: "Regular Store",
-        strStoreLabel: "Street Store",
-        barcodeLabel: "BARCODE",
-        regPromoLabel: "REGULAR STORE PROMO",
-        strPromoLabel: "STREET STORE PROMO"
-    },
-    cn: {
-        loginTitle: "MMS-X",
-        loginDesc: "请登录您的账户",
-        labelRole: "登录身份",
-        labelUser: "用户名",
-        labelPass: "密码",
-        btnMasuk: "登录",
-        loginFail: "登录失败！请检查您的信息。",
-        searchPlace: "搜索名称 / 条码...",
-        tapHint: "对准条形码 • 轻触对焦",
-        allCat: "全部",
-        regStoreLabel: "常规店价格",
-        strStoreLabel: "街边店价格",
-        barcodeLabel: "条码",
-        regPromoLabel: "常规促销",
-        strPromoLabel: "街边店促销"
+<script type="module">
+    import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+
+    let detector;
+    let aiActive = false;
+
+    async function initAI() {
+        const status = document.getElementById('aiStatus');
+        try {
+            status.innerText = "⏳ LOADING AI...";
+            detector = await pipeline('object-detection', 'Xenova/detr-resnet-50-tiny');
+            status.innerText = "✅ AI READY";
+        } catch (e) { status.innerText = "❌ AI ERROR"; }
     }
-};
+    initAI();
 
-function applyProductLanguage() {
-    const lang = localStorage.getItem('mms_lang') || 'id';
-    const t = prodTranslations[lang];
+    async function runAIDetection() {
+        if (!detector || !scanning) return;
+        const video = document.getElementById('videoElement');
+        if (video.readyState < 2) return;
 
-    const loginBox = document.querySelector('.login-box');
-    if (loginBox) {
-        loginBox.querySelector('p').innerText = t.loginDesc;
-        const labels = loginBox.querySelectorAll('label');
-        if (labels.length >= 3) {
-            labels[0].innerText = t.labelRole;
-            labels[1].innerText = t.labelUser;
-            labels[2].innerText = t.labelPass;
-        }
-        document.querySelector('.btn-login').innerText = t.btnMasuk;
-        document.getElementById('loginError').innerText = t.loginFail;
-    }
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
 
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) searchInput.placeholder = t.searchPlace;
-    
-    const tapHint = document.querySelector('.tap-hint');
-    if (tapHint) tapHint.innerText = t.tapHint;
-
-    const allChip = document.querySelector('.cat-chip');
-    if (allChip && allChip.innerText.toLowerCase() === 'all') {
-        allChip.innerText = t.allCat;
-    }
-
-    const originalShowDetail = window.showDetail;
-    window.showDetail = async function(fullBarcode) {
-        await originalShowDetail(fullBarcode);
+        const output = await detector(canvas.toDataURL('image/jpeg'), { threshold: 0.6, percentage: true });
         
-        const labels = document.querySelectorAll('.price-label');
-        if (labels.length >= 2) {
-            labels[0].innerText = t.regStoreLabel;
-            labels[1].innerText = t.strStoreLabel;
+        if (output.length > 0 && scanning) {
+            const item = output[0].label; // Label hasil deteksi AI
+            const status = document.getElementById('aiStatus');
+            status.innerText = `🎯 DETECTED: ${item.toUpperCase()}`;
+            
+            // Masukkan hasil deteksi ke pencarian Supabase
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput.value !== item) {
+                searchInput.value = item;
+                window.search(); 
+            }
         }
+        if(scanning) setTimeout(runAIDetection, 2500); // Deteksi ulang tiap 2.5 detik
+    }
 
-        const infoLabels = document.querySelectorAll('#detailContainer span[style*="color:#888"]');
-        if (infoLabels.length >= 3) {
-            infoLabels[0].innerText = t.barcodeLabel;
-            infoLabels[1].innerText = t.regPromoLabel;
-            infoLabels[2].innerText = t.strPromoLabel;
+    // Pantau saat scanner dibuka
+    const observer = new MutationObserver(() => {
+        const reader = document.getElementById('reader');
+        if (reader.style.display === 'block' && !aiActive) {
+            aiActive = true;
+            runAIDetection();
+        } else if (reader.style.display === 'none') {
+            aiActive = false;
         }
-    };
-}
-
-document.addEventListener('DOMContentLoaded', applyProductLanguage);
+    });
+    observer.observe(document.getElementById('reader'), { attributes: true, attributeFilter: ['style'] });
 </script>
-    <div id="aiCameraBox" style="
-display:none;
-position:fixed;
-inset:0;
-background:#000;
-z-index:15000;
-align-items:center;
-justify-content:center;
-flex-direction:column;
-">
-  <video id="aiVideo" autoplay playsinline style="width:100%;max-width:420px;border-radius:16px;"></video>
-  <button id="aiSnap"
-    style="margin-top:12px;padding:12px 24px;border:none;border-radius:12px;background:#e61523;color:#fff;font-weight:bold;">
-    FOTO & TEBAK
-  </button>
-  <canvas id="aiCanvas" style="display:none;"></canvas>
-</div>
+
 </body>
 </html>

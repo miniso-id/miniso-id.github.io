@@ -276,23 +276,33 @@ function navigateTo(url) {
                     console.error(err);
                 }
             });
-            // --- TAMBAHKAN KODE AUTO FOCUS DI SINI ---
-        const videoElement = document.getElementById('video');
-        const stream = videoElement.srcObject;
-        if (stream) {
-            const track = stream.getVideoTracks()[0];
-            const capabilities = track.getCapabilities();
+// --- BAGIAN HARDWARE ACCELERATION DIMULAI ---
+    const videoElement = document.getElementById('video');
+    const stream = videoElement.srcObject;
+    
+    if (stream) {
+        const track = stream.getVideoTracks()[0];
+        
+        // Memerintahkan hardware kamera bekerja lebih agresif
+        const hardwareConstraints = {
+            advanced: [
+                { focusMode: "continuous" }, // Hardware Auto-Focus
+                { whiteBalanceMode: "continuous" }, // Penyesuaian cahaya otomatis
+                { exposureMode: "continuous" } // Penyesuaian kontras otomatis
+            ]
+        };
 
-            // Cek apakah HP mendukung fitur fokus otomatis
-            if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
-                await track.applyConstraints({
-                    advanced: [{ focusMode: 'continuous' }]
-                });
-                console.log("Auto-focus aktif");
-            }
-        }
-        // -----------------------------------------
+        // Terapkan instruksi langsung ke modul kamera fisik
+        track.applyConstraints(hardwareConstraints)
+            .then(() => console.log("Hardware Acceleration Aktif"))
+            .catch(e => console.log("Hardware tidak mendukung kontrol penuh, menggunakan software default"));
+    }
+    // --- BAGIAN HARDWARE ACCELERATION SELESAI ---
 
+    updateCameraList();
+} catch (error) {
+    // ...
+}
         updateCameraList();
     } catch (error) {
         console.error(error);

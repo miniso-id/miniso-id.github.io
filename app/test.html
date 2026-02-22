@@ -263,58 +263,34 @@ async function startScan(deviceId = null) {
         document.getElementById("reader").style.display = "block";
         const videoElement = document.getElementById("zxing-video");
         
+        // Reset reader sebelum mulai
         codeReader.reset();
 
         try {
-            // LANGKAH 1: Pancing izin kamera agar label (nama kamera) bisa dibaca browser
-            // Jika kita tidak melakukan ini, listVideoInputDevices seringkali kosong/anonim
-            const initialStream = await navigator.mediaDevices.getUserMedia({ video: true });
-            initialStream.getTracks().forEach(track => track.stop()); // Matikan pancingan segera
-
-            // LANGKAH 2: Ambil daftar perangkat yang sekarang sudah memiliki Label
-            const videoInputDevices = await codeReader.listVideoInputDevices();
-            
-            // LANGKAH 3: Filter ketat untuk memblokir kamera depan
-            const rearCameras = videoInputDevices.filter(d => {
-                const label = d.label.toLowerCase();
-                return !label.includes('front') && 
-                       !label.includes('user') && 
-                       !label.includes('selfie') &&
-                       !label.includes('face');
-            });
-
-            // LANGKAH 4: Tentukan ID target
-            let targetDeviceId;
-            
-            // Cek apakah ada ID yang tersimpan di localStorage dan apakah itu kamera belakang
-            if (deviceId && rearCameras.some(d => d.deviceId === deviceId)) {
-                targetDeviceId = deviceId;
-            } else if (rearCameras.length > 0) {
-                // Pilih kamera belakang terakhir di daftar (biasanya kamera utama pada Android)
-                targetDeviceId = rearCameras[rearCameras.length - 1].deviceId;
-            }
-
-            // LANGKAH 5: Jalankan kamera dengan batasan ketat
+            // KONSTRUKSI CONSTRAINT KETAT
+            // Menggunakan 'exact' akan memaksa browser GAGAL jika tidak ada kamera belakang
+            // Ini jauh lebih ampuh daripada melakukan filter label manual
             const constraints = {
                 video: {
-                    deviceId: targetDeviceId ? { exact: targetDeviceId } : undefined,
-                    facingMode: { exact: "environment" }, // "exact" lebih kuat daripada "ideal"
+                    deviceId: deviceId ? { exact: deviceId } : undefined,
+                    facingMode: { exact: "environment" }, 
                     width: { ideal: 1920 },
                     height: { ideal: 1080 }
                 }
             };
 
+            // 1. Ambil stream langsung (ini sekaligus meminta izin)
             const stream = await navigator.mediaDevices.getUserMedia(constraints);
             videoElement.srcObject = stream;
-            
-            // Zoom & Focus (Opsional)
-            const track = stream.getVideoTracks()[0];
-            const capabilities = track.getCapabilities();
-            if (capabilities.zoom) {
-                track.applyConstraints({ advanced: [{ zoom: 1 }] }).catch(() => {});
-            }
 
-            // Mulai Decode
+            // 2. Ambil daftar perangkat SETELAH izin diberikan untuk update dropdown
+            const videoInputDevices = await codeReader.listVideoInputDevices();
+            const rearCameras = videoInputDevices.filter(d => {
+                const label = d.label.toLowerCase();
+                return !label.includes('front') && !label.includes('user') && !label.includes('selfie');
+            });
+
+            // 3. Mulai proses pembacaan barcode
             codeReader.decodeFromVideoElement(videoElement, (result, err) => {
                 if (result) {
                     document.getElementById("beepOk").play(); 
@@ -323,17 +299,23 @@ async function startScan(deviceId = null) {
                     document.getElementById("searchInput").value = code; 
                     showDetail(code);
                 }
+                // Abaikan error (err) karena ZXing melempar error setiap detik jika tidak ada barcode
             });
             
-            // Update Dropdown agar user hanya bisa pilih kamera belakang lainnya
-            renderCameraOptions(rearCameras, targetDeviceId);
+            // 4. Update UI Dropdown
+            const currentId = stream.getVideoTracks()[0].getSettings().deviceId;
+            renderCameraOptions(rearCameras, currentId);
 
         } catch (err) {
             console.error("Kamera error:", err);
-            // Jika gagal karena "exact" environment, coba fallback sekali lagi tanpa exact
-            if(err.name === "OverconstrainedError") {
-                alert("Kamera belakang tidak ditemukan atau tidak diizinkan.");
+            
+            // Jika gagal karena 'exact' environment, berarti perangkat benar-benar tidak punya kamera belakang
+            if (err.name === "OverconstrainedError" || err.name === "NotFoundError") {
+                alert("Kamera belakang tidak ditemukan atau tidak dapat diakses.");
+            } else {
+                alert("Terjadi kesalahan akses kamera: " + err.message);
             }
+            stopScan();
         }
     }
 

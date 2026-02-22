@@ -4,10 +4,12 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X | AI Scanner</title>
+    <title>MMS-X</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
     
     <style>
         :root {
@@ -20,17 +22,20 @@
             --sidebar-width: 280px;
         }
 
-        body { opacity: 0; transition: opacity 0.2s ease-in; margin: 0; font-family: -apple-system, sans-serif; overflow: hidden; height: 100vh; }
+        body { opacity: 0; transition: opacity 0.2s ease-in; margin: 0; padding: 0; font-family: -apple-system, system-ui; background: #ffffff; height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden; }
         body.fade-in { opacity: 1; }
-        .fade-out { opacity: 0 !important; }
+        .fade-out { opacity: 0 !important; transition: opacity 0.2s ease-out; }
 
-        /* --- UI COMPONENTS --- */
+        /* --- LOGIN OVERLAY --- */
         #loginOverlay { position: fixed; inset: 0; background: var(--bg-gray); z-index: 20000; display: flex; align-items: center; justify-content: center; }
         .login-box { background: white; width: 90%; max-width: 350px; padding: 35px 25px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); text-align: center; }
+        .login-box h2 { color: var(--miniso-red); margin: 0 0 10px 0; font-weight: 800; font-size: 28px; }
+        .login-box input, .login-box select { width: 100%; height: 48px; margin-bottom: 15px; padding: 0 15px; border-radius: 12px; border: 1.5px solid #eee; background: #f9f9f9; outline: none; font-size: 15px; }
         .btn-login { width: 100%; height: 50px; background: var(--miniso-red); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; }
 
         .sidebar { width: var(--sidebar-width); background: var(--miniso-red); color: #fff; position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); transition: 0.4s; z-index: 9500; padding: 25px; }
         .sidebar.active { transform: translateX(0); }
+        .sidebar a { color: #fff; text-decoration: none; display: block; padding: 15px; border-radius: 12px; margin-bottom: 10px; background: rgba(255,255,255,0.1); }
         #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 9000; display: none; backdrop-filter: blur(4px); }
 
         #ui-header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); padding: calc(20px + env(safe-area-inset-top)) 16px 12px 16px; border-bottom: 1px solid #eee; z-index: 1000; }
@@ -47,7 +52,7 @@
         #reader { display:none; width:100%; max-width:340px; aspect-ratio:1/1; margin:15px auto; background:#000; border-radius:20px; overflow:hidden; position:relative; border: 4px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
         #videoElement { width: 100%; height: 100%; object-fit: cover; }
         .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
-        .ai-status { position: absolute; top: 10px; left: 0; width: 100%; text-align: center; color: #fff; font-size: 11px; font-weight: bold; z-index: 10; text-shadow: 1px 1px 2px #000; background: rgba(0,0,0,0.4); padding: 5px 0; }
+        .ai-status-overlay { position: absolute; top: 10px; left: 0; width: 100%; text-align: center; color: #fff; font-size: 11px; font-weight: bold; z-index: 10; text-shadow: 1px 1px 2px #000; background: rgba(0,0,0,0.4); padding: 5px 0; }
 
         .main-content { flex: 1; overflow-y: auto; padding: 0 16px; }
         #listContainer { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 16px 0 80px 0; }
@@ -62,35 +67,41 @@
         .price-item.reg { background: var(--miniso-soft); border-bottom: 3px solid var(--miniso-red); }
         .floating-back { position: fixed; top: 30px; left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 9999; }
         
-        #btnReloadAI { background: orange; border: none; color: white; font-size: 10px; padding: 2px 8px; border-radius: 5px; margin-top: 4px; cursor: pointer; display: none; }
+        #lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: none; align-items: center; justify-content: center; }
+        #lightbox.active { display: flex; }
+        #lightbox img { max-width: 90%; max-height: 80vh; border-radius: 15px; }
     </style>
 </head>
 <body>
 
 <div id="loginOverlay">
     <div class="login-box">
-        <h2>MMS-X AI</h2>
-        <p>Silakan masuk</p>
-        <select id="loginAs" style="width:100%; height:45px; margin-bottom:10px; border-radius:8px;">
+        <h2>MMS-X</h2>
+        <p>Silakan masuk ke akun Anda</p>
+        <select id="loginAs">
             <option value="Administrator">Administrator</option>
             <option value="Area">Area</option>
             <option value="Store">Store</option>
         </select>
-        <input type="text" id="username" placeholder="Username" style="width:100%; height:45px; margin-bottom:10px; padding:0 10px; border-radius:8px; border:1px solid #ddd;">
-        <input type="password" id="password" placeholder="Password" style="width:100%; height:45px; margin-bottom:20px; padding:0 10px; border-radius:8px; border:1px solid #ddd;">
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
         <button class="btn-login" onclick="checkLogin()">MASUK</button>
-        <p id="loginError" style="color:red; display:none; font-size:12px;">Login Gagal!</p>
+        <p id="loginError" style="color:red; display:none; font-size:12px; margin-top:10px;">Login Gagal!</p>
     </div>
 </div>
 
 <div id="sidebar" class="sidebar">
     <h2>MMS-X</h2>
-    <a href="#" onclick="logout()" style="color:white; text-decoration:none;">Logout</a>
+    <a href="#" onclick="logout()">Logout</a>
 </div>
 <div id="overlay" onclick="toggleSidebar()"></div>
 
 <div id="btnBackFloating" class="floating-back" onclick="back()">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+</div>
+
+<div id="lightbox" onclick="this.classList.remove('active')">
+    <img id="lightboxImg" src="">
 </div>
 
 <div id="appContent" style="display:flex; height: 100vh; flex-direction: column;">
@@ -100,22 +111,21 @@
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             <div class="search-container">
-                <input id="searchInput" placeholder="Cari produk / AI deteksi...">
+                <input id="searchInput" placeholder="Cari nama / barcode...">
                 <button id="scanBtn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                 </button>
             </div>
         </div>
-        <div id="catFilterContainer"></div>
+        <div id="catFilterContainer">
+            <div class="cat-chip active" onclick="filterCat('All', this)">All</div>
+        </div>
         <div id="reader">
-            <div class="ai-status">
-                <span id="aiStatus">⏳ MENGHUBUNGKAN AI...</span><br>
-                <button id="btnReloadAI" onclick="location.reload()">FORCE RELOAD</button>
-            </div>
+            <div class="ai-status-overlay" id="aiStatus">⏳ MEMULAI AI...</div>
             <video id="videoElement" playsinline></video>
             <div class="focus-guide"></div>
         </div>
-        <div id="cameraControl" style="display:none;"><select id="videoSource" style="width:100%; margin:10px 0; padding:8px; border-radius:8px;"></select></div>
+        <div id="cameraControl" style="display:none;"><select id="videoSource" style="width:100%; margin:10px 0; padding:10px; border-radius:8px;"></select></div>
     </header>
 
     <main class="main-content" id="scrollContainer">
@@ -131,8 +141,7 @@
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let scanning = false;
-    let lastScroll = 0;
+    let scanning = false, lastScroll = 0, timer;
     let currentCategory = 'All';
     const codeReader = new ZXing.BrowserMultiFormatReader();
     window.isScanning = false;
@@ -196,7 +205,9 @@
         }
     }
     window.search = search;
+    document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 400); };
 
+    /* --- SCANNER & CAMERA STORAGE --- */
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(); };
 
     async function startScan() {
@@ -231,7 +242,7 @@
         const source = document.getElementById("videoSource");
         if (devices.length > 1) {
             document.getElementById("cameraControl").style.display = "block";
-            source.innerHTML = devices.map(d => `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>${d.label}</option>`).join("");
+            source.innerHTML = devices.map(d => `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>${d.label || 'Kamera'}</option>`).join("");
             source.onchange = (e) => { 
                 localStorage.setItem('preferredCameraId', e.target.value);
                 stopScan(); startScan(); 
@@ -249,8 +260,8 @@
         document.getElementById("btnBackFloating").style.display = "flex";
         document.getElementById("detailContainer").innerHTML = `
             <div class="product-card">
-                <img src="${p.Image || ''}" style="width:100%; height:300px; object-fit:contain; padding:20px;">
-                <div style="padding:20px;">
+                <img src="${p.Image || ''}" style="width:100%; height:300px; object-fit:contain; padding:20px;" onclick="openLightbox('${p.Image}')">
+                <div style="padding:24px;">
                     <span style="color:red; font-weight:800; font-size:12px;">${p.Category}</span>
                     <h2 style="margin:10px 0;">${p.Name}</h2>
                     <div class="price-comparison-grid">
@@ -266,138 +277,66 @@
         document.getElementById("ui-header").style.display = "block";
         document.getElementById("listContainer").style.display = "grid";
         document.getElementById("btnBackFloating").style.display = "none";
-        document.getElementById("scrollContainer").scrollTop = lastScroll;
     }
 
-    function toggleSidebar() {
-        const s = document.getElementById("sidebar");
-        const o = document.getElementById("overlay");
-        s.classList.toggle("active");
-        o.style.display = s.classList.contains("active") ? "block" : "none";
-    }
+    function openLightbox(src) { document.getElementById('lightboxImg').src = src; document.getElementById('lightbox').classList.add('active'); }
+    function toggleSidebar() { document.getElementById("sidebar").classList.toggle("active"); document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none"; }
 </script>
 
-<script type="module">
-    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
-
-    // KONFIGURASI ANTI-BLOKIR & OPTIMASI HP
-    env.allowLocalModels = false;
-    env.useBrowserCache = true;
-    
-    // Perbaikan: Paksa menggunakan WASM murni tanpa thread jika di mobile/browser ketat
-    env.backends.onnx.wasm.numThreads = 1;
-    env.backends.onnx.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.14.0/dist/';
-
+<script>
     let detector;
     let aiActive = false;
 
-    async function initAI(retryCount = 0) {
+    async function initAI() {
         const status = document.getElementById('aiStatus');
-        const btnReload = document.getElementById('btnReloadAI');
-        
         try {
-            status.innerText = `⏳ MENGUNDUH DATA AI... (${retryCount + 1}/3)`;
-            status.style.color = "#ffcc00";
-            
-            // Menggunakan model yang jauh lebih kecil (MobileNet) untuk stabilitas koneksi
-            detector = await pipeline('object-detection', 'Xenova/detr-resnet-50-tiny', {
-                quantized: true, // Mengunduh file yang 4x lebih kecil
-                progress_callback: (p) => {
-                    if(p.status === 'progress') {
-                        status.innerText = `⏳ LOADING: ${Math.round(p.loaded)}%`;
-                    }
-                    if(p.status === 'ready') {
-                        status.innerText = "✅ AI SIAP";
-                        status.style.color = "#00ff00";
-                    }
-                }
-            });
-
-            status.innerText = "✅ AI ONLINE";
+            status.innerText = "⏳ MEMULAI ENGINE AI...";
+            detector = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
+            status.innerText = "✅ AI ONLINE (ARAHKAN KE OBJEK)";
             status.style.color = "#00ff00";
-            btnReload.style.display = "none";
         } catch (e) { 
-            console.error("AI FAIL:", e);
-            
-            // Jika gagal, coba hapus cache internal dan ulang
-            if (retryCount < 2) {
-                console.log("Retrying with fresh connection...");
-                setTimeout(() => initAI(retryCount + 1), 2000);
-            } else {
-                status.innerHTML = `❌ BLOKIR KONEKSI BROWSER<br><small style="font-size:8px">Pastikan tidak di mode Penyamaran/Incognito</small>`;
-                status.style.color = "#ff4444";
-                btnReload.style.display = "inline-block";
-                btnReload.innerText = "COBA LAGI";
-            }
+            status.innerText = "❌ AI OFFLINE";
+            status.style.color = "red";
         }
     }
 
     async function runAIDetection() {
-        if (!detector || !window.isScanning) {
-            aiActive = false;
-            return;
-        }
-
+        if (!detector || !window.isScanning) { aiActive = false; return; }
         const video = document.getElementById('videoElement');
-        if (!video || video.readyState < 2) {
-            setTimeout(runAIDetection, 500);
-            return;
-        }
+        if (!video || video.readyState < 2) { setTimeout(runAIDetection, 500); return; }
 
         try {
-            const canvas = document.createElement('canvas');
-            canvas.width = 160; // Ukuran ekstra kecil untuk HP spesifikasi rendah
-            canvas.height = 160;
-            const ctx = canvas.getContext('2d', { alpha: false });
-            ctx.drawImage(video, 0, 0, 160, 160);
+            const predictions = await detector.detect(video);
+            if (predictions.length > 0 && window.isScanning) {
+                const valid = predictions
+                    .filter(p => p.class !== 'person')
+                    .sort((a, b) => b.score - a.score)[0];
 
-            const output = await detector(canvas.toDataURL('image/jpeg', 0.5), { 
-                threshold: 0.5,
-                percentage: true 
-            });
-            
-            if (output && output.length > 0 && window.isScanning) {
-                const validObjects = output
-                    .filter(obj => obj.label !== 'person' && obj.label !== 'background')
-                    .sort((a, b) => b.score - a.score);
-
-                if (validObjects.length > 0) {
-                    const item = validObjects[0].label;
-                    const confidence = Math.round(validObjects[0].score * 100);
-                    document.getElementById('aiStatus').innerText = `🎯 ${item.toUpperCase()} (${confidence}%)`;
-                    
+                if (valid && valid.score > 0.55) {
+                    const item = valid.class;
+                    document.getElementById('aiStatus').innerText = `🎯 DETEKSI: ${item.toUpperCase()}`;
                     const searchInput = document.getElementById('searchInput');
-                    if (searchInput && searchInput.value !== item) {
+                    if (searchInput.value !== item) {
                         searchInput.value = item;
-                        // Trigger pencarian Supabase secara otomatis
-                        if (typeof window.search === 'function') window.search(); 
+                        if (window.search) window.search();
                     }
                 }
             }
-        } catch (err) { 
-            console.warn("AI Engine Busy..."); 
-        }
-
-        if(window.isScanning) setTimeout(runAIDetection, 3000); // Interval 3 detik agar tidak overheat
+        } catch (err) { console.warn("AI Busy..."); }
+        if(window.isScanning) setTimeout(runAIDetection, 1500);
     }
 
-    // Jalankan inisialisasi
-    initAI();
+    window.addEventListener('load', initAI);
 
-    // Pantau perubahan status tampilan reader
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            if (mutation.attributeName === 'style') {
-                const reader = document.getElementById('reader');
-                if (reader.style.display === 'block' && !aiActive) {
-                    aiActive = true;
-                    runAIDetection();
-                }
-            }
-        });
+    const observer = new MutationObserver(() => {
+        const reader = document.getElementById('reader');
+        if (reader.style.display === 'block' && !aiActive) {
+            aiActive = true;
+            runAIDetection();
+        }
     });
-
-    observer.observe(document.getElementById('reader'), { attributes: true });
+    observer.observe(document.getElementById('reader'), { attributes: true, attributeFilter: ['style'] });
 </script>
+
 </body>
 </html>

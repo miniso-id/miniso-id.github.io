@@ -15,16 +15,11 @@
     <style>
         :root {
             --miniso-red: #e61523;
-            --miniso-soft: #fff1f2;
-            --text-dark: #1a1a1a;
-            --promo-blue: #007bff;
-            --promo-green: #28a745;
-            --bg-gray: #f4f4f4;
             --ai-purple: #5856d6;
+            --bg-gray: #f4f4f4;
         }
 
-        body { margin: 0; padding: 0; font-family: -apple-system, sans-serif; background: #fff; opacity: 0; transition: opacity 0.2s; }
-        body.fade-in { opacity: 1; }
+        body { margin: 0; font-family: -apple-system, sans-serif; background: #fff; }
 
         #ui-header { 
             background: white; padding: calc(20px + env(safe-area-inset-top)) 16px 12px 16px; 
@@ -45,10 +40,6 @@
         #scanBtn { background: var(--miniso-red); }
         #aiBtn { background: var(--ai-purple); position: relative; }
         
-        /* Loading spinner kecil di tombol AI */
-        .loader-ai { width: 12px; height: 12px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
         #reader { 
             display:none; width:100%; max-width:340px; aspect-ratio:1/1; 
             margin:15px auto; background:#000; border-radius:20px; 
@@ -60,35 +51,31 @@
         .ai-badge {
             position: absolute; top: 12px; left: 12px; background: var(--ai-purple);
             color: white; padding: 4px 10px; border-radius: 8px; font-size: 11px;
-            font-weight: 800; z-index: 10; letter-spacing: 0.5px;
+            font-weight: 800; z-index: 10;
         }
 
         #listContainer { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 16px; }
-        .list-item { display: flex; align-items: center; gap: 12px; padding: 10px; background: #f9f9f9; border-radius: 14px; }
-        .list-img { width: 60px; height: 60px; border-radius: 10px; object-fit: contain; background: white; border: 1px solid #eee; }
-        .list-info { flex: 1; }
-        .list-info h4 { margin: 0; font-size: 14px; color: #111; }
-        .list-info p { margin: 2px 0 0 0; font-size: 11px; color: #888; }
+        .list-item { display: flex; align-items: center; gap: 12px; padding: 10px; background: #f9f9f9; border-radius: 14px; border: 1px solid #eee; }
+        .list-img { width: 60px; height: 60px; border-radius: 10px; object-fit: contain; background: white; }
     </style>
 </head>
-<body class="fade-in">
+<body>
 
 <header id="ui-header">
     <div class="top-bar">
         <div class="search-container">
             <input id="searchInput" placeholder="Cari barang atau gunakan AI...">
             <button id="scanBtn" class="btn-action">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
             </button>
             <button id="aiBtn" class="btn-action">
-                <span id="aiIcon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v8M8 12h8"></path></svg></span>
-                <div class="loader-ai" id="aiLoader"></div>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v8M8 12h8"></path></svg>
             </button>
         </div>
     </div>
     
     <div id="reader">
-        <div id="aiLabel" class="ai-badge" style="display:none;">AI SCANNING...</div>
+        <div id="aiLabel" class="ai-badge" style="display:none;">AI LOADING...</div>
         <video id="videoElement" autoplay playsinline muted></video>
     </div>
 </header>
@@ -102,101 +89,115 @@
 
     const codeReader = new ZXing.BrowserMultiFormatReader();
     let net = null; 
-    let isAiScanning = false;
+    let activeMode = null; // 'barcode' atau 'ai'
     let stream = null;
 
-    // Load AI Model MobileNet
-    async function initAI() {
-        document.getElementById('aiLoader').style.display = 'block';
-        document.getElementById('aiIcon').style.display = 'none';
+    // Load AI Model
+    async function loadModel() {
         try {
+            console.log("Memuat AI...");
             net = await mobilenet.load();
-            console.log("AI Model Loaded");
+            console.log("AI Siap!");
         } catch (e) {
-            console.error("AI Load Failed", e);
+            alert("Gagal memuat AI: " + e.message);
         }
-        document.getElementById('aiLoader').style.display = 'none';
-        document.getElementById('aiIcon').style.display = 'block';
     }
-    initAI();
+    loadModel();
 
-    // Event Klik Tombol AI
-    document.getElementById('aiBtn').onclick = () => {
-        if (isAiScanning) { stopScanning(); } 
-        else { startAiVision(); }
-    };
+    // Fungsi Stop Kamera
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(t => t.stop());
+            stream = null;
+        }
+        codeReader.reset();
+        document.getElementById('reader').style.display = 'none';
+        activeMode = null;
+    }
 
-    // Event Klik Tombol Barcode
-    document.getElementById('scanBtn').onclick = () => {
-        stopScanning();
-        // Fungsi barcode scanner ZXing kamu bisa dipanggil di sini
-        alert("Barcode Scanner Aktif (ZXing)");
-    };
-
-    async function startAiVision() {
-        if (!net) return alert("AI sedang loading, tunggu sebentar...");
-        
-        isAiScanning = true;
+    // --- MODE BARCODE ---
+    document.getElementById('scanBtn').onclick = async () => {
+        if (activeMode === 'barcode') {
+            stopCamera();
+            return;
+        }
+        stopCamera();
+        activeMode = 'barcode';
         document.getElementById('reader').style.display = 'block';
-        document.getElementById('aiLabel').style.display = 'block';
+        document.getElementById('aiLabel').style.display = 'none';
         
-        const video = document.getElementById('videoElement');
-        stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: "environment", width: 640, height: 640 } 
-        });
-        video.srcObject = stream;
-
-        const loop = async () => {
-            if (!isAiScanning) return;
-            
-            const predictions = await net.classify(video);
-            if (predictions.length > 0) {
-                const best = predictions[0];
-                const label = best.className.split(',')[0];
-                document.getElementById('aiLabel').innerText = "AI: " + label.toUpperCase();
-
-                // Jika AI yakin > 65%, cari ke database
-                if (best.probability > 0.65) {
-                    searchDatabase(label);
+        try {
+            await codeReader.decodeFromVideoDevice(undefined, 'videoElement', (result, err) => {
+                if (result) {
+                    document.getElementById('searchInput').value = result.text;
+                    searchDatabase(result.text, true); // cari barcode
+                    stopCamera();
                 }
-            }
-            setTimeout(loop, 1000); // Scan setiap 1 detik agar tidak panas
-        };
-        loop();
-    }
+            });
+        } catch (e) {
+            console.error(e);
+        }
+    };
 
-    async function searchDatabase(keyword) {
-        // Cari nama barang yang mirip dengan hasil tebakan AI
-        const { data } = await _supabase.from('export')
-            .select('*')
-            .ilike('Name', `%${keyword}%`)
-            .limit(15);
+    // --- MODE AI VISION ---
+    document.getElementById('aiBtn').onclick = async () => {
+        if (!net) return alert("AI sedang bersiap, coba lagi dalam 3 detik...");
+        if (activeMode === 'ai') {
+            stopCamera();
+            return;
+        }
+        stopCamera();
+        activeMode = 'ai';
+        document.getElementById('reader').style.display = 'block';
+        const labelEl = document.getElementById('aiLabel');
+        labelEl.style.display = 'block';
+        labelEl.innerText = "AI AKTIF: ARAHKAN KE BENDA";
+
+        try {
+            const video = document.getElementById('videoElement');
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            video.srcObject = stream;
+
+            const aiLoop = async () => {
+                if (activeMode !== 'ai') return;
+                const predictions = await net.classify(video);
+                if (predictions.length > 0) {
+                    const top = predictions[0];
+                    labelEl.innerText = "AI: " + top.className.split(',')[0].toUpperCase();
+                    if (top.probability > 0.6) {
+                        searchDatabase(top.className.split(',')[0], false); // cari nama
+                    }
+                }
+                setTimeout(aiLoop, 1500);
+            };
+            aiLoop();
+        } catch (e) {
+            alert("Kamera AI error: " + e.message);
+        }
+    };
+
+    async function searchDatabase(keyword, isBarcode) {
+        let query = _supabase.from('export').select('*');
+        if (isBarcode) {
+            query = query.ilike('Barcode', `%${keyword}%`);
+        } else {
+            query = query.ilike('Name', `%${keyword}%`);
+        }
         
+        const { data } = await query.limit(10);
         if (data && data.length > 0) {
-            const list = document.getElementById('listContainer');
-            list.innerHTML = data.map(p => `
+            const container = document.getElementById('listContainer');
+            container.innerHTML = data.map(p => `
                 <div class="list-item">
                     <img class="list-img" src="${p.Image}" onerror="this.src='https://via.placeholder.com/60'">
                     <div class="list-info">
-                        <h4>${p.Name}</h4>
-                        <p>${p.Barcode} • ${p.Category}</p>
+                        <h4 style="margin:0; font-size:14px;">${p.Name}</h4>
+                        <p style="margin:2px 0; font-size:11px; color:#888;">${p.Barcode}</p>
                     </div>
                 </div>
             `).join('');
         }
     }
-
-    function stopScanning() {
-        isAiScanning = false;
-        if (stream) {
-            stream.getTracks().forEach(t => t.stop());
-        }
-        document.getElementById('reader').style.display = 'none';
-        document.getElementById('aiLabel').style.display = 'none';
-    }
-
-    document.addEventListener("DOMContentLoaded", () => document.body.classList.add("fade-in"));
 </script>
-
 </body>
 </html>

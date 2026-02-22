@@ -614,7 +614,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
     
     try {
         status.innerText = t.aiStarting;
-        aiDetector = await cocoSsd.load({ base: 'mobilenet_v2' });
+        aiDetector = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
         status.innerText = t.aiOnline;
         status.style.color = "#00ff00";
     } catch (e) { 

@@ -523,7 +523,10 @@ if(localStorage.getItem('mms_auth') === 'true') {
     window.isScanning = false; // Menghentikan loop runAIDetection
     aiActive = false;          // Reset status agar Observer bisa mentrigger ulang
     document.getElementById("reader").style.display = "none"; 
-    document.getElementById("cameraControl").style.display = "none"; 
+    document.getElementById("cameraControl").style.display = "none";
+    const lang = localStorage.getItem('mms_lang') || 'id';
+    const waitingText = (lang === 'en') ? "⏳ WAITING SCANNER..." : (lang === 'cn' ? "⏳ 等待扫描仪..." : "⏳ MENUNGGU SCANNER...");
+    document.getElementById('aiStatus').innerText = waitingText;
 }
 
     async function onDetected(code) {
@@ -643,7 +646,9 @@ if(localStorage.getItem('mms_auth') === 'true') {
 
                 if (valid && valid.score > 0.55) {
                     const item = valid.class;
-                    document.getElementById('aiStatus').innerText = `🎯 DETEKSI: ${item.toUpperCase()}`;
+                    const lang = localStorage.getItem('mms_lang') || 'id';
+                    const t = prodTranslations[lang];
+                    document.getElementById('aiStatus').innerText = `${t.aiDetecting}${translatedName.toUpperCase()}`;
                     
                     const searchInput = document.getElementById('searchInput');
                     if (searchInput.value !== item) {

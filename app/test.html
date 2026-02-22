@@ -288,7 +288,12 @@
 </script>
 
 <script type="module">
-    import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+    // Gunakan versi yang spesifik dan stabil
+    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+
+    // Konfigurasi agar kompatibel dengan browser HP (non-multithreaded)
+    env.allowLocalModels = false;
+    env.useBrowserCache = true;
 
     let detector;
     let aiActive = false;
@@ -296,40 +301,79 @@
     async function initAI() {
         const status = document.getElementById('aiStatus');
         try {
-            status.innerText = "⏳ LOADING AI...";
-            detector = await pipeline('object-detection', 'Xenova/detr-resnet-50-tiny');
+            status.innerText = "⏳ MEMUAT AI (20MB)...";
+            
+            // Inisialisasi detector dengan model paling ringan
+            detector = await pipeline('object-detection', 'Xenova/detr-resnet-50-tiny', {
+                device: 'webgpu', // Coba gunakan GPU jika tersedia
+            }).catch(async () => {
+                // Fallback ke CPU jika WebGPU gagal
+                return await pipeline('object-detection', 'Xenova/detr-resnet-50-tiny');
+            });
+
             status.innerText = "✅ AI READY";
-        } catch (e) { status.innerText = "❌ AI ERROR"; }
+            status.style.color = "#00ff00";
+        } catch (e) { 
+            console.error("AI Init Error:", e);
+            status.innerText = "❌ AI OFFLINE (RETRYING...)";
+            status.style.color = "orange";
+            // Coba lagi setelah 5 detik jika gagal
+            setTimeout(initAI, 5000);
+        }
     }
+
+    // Fungsi deteksi yang lebih aman
+    async function runAIDetection() {
+        if (!detector || !scanning) {
+            aiActive = false;
+            return;
+        }
+
+        const video = document.getElementById('videoElement');
+        if (video.readyState < 2) {
+            setTimeout(runAIDetection, 500);
+            return;
+        }
+
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth; 
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+
+            const output = await detector(canvas.toDataURL('image/jpeg'), { 
+                threshold: 0.5, 
+                percentage: true 
+            });
+            
+            if (output.length > 0 && scanning) {
+                // Filter objek yang masuk akal (abaikan "person" agar tidak mendeteksi wajah user)
+                const validObjects = output.filter(obj => obj.label !== 'person');
+                
+                if (validObjects.length > 0) {
+                    const item = validObjects[0].label;
+                    const status = document.getElementById('aiStatus');
+                    status.innerText = `🎯 TERDETEKSI: ${item.toUpperCase()}`;
+                    
+                    const searchInput = document.getElementById('searchInput');
+                    if (searchInput.value !== item) {
+                        searchInput.value = item;
+                        window.search(); 
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn("Detection frame skipped:", err);
+        }
+
+        if(scanning) setTimeout(runAIDetection, 3000); // Jeda 3 detik agar HP tidak lag
+    }
+
+    // Jalankan init
     initAI();
 
-    async function runAIDetection() {
-        if (!detector || !scanning) return;
-        const video = document.getElementById('videoElement');
-        if (video.readyState < 2) return;
-
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-
-        const output = await detector(canvas.toDataURL('image/jpeg'), { threshold: 0.6, percentage: true });
-        
-        if (output.length > 0 && scanning) {
-            const item = output[0].label; // Label hasil deteksi AI
-            const status = document.getElementById('aiStatus');
-            status.innerText = `🎯 DETECTED: ${item.toUpperCase()}`;
-            
-            // Masukkan hasil deteksi ke pencarian Supabase
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput.value !== item) {
-                searchInput.value = item;
-                window.search(); 
-            }
-        }
-        if(scanning) setTimeout(runAIDetection, 2500); // Deteksi ulang tiap 2.5 detik
-    }
-
-    // Pantau saat scanner dibuka
+    // Pantau scanner
     const observer = new MutationObserver(() => {
         const reader = document.getElementById('reader');
         if (reader.style.display === 'block' && !aiActive) {
@@ -341,6 +385,5 @@
     });
     observer.observe(document.getElementById('reader'), { attributes: true, attributeFilter: ['style'] });
 </script>
-
 </body>
 </html>

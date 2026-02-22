@@ -164,57 +164,60 @@ const codeReader = new ZXing.BrowserMultiFormatReader(hints);
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
     async function startScan(deviceId = null) {
-        scanning = true; 
-        document.getElementById("reader").style.display = "block";
-        
-        const constraints = {
-            video: {
-                deviceId: deviceId ? { exact: deviceId } : undefined,
-                facingMode: deviceId ? undefined : "environment",
-                width: { ideal: 1920 }, // Gunakan 720p untuk kecepatan
-                height: { ideal: 1080 }
-            }
-        };
-
-        try {
-            await codeReader.decodeFromConstraints(constraints, 'video', async (result, err) => {
-                if (result) {
-                    const code = result.getText();
-                    const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
-                    if(data) { 
-                        document.getElementById("beepOk").play(); 
-                        stopScan(); 
-                        showDetail(code); 
-                    }
-                }
-            });
-
-            // 2. HARDWARE ACCELERATION & AUTO FOCUS
-            const videoElement = document.getElementById('video');
-            const stream = videoElement.srcObject;
-            if (stream) {
-                const track = stream.getVideoTracks()[0];
-                const capabilities = track.getCapabilities();
-                const hardwareConstraints = {};
-
-                if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
-                    hardwareConstraints.focusMode = 'continuous';
-                }
-                if (capabilities.whiteBalanceMode && capabilities.whiteBalanceMode.includes('continuous')) {
-                    hardwareConstraints.whiteBalanceMode = 'continuous';
-                }
-
-                if (Object.keys(hardwareConstraints).length > 0) {
-                    track.applyConstraints({ advanced: [hardwareConstraints] }).catch(console.error);
-                }
-            }
-
-            updateCameraList();
-        } catch (e) { 
-            console.error(e); 
-            if(deviceId) startScan(null); 
+    if (scanning) codeReader.reset(); // Pastikan bersih sebelum mulai
+    scanning = true; 
+    document.getElementById("reader").style.display = "block";
+    
+    const constraints = {
+        video: {
+            deviceId: deviceId ? { exact: deviceId } : undefined,
+            facingMode: deviceId ? undefined : "environment",
+            // Resolusi 720p adalah yang terbaik untuk barcode retail
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30 }
         }
+    };
+
+    try {
+        await codeReader.decodeFromConstraints(constraints, 'video', async (result, err) => {
+            if (result) {
+                const code = result.getText();
+                // Langsung cari ke Supabase
+                const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
+                if(data) { 
+                    document.getElementById("beepOk").play(); 
+                    stopScan(); 
+                    showDetail(code); 
+                }
+            }
+        });
+
+        // Kunci Fokus Hardware (Hanya jika didukung)
+        const videoElement = document.getElementById('video');
+        const stream = videoElement.srcObject;
+        if (stream) {
+            const track = stream.getVideoTracks()[0];
+            const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+
+            const settings = {};
+            if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
+                settings.focusMode = 'continuous';
+            }
+            
+            if (Object.keys(settings).length > 0) {
+                track.applyConstraints({ advanced: [settings] }).catch(() => {
+                    console.log("Sistem menolak kontrol manual, menggunakan auto bawaan.");
+                });
+            }
+        }
+
+        updateCameraList();
+    } catch (e) { 
+        console.error("Scan Error:", e); 
+        if(deviceId) startScan(null); 
     }
+}
 
     async function updateCameraList() {
         const devices = await codeReader.listVideoInputDevices();

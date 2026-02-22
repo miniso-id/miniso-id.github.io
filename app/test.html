@@ -246,28 +246,38 @@ function navigateTo(url) {
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
     async function startScan(deviceId = null) {
-        scanning = true; 
-        document.getElementById("reader").style.display = "block";
+    scanning = true; 
+    document.getElementById("reader").style.display = "block";
+    
+    try {
+        const videoDevices = await codeReader.listVideoInputDevices();
+        const backCameras = videoDevices.filter(d => !d.label.toLowerCase().includes('front'));
         
-        try {
-            const videoDevices = await codeReader.listVideoInputDevices();
-            const backCameras = videoDevices.filter(d => !d.label.toLowerCase().includes('front'));
-            
-            // Pilih kamera: prioritas deviceId yang dikirim, atau lastSelected, atau kamera belakang pertama
-            let selectedId = deviceId || lastSelectedDeviceId || (backCameras.length > 0 ? backCameras[0].deviceId : videoDevices[0].deviceId);
-            
-            updateCameraList(backCameras, selectedId);
+        let selectedId = deviceId || lastSelectedDeviceId || (backCameras.length > 0 ? backCameras[0].deviceId : videoDevices[0].deviceId);
+        
+        updateCameraList(backCameras, selectedId);
 
-            codeReader.decodeFromVideoDevice(selectedId, 'videoElement', (result, err) => {
-                if (result) {
-                    onDetected(result.text);
-                }
+        // Menjalankan scanner
+        const result = await codeReader.decodeFromVideoDevice(selectedId, 'videoElement', (result, err) => {
+            if (result) {
+                onDetected(result.text);
+            }
+        });
+
+        // OPTIMASI FOKUS: Setelah video berjalan, terapkan focusMode continuous
+        const videoTrack = document.getElementById('videoElement').srcObject.getVideoTracks()[0];
+        const capabilities = videoTrack.getCapabilities();
+
+        if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
+            await videoTrack.applyConstraints({
+                advanced: [{ focusMode: 'continuous' }]
             });
-        } catch (err) {
-            console.error("Gagal start scan:", err);
-            scanning = false;
         }
+    } catch (err) {
+        console.error("Gagal start scan:", err);
+        scanning = false;
     }
+}
 
     function updateCameraList(devices, currentId) {
         const source = document.getElementById("videoSource");
@@ -289,6 +299,24 @@ function navigateTo(url) {
         stopScan(); 
         startScan(lastSelectedDeviceId); 
     };
+
+    document.getElementById("reader").onclick = async () => {
+    const videoTrack = document.getElementById('videoElement').srcObject?.getVideoTracks()[0];
+    if (videoTrack) {
+        try {
+            const capabilities = videoTrack.getCapabilities();
+            // Jika mendukung fokus manual (manual-focus atau single-shot)
+            if (capabilities.focusMode) {
+                await videoTrack.applyConstraints({
+                    advanced: [{ focusMode: 'continuous' }] // Paksa balik ke continuous
+                });
+                console.log("Fokus dipicu ulang");
+            }
+        } catch (e) {
+            console.warn("Fokus manual tidak didukung pada perangkat ini.");
+        }
+    }
+};
 
     function stopScan() { 
         codeReader.reset(); 

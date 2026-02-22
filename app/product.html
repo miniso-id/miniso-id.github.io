@@ -605,19 +605,21 @@ if(localStorage.getItem('mms_auth') === 'true') {
 
     // Inisialisasi Engine AI (TFJS)
     async function initAI() {
-        const status = document.getElementById('aiStatus');
-        try {
-            status.innerText = "⏳ MEMULAI ENGINE AI...";
-            // Load model COCO-SSD versi ringan (MobileNet V2)
-            aiDetector = await cocoSsd.load({ base: 'mobilenet_v2' });
-            status.innerText = "✅ AI ONLINE (ARAHKAN KE OBJEK)";
-            status.style.color = "#00ff00";
-        } catch (e) { 
-            console.error("AI Load Fail:", e);
-            status.innerText = "❌ AI OFFLINE";
-            status.style.color = "red";
-        }
+    const lang = localStorage.getItem('mms_lang') || 'id';
+    const t = prodTranslations[lang];
+    const status = document.getElementById('aiStatus');
+    
+    try {
+        status.innerText = t.aiStarting;
+        aiDetector = await cocoSsd.load({ base: 'mobilenet_v2' });
+        status.innerText = t.aiOnline;
+        status.style.color = "#00ff00";
+    } catch (e) { 
+        console.error("AI Load Fail:", e);
+        status.innerText = t.aiOffline;
+        status.style.color = "red";
     }
+}
 
     // Fungsi loop deteksi objek
     async function runAIDetection() {
@@ -691,7 +693,11 @@ const prodTranslations = {
         strStoreLabel: "Toko Ruko",
         barcodeLabel: "BARCODE",
         regPromoLabel: "PROMO REGULER",
-        strPromoLabel: "PROMO RUKO"
+        strPromoLabel: "PROMO RUKO",
+        aiStarting: "⏳ MEMULAI ENGINE AI...",
+        aiOnline: "✅ AI ONLINE (ARAHKAN KE OBJEK)",
+        aiOffline: "❌ AI OFFLINE",
+        aiDetecting: "🎯 DETEKSI: "
     },
     en: {
         loginTitle: "MMS-X",
@@ -708,7 +714,11 @@ const prodTranslations = {
         strStoreLabel: "Street Store",
         barcodeLabel: "BARCODE",
         regPromoLabel: "REGULAR STORE PROMO",
-        strPromoLabel: "STREET STORE PROMO"
+        strPromoLabel: "STREET STORE PROMO",
+        aiStarting: "⏳ STARTING AI ENGINE...",
+        aiOnline: "✅ AI ONLINE (POINT AT OBJECT)",
+        aiOffline: "❌ AI OFFLINE",
+        aiDetecting: "🎯 DETECTED: "
     },
     cn: {
         loginTitle: "MMS-X",
@@ -725,7 +735,11 @@ const prodTranslations = {
         strStoreLabel: "街边店价格",
         barcodeLabel: "条码",
         regPromoLabel: "常规促销",
-        strPromoLabel: "街边店促销"
+        strPromoLabel: "街边店促销",
+        aiStarting: "⏳ 正在启动 AI 引擎...",
+        aiOnline: "✅ AI 已上线 (请对准物体)",
+        aiOffline: "❌ AI 离线",
+        aiDetecting: "🎯 检测到: "
     }
 };
 

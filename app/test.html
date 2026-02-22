@@ -642,6 +642,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
                         searchInput.value = item;
                         // Trigger pencarian produk secara otomatis
                         if (window.search) window.search();
+                        stopScan();
                     }
                 }
             }

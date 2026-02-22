@@ -4,13 +4,13 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X</title>
+    <title>MMS-X | AI Powered</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
     
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
     
     <style>
         :root {
@@ -21,62 +21,45 @@
             --promo-green: #28a745;
             --bg-gray: #f4f4f4;
             --sidebar-width: 280px;
-            --ai-purple: #5856d6;
         }
 
-        /* Animasi Masuk Halaman */
-        body { opacity: 0; transition: opacity 0.2s ease-in; }
+        body { opacity: 0; transition: opacity 0.2s ease-in; margin: 0; padding: 0; font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto; background: #ffffff; color: var(--text-dark); height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden; }
         body.fade-in { opacity: 1; }
         .fade-out { opacity: 0 !important; transition: opacity 0.2s ease-out; }
 
-        /* --- LOGIN OVERLAY (Tetap Sama) --- */
+        /* --- LOGIN & UI STYLE --- */
         #loginOverlay { position: fixed; inset: 0; background: var(--bg-gray); z-index: 20000; display: flex; align-items: center; justify-content: center; }
         .login-box { background: white; width: 90%; max-width: 350px; padding: 35px 25px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); text-align: center; }
-        .login-box h2 { color: var(--miniso-red); margin: 0 0 10px 0; font-weight: 800; font-size: 28px; }
-        .login-box p { color: #666; font-size: 14px; margin-bottom: 25px; }
-        .login-box label { display: block; text-align: left; font-size: 11px; font-weight: 800; color: #999; margin: 0 0 5px 5px; text-transform: uppercase; }
-        .login-box input, .login-box select { width: 100%; height: 48px; margin-bottom: 15px; padding: 0 15px; border-radius: 12px; border: 1.5px solid #eee; background: #f9f9f9; outline: none; font-size: 15px; transition: 0.3s; }
         .btn-login { width: 100%; height: 50px; background: var(--miniso-red); color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 10px; }
-
-        /* --- LAYOUT UTAMA --- */
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; padding: 0; font-family: -apple-system, sans-serif; background: #ffffff; color: var(--text-dark); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-
-        .sidebar { width: var(--sidebar-width); background: var(--miniso-red); color: #fff; position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); transition: 0.4s; z-index: 9500; padding: 25px; }
+        
+        .sidebar { width: var(--sidebar-width); background: var(--miniso-red); color: #fff; position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 9500; padding: 25px; }
         .sidebar.active { transform: translateX(0); }
-        .sidebar a { color: #fff; text-decoration: none; display: block; padding: 15px; border-radius: 12px; margin-bottom: 10px; font-weight: 600; background: rgba(255,255,255,0.1); }
         #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 9000; display: none; backdrop-filter: blur(4px); }
 
-        #ui-header { background: rgba(255, 255, 255, 0.95); padding: calc(20px + env(safe-area-inset-top)) 16px 12px 16px; border-bottom: 1px solid #eee; z-index: 1000; flex-shrink: 0; }
-        .top-bar { display: flex; gap: 10px; align-items: center; }
-        .search-container { position: relative; flex: 1; display: flex; gap: 8px; }
-        #searchInput { flex: 1; height: 46px; padding: 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
-        
-        .header-btn { width: 44px; height: 44px; border: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; flex-shrink: 0; }
-        #scanBtn { background: var(--miniso-red); }
-        #aiBtn { background: var(--ai-purple); }
+        #ui-header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); padding: calc(20px + env(safe-area-inset-top)) 16px 12px 16px; border-bottom: 1px solid #eee; z-index: 1000; width: 100%; flex-shrink: 0; }
+        .search-container { position: relative; flex: 1; }
+        #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
+        #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
 
         #catFilterContainer { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 4px 0; scrollbar-width: none; }
-        .cat-chip { padding: 8px 16px; background: #f0f0f0; border-radius: 20px; font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; text-transform: uppercase; }
+        .cat-chip { padding: 8px 16px; background: #f0f0f0; border-radius: 20px; font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; }
         .cat-chip.active { background: var(--miniso-red); color: white; }
 
-        /* READER CONTAINER */
         #reader { display:none; width:100%; max-width:340px; aspect-ratio:1/1; margin:15px auto; background:#000; border-radius:20px; overflow:hidden; position:relative; border: 4px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
         #reader video { width: 100%; height: 100%; object-fit: cover; }
         .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
-        .ai-status-badge { position: absolute; top: 10px; left: 10px; background: var(--ai-purple); color: white; padding: 4px 10px; border-radius: 8px; font-size: 10px; font-weight: 800; z-index: 10; display: none; }
-        .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; }
+        
+        /* AI Info Overlay */
+        #aiStatus { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 10px; z-index: 10; font-family: monospace; }
 
         .main-content { flex: 1; overflow-y: auto; padding: 0 16px; }
         #listContainer { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 16px 0 80px 0; }
-        .list-item { display: flex; align-items: center; gap: 14px; padding: 12px; background: white; border-radius: 16px; border: 1px solid #f0f0f0; cursor: pointer; }
-        .list-img-box { width: 70px; height: 70px; background: #f9f9f9; border-radius: 12px; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #f0f0f0; }
-        .list-img-box img { width: 100%; height: 100%; object-fit: contain; }
-        .list-info { flex: 1; min-width: 0; }
-        .list-name { font-weight: 700; font-size: 14px; color: #111; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
-        #detailContainer { display: none; padding-bottom: 80px; }
-        .floating-back { position: fixed; top: calc(25px + env(safe-area-inset-top)); left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 9999; border: 1px solid #eee; }
+        
+        #detailContainer { display: none; padding-top: 20px; padding-bottom: 80px; max-width: 700px; margin: 0 auto; }
+        .product-card { background: white; border-radius: 20px; overflow: hidden; border: 1px solid #eee; animation: slideUp 0.3s ease-out; }
+        
+        .floating-back { position: fixed; top: calc(25px + env(safe-area-inset-top)); left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 9999; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
@@ -85,181 +68,174 @@
     <div class="login-box">
         <h2>MMS-X</h2>
         <p>Silakan masuk ke akun Anda</p>
-        <label>Login As</label>
-        <select id="loginAs">
-            <option value="Administrator">Administrator</option>
-            <option value="Area">Area</option>
-            <option value="Store">Store</option>
-        </select>
-        <label>Username</label>
-        <input type="text" id="username" placeholder="Username" autocomplete="off">
-        <label>Password</label>
-        <input type="password" id="password" placeholder="••••••••">
+        <label style="display:block; text-align:left; font-size:11px; font-weight:800; color:#999; margin:0 0 5px 5px;">Username</label>
+        <input type="text" id="username" style="width:100%; height:48px; margin-bottom:15px; border-radius:12px; border:1.5px solid #eee; padding:0 15px;">
         <button class="btn-login" onclick="checkLogin()">MASUK</button>
-        <p id="loginError" style="color:var(--miniso-red); font-size:12px; margin-top:15px; font-weight:700; display:none;">Login Gagal!</p>
     </div>
 </div>
 
 <div id="sidebar" class="sidebar">
     <h2>MMS-X</h2>
-    <a href="#" onclick="toggleSidebar()">Home</a>
-    <a href="#" onclick="logout()" style="background:rgba(0,0,0,0.2); margin-top:20px;">Logout</a>
+    <a href="#" onclick="logout()">Logout</a>
 </div>
 <div id="overlay" onclick="toggleSidebar()"></div>
 
 <div id="btnBackFloating" class="floating-back" onclick="back()">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
 </div>
 
-<header id="ui-header">
-    <div class="top-bar">
-        <button onclick="toggleSidebar()" style="background:none; border:none; cursor:pointer;">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-        </button>
-        <div class="search-container">
-            <input id="searchInput" placeholder="Cari nama / barcode...">
-            <button id="scanBtn" class="header-btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path></svg></button>
-            <button id="aiBtn" class="header-btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v8M8 12h8"></path></svg></button>
+<div id="appContent" style="display:flex; height: 100vh; flex-direction: column;">
+    <header id="ui-header">
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button onclick="toggleSidebar()" style="background:none; border:none; padding:10px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            <div class="search-container">
+                <input id="searchInput" placeholder="Cari nama / barcode...">
+                <button id="scanBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                </button>
+            </div>
         </div>
-    </div>
-    <div id="catFilterContainer"><div class="cat-chip active">All</div></div>
-    <div id="reader">
-        <div id="aiBadge" class="ai-status-badge">AI ANALYZING...</div>
-        <div class="focus-guide"></div>
-        <div class="tap-hint">ARAHKAN BARCODE/BENDA</div>
-        <video id="videoElement" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover;"></video>
-    </div>
-</header>
+        <div id="catFilterContainer"></div>
+        
+        <div id="reader">
+            <div id="aiStatus">AI: Loading...</div>
+            <video id="videoElement"></video>
+            <div class="focus-guide"></div>
+        </div>
+        <div id="cameraControl" style="display:none; margin-top:10px;">
+            <select id="videoSource" style="width:100%; padding:10px; border-radius:8px;"></select>
+        </div>
+    </header>
 
-<main class="main-content" id="scrollContainer">
-    <div id="listContainer"></div>
-    <div id="detailContainer"></div>
-</main>
-
-<audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
+    <main class="main-content" id="scrollContainer">
+        <div id="listContainer"></div>
+        <div id="detailContainer"></div>
+    </main>
+</div>
 
 <script>
-    // Konfigurasi Database
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    const codeReader = new ZXing.BrowserMultiFormatReader();
     let scanning = false;
-    let isAiActive = false;
-    let aiModel = null;
-    let stream = null;
-    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
+    let net = null; // Untuk model TensorFlow
+    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId'); // Mengambil kamera tersimpan
 
-    // --- FUNGSI LOGIN (Aman) ---
-    function checkLogin() {
-        const u = document.getElementById('username').value;
-        const p = document.getElementById('password').value;
-        if(u && p) {
-            document.getElementById('loginOverlay').style.display = 'none';
-            search();
-        } else {
-            document.getElementById('loginError').style.display = 'block';
+    // 1. Load AI Model (COCO-SSD)
+    async function initAI() {
+        const status = document.getElementById('aiStatus');
+        try {
+            net = await cocoSsd.load();
+            status.innerText = "AI: Ready";
+            status.style.color = "#4CAF50";
+        } catch (e) {
+            status.innerText = "AI: Error";
+            console.error(e);
         }
     }
 
-    // --- LOGIKA AI VISION ---
-    async function initAI() {
-        try { aiModel = await mobilenet.load(); } catch (e) { console.log("AI Model Loading..."); }
-    }
-    initAI();
-
-    document.getElementById('aiBtn').onclick = () => { isAiActive ? stopAll() : startAiScan(); };
-
-    async function startAiScan() {
-        if (!aiModel) return alert("AI sedang bersiap, tunggu sebentar...");
-        stopAll();
-        isAiActive = true;
-        document.getElementById("reader").style.display = "block";
-        document.getElementById("aiBadge").style.display = "block";
+    // 2. AI Prediction Loop
+    async function runAI() {
+        if (!scanning || !net) return;
         
-        try {
-            const video = document.getElementById('videoElement');
-            stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { deviceId: lastSelectedDeviceId ? { exact: lastSelectedDeviceId } : undefined, facingMode: "environment" } 
-            });
-            video.srcObject = stream;
-            
-            const detect = async () => {
-                if (!isAiActive) return;
-                const predictions = await aiModel.classify(video);
-                if (predictions.length > 0) {
-                    const top = predictions[0];
-                    document.getElementById("aiBadge").innerText = `AI: ${top.className.split(',')[0].toUpperCase()}`;
-                    if (top.probability > 0.65) search(top.className.split(',')[0]);
-                }
-                setTimeout(detect, 1000);
-            };
-            detect();
-        } catch (e) { stopAll(); }
+        const video = document.getElementById('videoElement');
+        if (video.readyState === 4) {
+            const predictions = await net.detect(video);
+            if (predictions.length > 0) {
+                const best = predictions[0];
+                document.getElementById('aiStatus').innerText = `AI: ${best.class} (${Math.round(best.score*100)}%)`;
+            }
+        }
+        requestAnimationFrame(runAI);
     }
 
-    // --- LOGIKA BARCODE (QUAGGA) ---
-    document.getElementById("scanBtn").onclick = () => { scanning ? stopAll() : startScan(); };
-
-    function startScan() {
-        stopAll();
-        scanning = true; 
-        document.getElementById("reader").style.display = "block";
-        Quagga.init({
-            inputStream: { type: "LiveStream", target: document.getElementById("reader"), constraints: { facingMode: "environment", deviceId: lastSelectedDeviceId } },
-            decoder: { readers: ["ean_reader", "upc_reader", "code_128_reader"] }
-        }, (err) => {
-            if (err) return;
-            Quagga.start();
-        });
-    }
-
-    function stopAll() {
-        Quagga.stop();
-        scanning = false;
-        isAiActive = false;
-        if (stream) stream.getTracks().forEach(t => t.stop());
-        const v = document.getElementById('videoElement');
-        v.srcObject = null;
-        document.getElementById("reader").style.display = "none";
-        document.getElementById("aiBadge").style.display = "none";
-    }
-
-    Quagga.onDetected(res => {
-        document.getElementById("beepOk").play();
-        const code = res.codeResult.code;
-        stopAll();
-        showDetail(code);
+    document.addEventListener("DOMContentLoaded", () => {
+        document.body.classList.add("fade-in");
+        initAI();
+        if(localStorage.getItem('mmsx_auth') === 'true') {
+            document.getElementById('loginOverlay').style.display = 'none';
+        }
     });
 
-    // --- PENCARIAN & DETAIL ---
-    async function search(q = "") {
-        const val = q || document.getElementById("searchInput").value;
-        let { data } = await _supabase.from('export').select('*').or(`Name.ilike.%${val}%,Barcode.ilike.%${val}%`).limit(20);
-        if(data) {
-            document.getElementById("listContainer").innerHTML = data.map(p => `
-                <div class="list-item" onclick="showDetail('${p.Barcode}')">
-                    <div class="list-img-box"><img src="${p.Image}"></div>
-                    <div class="list-info"><div class="list-name">${p.Name}</div><div style="font-size:11px;color:#888;">${p.Barcode}</div></div>
-                </div>
-            `).join('');
+    async function startScan(deviceId = null) {
+        scanning = true;
+        document.getElementById("reader").style.display = "block";
+        
+        try {
+            const videoDevices = await codeReader.listVideoInputDevices();
+            // Gunakan ID yang diberikan, atau yang tersimpan, atau kamera belakang pertama
+            let selectedId = deviceId || lastSelectedDeviceId || (videoDevices.length > 0 ? videoDevices[0].deviceId : null);
+            
+            updateCameraList(videoDevices, selectedId);
+
+            await codeReader.decodeFromVideoDevice(selectedId, 'videoElement', (result, err) => {
+                if (result) {
+                    document.getElementById("searchInput").value = result.text;
+                    stopScan();
+                    showDetail(result.text);
+                }
+            });
+
+            // Jalankan deteksi AI setelah kamera aktif
+            runAI();
+
+        } catch (err) {
+            console.error(err);
         }
     }
 
-    async function showDetail(bc) {
-        const { data: p } = await _supabase.from('export').select('*').ilike('Barcode', `%${bc}%`).maybeSingle();
-        if(!p) return;
-        document.getElementById("listContainer").style.display = "none";
-        document.getElementById("ui-header").style.display = "none";
-        document.getElementById("detailContainer").style.display = "block";
-        document.getElementById("btnBackFloating").style.display = "flex";
-        document.getElementById("detailContainer").innerHTML = `
-            <div style="padding:20px; text-align:center;">
-                <img src="${p.Image}" style="max-width:100%; border-radius:15px;">
-                <h2 style="margin-top:15px;">${p.Name}</h2>
-                <p style="color:red; font-weight:bold; font-size:24px;">Rp${parseInt(p["Regular Store Price"]).toLocaleString('id-ID')}</p>
-                <p style="color:#888;">Barcode: ${p.Barcode}</p>
-            </div>`;
+    function updateCameraList(devices, currentId) {
+        const source = document.getElementById("videoSource");
+        const control = document.getElementById("cameraControl");
+        
+        if (devices.length > 1) {
+            control.style.display = "block";
+            source.innerHTML = devices.map(d => 
+                `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>${d.label || 'Kamera'}</option>`
+            ).join("");
+        }
+    }
+
+    document.getElementById("videoSource").onchange = (e) => {
+        lastSelectedDeviceId = e.target.value;
+        localStorage.setItem('preferredCameraId', lastSelectedDeviceId); // Simpan pilihan kamera
+        stopScan();
+        startScan(lastSelectedDeviceId);
+    };
+
+    document.getElementById("scanBtn").onclick = () => {
+        scanning ? stopScan() : startScan(lastSelectedDeviceId);
+    };
+
+    function stopScan() {
+        codeReader.reset();
+        scanning = false;
+        document.getElementById("reader").style.display = "none";
+        document.getElementById("cameraControl").style.display = "none";
+    }
+
+    function toggleSidebar() {
+        document.getElementById("sidebar").classList.toggle("active");
+        document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none";
+    }
+
+    function checkLogin() {
+        localStorage.setItem('mmsx_auth', 'true');
+        document.getElementById('loginOverlay').style.display = 'none';
+    }
+
+    function logout() {
+        localStorage.clear();
+        window.location.reload();
+    }
+
+    async function showDetail(barcode) {
+        // Logika detail produk Anda di sini
+        alert("Mendeteksi barcode: " + barcode);
     }
 
     function back() {
@@ -268,10 +244,7 @@
         document.getElementById("listContainer").style.display = "grid";
         document.getElementById("btnBackFloating").style.display = "none";
     }
-
-    function toggleSidebar() { document.getElementById("sidebar").classList.toggle("active"); document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none"; }
-    document.addEventListener("DOMContentLoaded", () => document.body.classList.add("fade-in"));
-    document.getElementById("searchInput").oninput = () => search();
 </script>
+
 </body>
 </html>

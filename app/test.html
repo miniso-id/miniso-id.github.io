@@ -261,6 +261,8 @@ function navigateTo(url) {
     hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
     hints.set(ZXing.DecodeHintType.TRY_HARDER, true); // Memaksa algoritma mencari lebih detail
     hints.set(ZXing.DecodeHintType.ASSUME_CODE_39_CHECK_DIGIT, true);
+    hints.set(ZXing.DecodeHintType.CHARACTER_SET, 'utf-8');
+    hints.set(ZXing.DecodeHintType.PURE_BARCODE, false);
 
     // 2. Setting Resolusi Tinggi & Frame Rate
     const constraints = {

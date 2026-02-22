@@ -258,98 +258,93 @@ function navigateTo(url) {
 
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
-    // FUNGSI SCAN ZXING BARU
+// FUNGSI SCAN ZXING YANG DIPERKETAT
     async function startScan(deviceId = null) {
         scanning = true; 
         document.getElementById("reader").style.display = "block";
         const videoElement = document.getElementById("zxing-video");
         
         codeReader.reset();
-        
-        const constraints = {
-            video: {
-                deviceId: deviceId ? { exact: deviceId } : undefined,
-                width: { ideal: 1920 },
-                height: { ideal: 1080 },
-                frameRate: { ideal: 60, min: 30 }
-            }
-        };
 
         try {
+            // 1. Ambil daftar perangkat terlebih dahulu secara paksa
+            const videoInputDevices = await codeReader.listVideoInputDevices();
+            
+            // 2. Filter hanya kamera belakang
+            const rearCameras = videoInputDevices.filter(d => 
+                !d.label.toLowerCase().includes('front') && 
+                !d.label.toLowerCase().includes('user') &&
+                !d.label.toLowerCase().includes('selfie')
+            );
+
+            // 3. Tentukan device ID yang akan digunakan
+            let targetDeviceId;
+            if (deviceId && rearCameras.some(d => d.deviceId === deviceId)) {
+                // Gunakan pilihan terakhir jika valid (kamera belakang)
+                targetDeviceId = deviceId;
+            } else if (rearCameras.length > 0) {
+                // Jika tidak ada pilihan tersimpan, ambil kamera belakang pertama yang tersedia
+                targetDeviceId = rearCameras[0].deviceId;
+            }
+
+            const constraints = {
+                video: {
+                    deviceId: targetDeviceId ? { exact: targetDeviceId } : undefined,
+                    facingMode: { ideal: "environment" }, // Paksa mode lingkungan
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 },
+                    frameRate: { ideal: 60 }
+                }
+            };
+
+            // Jalankan stream
             const stream = await navigator.mediaDevices.getUserMedia(constraints);
             videoElement.srcObject = stream;
             
-            // Set Zoom 1x
+            // Terapkan Zoom 1x jika didukung
             const track = stream.getVideoTracks()[0];
             const capabilities = track.getCapabilities();
             if (capabilities.zoom) {
-                track.applyConstraints({ advanced: [{ zoom: 1 }] })
-                    .catch(e => console.log("Perangkat tidak mendukung kontrol zoom API", e));
+                track.applyConstraints({ advanced: [{ zoom: 1 }] }).catch(() => {});
             }
 
+            // Mulai proses decoding
             codeReader.decodeFromVideoElement(videoElement, async (result, err) => {
                 if (result) {
                     const code = result.text;
                     document.getElementById("beepOk").play(); 
                     stopScan(); 
-                    document.getElementById("searchInput").blur(); 
                     document.getElementById("searchInput").value = code; 
-                    
-                    // Cek kode di database supabase Anda
-                    const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
-                    if(data) {
-                        showDetail(code);
-                    } else {
-                        // Walaupun tidak ada di database, tetap jalankan pencarian visual untuk memberi feedback
-                        showDetail(code); 
-                    }
-                }
-                if (err && !(err instanceof ZXing.NotFoundException)) {
-                    console.error(err);
+                    showDetail(code);
                 }
             });
             
-            updateCameraList();
+            // Update dropdown UI
+            renderCameraOptions(rearCameras, targetDeviceId);
+
         } catch (err) {
-            console.error("Gagal mengakses kamera:", err);
-            // Fallback jika gagal dengan deviceId spesifik
-            if(deviceId) startScan(null); 
+            console.error("Gagal akses kamera belakang:", err);
+            alert("Kamera belakang tidak dapat diakses atau diblokir.");
         }
     }
 
-    // UPDATE LIST KAMERA (BLOKIR KAMERA DEPAN)
-    async function updateCameraList() {
-        try {
-            const videoInputDevices = await codeReader.listVideoInputDevices();
-            const rearCameras = videoInputDevices.filter(d => 
-                !d.label.toLowerCase().includes('front') && 
-                !d.label.toLowerCase().includes('user')
-            );
-            
-            const source = document.getElementById("videoSource");
-            if (rearCameras.length <= 1) { 
-                document.getElementById("cameraControl").style.display = "none"; 
-            } else {
-                document.getElementById("cameraControl").style.display = "block";
-                source.innerHTML = rearCameras.map(d => 
-                    `<option value="${d.deviceId}" ${d.deviceId === lastSelectedDeviceId ? 'selected' : ''}>${d.label || 'Kamera'}</option>`
-                ).join("");
-            }
-            
-            // Set default jika kosong
-            if (!lastSelectedDeviceId && rearCameras.length > 0) {
-                lastSelectedDeviceId = rearCameras[0].deviceId;
-            }
-        } catch (err) {
-            console.error("Error enumerating devices", err);
+    // Fungsi pembantu untuk merender dropdown
+    function renderCameraOptions(rearCameras, currentId) {
+        const source = document.getElementById("videoSource");
+        if (rearCameras.length <= 1) {
+            document.getElementById("cameraControl").style.display = "none";
+        } else {
+            document.getElementById("cameraControl").style.display = "block";
+            source.innerHTML = rearCameras.map(d => 
+                `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>${d.label || 'Rear Camera'}</option>`
+            ).join("");
         }
     }
 
-    // LISTENER DROPDOWN KAMERA
+    // LISTENER DROPDOWN (Tetap sama)
     document.getElementById("videoSource").onchange = (e) => { 
         lastSelectedDeviceId = e.target.value; 
-        localStorage.setItem('preferredCameraId', lastSelectedDeviceId); // Simpan Pilihan
-        stopScan(); 
+        localStorage.setItem('preferredCameraId', lastSelectedDeviceId);
         startScan(lastSelectedDeviceId); 
     };
 

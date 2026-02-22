@@ -249,6 +249,16 @@ function navigateTo(url) {
     scanning = true; 
     document.getElementById("reader").style.display = "block";
     
+    // Tentukan resolusi ideal yang diinginkan
+    const constraints = {
+        video: {
+            deviceId: deviceId ? { exact: deviceId } : undefined,
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            facingMode: "environment"
+        }
+    };
+
     try {
         const videoDevices = await codeReader.listVideoInputDevices();
         const backCameras = videoDevices.filter(d => !d.label.toLowerCase().includes('front'));
@@ -257,25 +267,43 @@ function navigateTo(url) {
         
         updateCameraList(backCameras, selectedId);
 
-        // Menjalankan scanner
-        const result = await codeReader.decodeFromVideoDevice(selectedId, 'videoElement', (result, err) => {
+        // Gunakan decodeFromConstraints agar pengaturan resolusi diterapkan
+        await codeReader.decodeFromConstraints(constraints, 'videoElement', (result, err) => {
             if (result) {
                 onDetected(result.text);
             }
         });
 
-        // OPTIMASI FOKUS: Setelah video berjalan, terapkan focusMode continuous
+        // OPTIMASI FOKUS & RESOLUSI LANJUTAN
         const videoTrack = document.getElementById('videoElement').srcObject.getVideoTracks()[0];
         const capabilities = videoTrack.getCapabilities();
 
+        const advancedConstraints = {};
+        
+        // Terapkan Continuous Fokus jika tersedia
         if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
+            advancedConstraints.focusMode = 'continuous';
+        }
+
+        // Terapkan Zoom sedikit jika mendukung (membantu barcode kecil di resolusi tinggi)
+        if (capabilities.zoom) {
+            // advancedConstraints.zoom = 1.2; // Opsional: buka jika ingin sedikit zoom
+        }
+
+        if (Object.keys(advancedConstraints).length > 0) {
             await videoTrack.applyConstraints({
-                advanced: [{ focusMode: 'continuous' }]
+                advanced: [advancedConstraints]
             });
         }
+
     } catch (err) {
-        console.error("Gagal start scan:", err);
-        scanning = false;
+        console.error("Gagal start scan dengan resolusi tinggi:", err);
+        // Fallback jika 1080p gagal
+        if (deviceId) {
+            console.log("Mencoba ulang dengan resolusi standar...");
+            codeReader.reset();
+            startScan(null); 
+        }
     }
 }
 

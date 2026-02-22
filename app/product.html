@@ -644,7 +644,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
                     .filter(p => p.class !== 'person')
                     .sort((a, b) => b.score - a.score)[0];
 
-                if (valid && valid.score > 0.55) {
+                if (valid && valid.score > 0.70) {
                     const item = valid.class;
                     const lang = localStorage.getItem('mms_lang') || 'id';
                     const t = prodTranslations[lang];

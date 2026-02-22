@@ -174,17 +174,22 @@
     }
 
     async function detectFrame() {
-        const video = document.getElementById('videoElement');
-        const predictions = await net.classify(video);
-        
-        if (predictions.length > 0) {
-            currentPrediction = predictions[0].className.split(',')[0];
-            document.getElementById('ai-status-box').innerText = "MELIHAT: " + currentPrediction;
-        }
-        
-        requestAnimationFrame(detectFrame);
-    }
+    const video = document.getElementById('videoElement');
+    const predictions = await net.classify(video);
+    
+    if (predictions.length > 0) {
+        const topResult = predictions[0];
+        currentPrediction = topResult.className.split(',')[0];
+        document.getElementById('ai-status-box').innerText = "MELIHAT: " + currentPrediction;
 
+        // OTOMATIS CARI: Jika tingkat keyakinan AI di atas 60%
+        if (topResult.probability > 0.60) {
+            searchByAI(); // Panggil fungsi cari tanpa tunggu tekan tombol
+        }
+    }
+    
+    if (scanning) requestAnimationFrame(detectFrame);
+}
     async function searchByAI() {
         const resultsDiv = document.getElementById('aiResults');
         resultsDiv.innerHTML = `<p style="text-align:center;">Mencari produk: <b>${currentPrediction}</b>...</p>`;

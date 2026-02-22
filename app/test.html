@@ -604,7 +604,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
         try {
             status.innerText = "⏳ MEMULAI ENGINE AI...";
             // Load model COCO-SSD versi ringan (MobileNet V2)
-            aiDetector = await cocoSsd.load({ base: 'inception_v2' });
+            aiDetector = await cocoSsd.load({ base: 'mobilenet_v2' });
             status.innerText = "✅ AI ONLINE (ARAHKAN KE OBJEK)";
             status.style.color = "#00ff00";
         } catch (e) { 

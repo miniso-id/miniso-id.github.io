@@ -24,7 +24,7 @@
         body.fade-in { opacity: 1; }
         .fade-out { opacity: 0 !important; }
 
-        /* --- LOGIN & UI --- */
+        /* --- UI COMPONENTS --- */
         #loginOverlay { position: fixed; inset: 0; background: var(--bg-gray); z-index: 20000; display: flex; align-items: center; justify-content: center; }
         .login-box { background: white; width: 90%; max-width: 350px; padding: 35px 25px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); text-align: center; }
         .btn-login { width: 100%; height: 50px; background: var(--miniso-red); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; }
@@ -43,10 +43,11 @@
         .cat-chip { padding: 8px 16px; background: #f0f0f0; border-radius: 20px; font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; }
         .cat-chip.active { background: var(--miniso-red); color: white; }
 
+        /* --- SCANNER & AI BOX --- */
         #reader { display:none; width:100%; max-width:340px; aspect-ratio:1/1; margin:15px auto; background:#000; border-radius:20px; overflow:hidden; position:relative; border: 4px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
         #videoElement { width: 100%; height: 100%; object-fit: cover; }
         .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
-        .ai-status { position: absolute; top: 10px; left: 0; width: 100%; text-align: center; color: #00ff00; font-size: 10px; font-weight: bold; z-index: 10; text-shadow: 1px 1px 2px #000; }
+        .ai-status { position: absolute; top: 10px; left: 0; width: 100%; text-align: center; color: yellow; font-size: 10px; font-weight: bold; z-index: 10; text-shadow: 1px 1px 2px #000; }
 
         .main-content { flex: 1; overflow-y: auto; padding: 0 16px; }
         #listContainer { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 16px 0 80px 0; }
@@ -66,7 +67,7 @@
 
 <div id="loginOverlay">
     <div class="login-box">
-        <h2>MMS-X</h2>
+        <h2>MMS-X AI</h2>
         <p>Silakan masuk</p>
         <select id="loginAs" style="width:100%; height:45px; margin-bottom:10px; border-radius:8px;">
             <option value="Administrator">Administrator</option>
@@ -82,7 +83,7 @@
 
 <div id="sidebar" class="sidebar">
     <h2>MMS-X</h2>
-    <a href="#" onclick="logout()">Logout</a>
+    <a href="#" onclick="logout()" style="color:white; text-decoration:none;">Logout</a>
 </div>
 <div id="overlay" onclick="toggleSidebar()"></div>
 
@@ -97,7 +98,7 @@
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             <div class="search-container">
-                <input id="searchInput" placeholder="Cari produk...">
+                <input id="searchInput" placeholder="Cari produk / AI deteksi...">
                 <button id="scanBtn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                 </button>
@@ -105,7 +106,7 @@
         </div>
         <div id="catFilterContainer"></div>
         <div id="reader">
-            <div class="ai-status" id="aiStatus">🤖 AI READY</div>
+            <div class="ai-status" id="aiStatus">⏳ MENGHUBUNGKAN AI...</div>
             <video id="videoElement"></video>
             <div class="focus-guide"></div>
         </div>
@@ -121,17 +122,19 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
-    // --- KONFIGURASI SUPABASE ---
+    // --- SUPABASE SETUP ---
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // --- STATE ---
     let scanning = false;
     let lastScroll = 0;
     let currentCategory = 'All';
     const codeReader = new ZXing.BrowserMultiFormatReader();
-    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId'); // [cite: 2026-02-22]
+    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
+
+    // Ekspos ke window agar script module bisa memanggilnya
+    window.scanning = scanning;
 
     document.addEventListener("DOMContentLoaded", () => {
         document.body.classList.add("fade-in");
@@ -139,7 +142,6 @@
         search();
     });
 
-    // --- AUTH ---
     async function checkLogin() {
         const role = document.getElementById('loginAs').value;
         const user = document.getElementById('username').value;
@@ -147,7 +149,6 @@
         const { data } = await _supabase.from('users').select('*').eq('login as', role).eq('username', user).eq('password', pass).maybeSingle();
         if (data) {
             localStorage.setItem('mms_auth', 'true');
-            localStorage.setItem('mms_role', role);
             document.getElementById('loginOverlay').style.display = 'none';
         } else {
             document.getElementById('loginError').style.display = 'block';
@@ -157,7 +158,6 @@
 
     function logout() { localStorage.clear(); location.reload(); }
 
-    // --- DATA & UI ---
     async function fetchCategories() {
         const { data } = await _supabase.rpc('get_unique_categories');
         if (data) {
@@ -194,20 +194,18 @@
             `).join('');
         }
     }
-
+    window.search = search; // Ekspos ke window
     document.getElementById("searchInput").oninput = search;
 
-    // --- SCANNER & CAMERA ---
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
     async function startScan(deviceId = null) {
-        scanning = true;
+        scanning = true; window.scanning = true;
         document.getElementById("reader").style.display = "block";
         const videoDevices = await codeReader.listVideoInputDevices();
         const backCams = videoDevices.filter(d => !d.label.toLowerCase().includes('front'));
         let selectedId = deviceId || (backCams.length > 0 ? backCams[0].deviceId : videoDevices[0].deviceId);
 
-        // Simpan pilihan kamera [cite: 2026-02-22]
         localStorage.setItem('preferredCameraId', selectedId);
         updateCameraList(backCams, selectedId);
 
@@ -225,7 +223,7 @@
 
     function stopScan() {
         codeReader.reset();
-        scanning = false;
+        scanning = false; window.scanning = false;
         document.getElementById("reader").style.display = "none";
         document.getElementById("cameraControl").style.display = "none";
     }
@@ -239,7 +237,6 @@
         }
     }
 
-    // --- DETAIL & NAVIGATION ---
     async function showDetail(barcode) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;
         const { data: p } = await _supabase.from('export').select('*').ilike('Barcode', `%${barcode}%`).maybeSingle();
@@ -255,16 +252,9 @@
                 <div style="padding:20px;">
                     <span style="color:red; font-weight:800; font-size:12px;">${p.Category}</span>
                     <h2 style="margin:10px 0;">${p.Name}</h2>
-                    <p style="color:#555; font-size:14px;">${p.Description || ''}</p>
                     <div class="price-comparison-grid">
-                        <div class="price-item reg">
-                            <small>Regular Store</small><br>
-                            <strong>Rp${parseInt(p["Regular Store Price"] || 0).toLocaleString('id-ID')}</strong>
-                        </div>
-                        <div class="price-item">
-                            <small>Street Store</small><br>
-                            <strong>Rp${parseInt(p["Street Store Price"] || 0).toLocaleString('id-ID')}</strong>
-                        </div>
+                        <div class="price-item reg"><small>Regular</small><br><strong>Rp${parseInt(p["Regular Store Price"] || 0).toLocaleString('id-ID')}</strong></div>
+                        <div class="price-item"><small>Street</small><br><strong>Rp${parseInt(p["Street Store Price"] || 0).toLocaleString('id-ID')}</strong></div>
                     </div>
                 </div>
             </div>
@@ -288,12 +278,12 @@
 </script>
 
 <script type="module">
-    // Gunakan versi yang spesifik dan stabil
     import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
 
-    // Konfigurasi agar kompatibel dengan browser HP (non-multithreaded)
+    // Optimasi untuk Mobile
     env.allowLocalModels = false;
     env.useBrowserCache = true;
+    env.backends.onnx.wasm.numThreads = 1;
 
     let detector;
     let aiActive = false;
@@ -302,35 +292,24 @@
         const status = document.getElementById('aiStatus');
         try {
             status.innerText = "⏳ MEMUAT AI (20MB)...";
-            
-            // Inisialisasi detector dengan model paling ringan
-            detector = await pipeline('object-detection', 'Xenova/detr-resnet-50-tiny', {
-                device: 'webgpu', // Coba gunakan GPU jika tersedia
-            }).catch(async () => {
-                // Fallback ke CPU jika WebGPU gagal
-                return await pipeline('object-detection', 'Xenova/detr-resnet-50-tiny');
-            });
-
+            detector = await pipeline('object-detection', 'Xenova/detr-resnet-50-tiny');
             status.innerText = "✅ AI READY";
             status.style.color = "#00ff00";
         } catch (e) { 
-            console.error("AI Init Error:", e);
-            status.innerText = "❌ AI OFFLINE (RETRYING...)";
+            status.innerText = "❌ AI OFFLINE";
             status.style.color = "orange";
-            // Coba lagi setelah 5 detik jika gagal
-            setTimeout(initAI, 5000);
+            setTimeout(initAI, 10000);
         }
     }
 
-    // Fungsi deteksi yang lebih aman
     async function runAIDetection() {
-        if (!detector || !scanning) {
+        if (!detector || !window.scanning) {
             aiActive = false;
             return;
         }
 
         const video = document.getElementById('videoElement');
-        if (video.readyState < 2) {
+        if (!video || video.readyState < 2) {
             setTimeout(runAIDetection, 500);
             return;
         }
@@ -339,51 +318,39 @@
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth; 
             canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0);
+            canvas.getContext('2d').drawImage(video, 0, 0);
 
-            const output = await detector(canvas.toDataURL('image/jpeg'), { 
-                threshold: 0.5, 
-                percentage: true 
-            });
+            const output = await detector(canvas.toDataURL('image/jpeg'), { threshold: 0.5, percentage: true });
             
-            if (output.length > 0 && scanning) {
-                // Filter objek yang masuk akal (abaikan "person" agar tidak mendeteksi wajah user)
+            if (output.length > 0 && window.scanning) {
                 const validObjects = output.filter(obj => obj.label !== 'person');
-                
                 if (validObjects.length > 0) {
                     const item = validObjects[0].label;
-                    const status = document.getElementById('aiStatus');
-                    status.innerText = `🎯 TERDETEKSI: ${item.toUpperCase()}`;
+                    document.getElementById('aiStatus').innerText = `🎯 TERDETEKSI: ${item.toUpperCase()}`;
                     
                     const searchInput = document.getElementById('searchInput');
-                    if (searchInput.value !== item) {
+                    if (searchInput && searchInput.value !== item) {
                         searchInput.value = item;
-                        window.search(); 
+                        if (typeof window.search === 'function') window.search(); 
                     }
                 }
             }
-        } catch (err) {
-            console.warn("Detection frame skipped:", err);
-        }
+        } catch (err) { console.warn("AI Frame Skip"); }
 
-        if(scanning) setTimeout(runAIDetection, 3000); // Jeda 3 detik agar HP tidak lag
+        if(window.scanning) setTimeout(runAIDetection, 3000); 
     }
 
-    // Jalankan init
     initAI();
 
-    // Pantau scanner
     const observer = new MutationObserver(() => {
         const reader = document.getElementById('reader');
-        if (reader.style.display === 'block' && !aiActive) {
+        if (reader && reader.style.display === 'block' && !aiActive) {
             aiActive = true;
             runAIDetection();
-        } else if (reader.style.display === 'none') {
-            aiActive = false;
         }
     });
     observer.observe(document.getElementById('reader'), { attributes: true, attributeFilter: ['style'] });
 </script>
+
 </body>
 </html>

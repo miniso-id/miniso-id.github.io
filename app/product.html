@@ -9,6 +9,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+    
     <style>
         :root {
             --miniso-red: #e61523;
@@ -101,6 +104,10 @@ body.fade-in {
         #reader video { width: 100%; height: 100%; object-fit: cover; }
         .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
         .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; }
+        
+        /* New AI Status Overlay */
+        .ai-status-tag { position: absolute; top: 10px; left: 0; width: 100%; text-align: center; color: #fff; font-size: 10px; font-weight: 800; z-index: 10; text-shadow: 1px 1px 2px #000; background: rgba(0,0,0,0.4); padding: 5px 0; }
+        
         #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
 
         .main-content { flex: 1; overflow-y: auto; overflow-x: hidden; width: 100%; padding: 0 16px; }
@@ -205,6 +212,7 @@ body.fade-in {
             <div class="cat-chip active" onclick="filterCat('All', this)">All</div>
         </div>
         <div id="reader">
+            <div class="ai-status-tag" id="aiStatus">⏳ MEMULAI AI...</div>
             <video id="videoElement"></video>
             <div class="focus-guide"></div>
             <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK FOKUS</div>
@@ -396,6 +404,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
 
     async function startScan(deviceId = null) {
         scanning = true; 
+        window.isScanning = true; // Flag untuk AI
         document.getElementById("reader").style.display = "block";
         
         const hints = new Map();
@@ -437,6 +446,11 @@ if(localStorage.getItem('mms_auth') === 'true') {
                     onDetected(result.text);
                 }
             });
+
+            if (aiDetector && !aiActive) {
+            aiActive = true;
+            runAIDetection();
+        }
 
             const videoTrack = document.getElementById('videoElement').srcObject.getVideoTracks()[0];
             const capabilities = videoTrack.getCapabilities();
@@ -504,11 +518,13 @@ if(localStorage.getItem('mms_auth') === 'true') {
     };
 
     function stopScan() { 
-        codeReader.reset(); 
-        scanning = false; 
-        document.getElementById("reader").style.display = "none"; 
-        document.getElementById("cameraControl").style.display = "none"; 
-    }
+    codeReader.reset(); 
+    scanning = false; 
+    window.isScanning = false; // Menghentikan loop runAIDetection
+    aiActive = false;          // Reset status agar Observer bisa mentrigger ulang
+    document.getElementById("reader").style.display = "none"; 
+    document.getElementById("cameraControl").style.display = "none"; 
+}
 
     async function onDetected(code) {
         const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
@@ -581,6 +597,81 @@ if(localStorage.getItem('mms_auth') === 'true') {
         document.getElementById("btnBackFloating").style.display = "none";
         document.getElementById("scrollContainer").scrollTop = lastScroll;
     }
+</script>
+
+<script>
+    let aiDetector;
+    let aiActive = false;
+
+    // Inisialisasi Engine AI (TFJS)
+    async function initAI() {
+        const status = document.getElementById('aiStatus');
+        try {
+            status.innerText = "⏳ MEMULAI ENGINE AI...";
+            // Load model COCO-SSD versi ringan (MobileNet V2)
+            aiDetector = await cocoSsd.load({ base: 'mobilenet_v2' });
+            status.innerText = "✅ AI ONLINE (ARAHKAN KE OBJEK)";
+            status.style.color = "#00ff00";
+        } catch (e) { 
+            console.error("AI Load Fail:", e);
+            status.innerText = "❌ AI OFFLINE";
+            status.style.color = "red";
+        }
+    }
+
+    // Fungsi loop deteksi objek
+    async function runAIDetection() {
+        if (!aiDetector || !window.isScanning) { aiActive = false; return; }
+        
+        const video = document.getElementById('videoElement');
+        // Pastikan video sudah siap (frame tersedia)
+        if (!video || video.readyState < 2) { 
+            setTimeout(runAIDetection, 500); 
+            return; 
+        }
+
+        try {
+            const predictions = await aiDetector.detect(video);
+            
+            if (predictions.length > 0 && window.isScanning) {
+                // Filter objek bukan orang & ambil akurasi tertinggi
+                const valid = predictions
+                    .filter(p => p.class !== 'person')
+                    .sort((a, b) => b.score - a.score)[0];
+
+                if (valid && valid.score > 0.55) {
+                    const item = valid.class;
+                    document.getElementById('aiStatus').innerText = `🎯 DETEKSI: ${item.toUpperCase()}`;
+                    
+                    const searchInput = document.getElementById('searchInput');
+                    if (searchInput.value !== item) {
+                        searchInput.value = item;
+                        // Trigger pencarian produk secara otomatis
+                        if (window.search) window.search();
+                        stopScan();
+                    }
+                }
+            }
+        } catch (err) { 
+            console.warn("AI Busy..."); 
+        }
+        
+        // Loop setiap 1.5 detik agar tidak membebani prosesor HP
+        if(window.isScanning) setTimeout(runAIDetection, 1500);
+    }
+
+    // Load AI saat halaman dimuat pertama kali
+    window.addEventListener('load', initAI);
+
+    // Observer untuk mendeteksi kapan Scanner dibuka
+    const aiObserver = new MutationObserver(() => {
+        const reader = document.getElementById('reader');
+        if (reader.style.display === 'block' && !aiActive) {
+            aiActive = true;
+            runAIDetection();
+        }
+    });
+    aiObserver.observe(document.getElementById('reader'), { attributes: true, attributeFilter: ['style'] });
 </script>
 
 <script>

@@ -249,12 +249,26 @@ function navigateTo(url) {
     scanning = true; 
     document.getElementById("reader").style.display = "block";
     
-    // Tentukan resolusi ideal yang diinginkan
+    // 1. Definisikan Hints untuk ZXing (Kunci Ketajaman)
+    const hints = new Map();
+    const formats = [
+        ZXing.BarcodeFormat.EAN_13,
+        ZXing.BarcodeFormat.EAN_8,
+        ZXing.BarcodeFormat.CODE_128,
+        ZXing.BarcodeFormat.UPC_A,
+        ZXing.BarcodeFormat.UPC_E
+    ];
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true); // Memaksa algoritma mencari lebih detail
+    hints.set(ZXing.DecodeHintType.ASSUME_CODE_39_CHECK_DIGIT, true);
+
+    // 2. Setting Resolusi Tinggi & Frame Rate
     const constraints = {
         video: {
             deviceId: deviceId ? { exact: deviceId } : undefined,
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
+            width: { min: 1280, ideal: 1920, max: 2560 },
+            height: { min: 720, ideal: 1080, max: 1440 },
+            frameRate: { ideal: 30, max: 60 }, // FPS tinggi mengurangi motion blur
             facingMode: "environment"
         }
     };
@@ -262,51 +276,39 @@ function navigateTo(url) {
     try {
         const videoDevices = await codeReader.listVideoInputDevices();
         const backCameras = videoDevices.filter(d => !d.label.toLowerCase().includes('front'));
-        
         let selectedId = deviceId || lastSelectedDeviceId || (backCameras.length > 0 ? backCameras[0].deviceId : videoDevices[0].deviceId);
         
         updateCameraList(backCameras, selectedId);
 
-        // Gunakan decodeFromConstraints agar pengaturan resolusi diterapkan
+        // 3. Gunakan hints dalam pembacaan
+        codeReader.hints = hints;
+
         await codeReader.decodeFromConstraints(constraints, 'videoElement', (result, err) => {
-            if (result) {
-                onDetected(result.text);
-            }
+            if (result) onDetected(result.text);
         });
 
-        // OPTIMASI FOKUS & RESOLUSI LANJUTAN
+        // 4. Maksimalkan Hardware Focus
         const videoTrack = document.getElementById('videoElement').srcObject.getVideoTracks()[0];
         const capabilities = videoTrack.getCapabilities();
-
-        const advancedConstraints = {};
         
-        // Terapkan Continuous Fokus jika tersedia
+        const advanced = {};
         if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
-            advancedConstraints.focusMode = 'continuous';
+            advanced.focusMode = 'continuous';
         }
-
-        // Terapkan Zoom sedikit jika mendukung (membantu barcode kecil di resolusi tinggi)
+        // Jika gambar masih kurang tajam, tambahkan sedikit zoom (perangkat modern mendukung ini)
         if (capabilities.zoom) {
-            // advancedConstraints.zoom = 1.2; // Opsional: buka jika ingin sedikit zoom
+            advanced.zoom = capabilities.zoom.min + 0.5; // Zoom sedikit untuk deteksi lebih baik
         }
 
-        if (Object.keys(advancedConstraints).length > 0) {
-            await videoTrack.applyConstraints({
-                advanced: [advancedConstraints]
-            });
+        if (Object.keys(advanced).length > 0) {
+            await videoTrack.applyConstraints({ advanced: [advanced] });
         }
 
     } catch (err) {
-        console.error("Gagal start scan dengan resolusi tinggi:", err);
-        // Fallback jika 1080p gagal
-        if (deviceId) {
-            console.log("Mencoba ulang dengan resolusi standar...");
-            codeReader.reset();
-            startScan(null); 
-        }
+        console.error("Gagal optimasi kamera:", err);
+        if(deviceId) { codeReader.reset(); startScan(null); }
     }
 }
-
     function updateCameraList(devices, currentId) {
         const source = document.getElementById("videoSource");
         const control = document.getElementById("cameraControl");

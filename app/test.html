@@ -276,12 +276,29 @@ function navigateTo(url) {
                     console.error(err);
                 }
             });
-            updateCameraList();
-        } catch (error) {
-            console.error(error);
-            if(deviceId) startScan(null); // Fallback jika deviceId gagal
+            // --- TAMBAHKAN KODE AUTO FOCUS DI SINI ---
+        const videoElement = document.getElementById('video');
+        const stream = videoElement.srcObject;
+        if (stream) {
+            const track = stream.getVideoTracks()[0];
+            const capabilities = track.getCapabilities();
+
+            // Cek apakah HP mendukung fitur fokus otomatis
+            if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
+                await track.applyConstraints({
+                    advanced: [{ focusMode: 'continuous' }]
+                });
+                console.log("Auto-focus aktif");
+            }
         }
+        // -----------------------------------------
+
+        updateCameraList();
+    } catch (error) {
+        console.error(error);
+        if(deviceId) startScan(null);
     }
+}
 
     async function updateCameraList() {
         const devices = await codeReader.listVideoInputDevices();

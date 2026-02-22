@@ -513,12 +513,13 @@ if(localStorage.getItem('mms_auth') === 'true') {
     };
 
     function stopScan() { 
-        codeReader.reset(); 
-        scanning = false; 
-        window.isScanning = false; // Stop AI loop
-        document.getElementById("reader").style.display = "none"; 
-        document.getElementById("cameraControl").style.display = "none"; 
-    }
+    codeReader.reset(); 
+    scanning = false; 
+    window.isScanning = false; // Menghentikan loop runAIDetection
+    aiActive = false;          // Reset status agar Observer bisa mentrigger ulang
+    document.getElementById("reader").style.display = "none"; 
+    document.getElementById("cameraControl").style.display = "none"; 
+}
 
     async function onDetected(code) {
         const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();

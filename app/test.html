@@ -1,124 +1,343 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+    <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X Responsive</title>
+    <title>MMS-X</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     
     <style>
-        :root { --miniso-red: #e61523; --bg-gray: #f4f4f4; }
-        body { font-family: -apple-system, sans-serif; margin: 0; background: white; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        :root {
+            --miniso-red: #e61523;
+            --miniso-soft: #fff1f2;
+            --text-dark: #1a1a1a;
+            --promo-blue: #007bff;
+            --promo-green: #28a745;
+            --bg-gray: #f4f4f4;
+            --sidebar-width: 280px;
+        }
 
-        header { padding: calc(20px + env(safe-area-inset-top)) 16px 12px; border-bottom: 1px solid #eee; background: white; }
-        .top-bar { display: flex; gap: 10px; align-items: center; }
+        /* Animasi Masuk Halaman */
+        body { opacity: 0; transition: opacity 0.2s ease-in; }
+        body.fade-in { opacity: 1; }
+        .fade-out { opacity: 0 !important; transition: opacity 0.2s ease-out; }
+
+        /* --- LOGIN OVERLAY --- */
+        #loginOverlay { position: fixed; inset: 0; background: var(--bg-gray); z-index: 20000; display: flex; align-items: center; justify-content: center; }
+        .login-box { background: white; width: 90%; max-width: 350px; padding: 35px 25px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); text-align: center; }
+        .login-box h2 { color: var(--miniso-red); margin: 0 0 10px 0; font-weight: 800; font-size: 28px; }
+        .login-box p { color: #666; font-size: 14px; margin-bottom: 25px; }
+        .login-box label { display: block; text-align: left; font-size: 11px; font-weight: 800; color: #999; margin: 0 0 5px 5px; text-transform: uppercase; }
+        .login-box input, .login-box select { width: 100%; height: 48px; margin-bottom: 15px; padding: 0 15px; border-radius: 12px; border: 1.5px solid #eee; background: #f9f9f9; outline: none; font-size: 15px; transition: 0.3s; }
+        .login-box input:focus { border-color: var(--miniso-red); background: white; }
+        .btn-login { width: 100%; height: 50px; background: var(--miniso-red); color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 10px; }
+
+        /* --- STYLE UTAMA --- */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; padding: 0; font-family: -apple-system, sans-serif; background: #ffffff; color: var(--text-dark); height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden; }
+
+        .sidebar { width: var(--sidebar-width); background: var(--miniso-red); color: #fff; position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 9500; padding: 25px; }
+        .sidebar.active { transform: translateX(0); }
+        .sidebar a { color: #fff; text-decoration: none; display: block; padding: 15px; border-radius: 12px; margin-bottom: 10px; font-weight: 600; background: rgba(255,255,255,0.1); }
+        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 9000; display: none; backdrop-filter: blur(4px); }
+
+        #ui-header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); padding: calc(20px + env(safe-area-inset-top)) 16px 12px 16px; border-bottom: 1px solid #eee; z-index: 1000; width: 100%; flex-shrink: 0; }
+        .top-bar { display: flex; gap: 10px; align-items: center; max-width: 1200px; margin-inline: auto; width: 100%; }
         .search-container { position: relative; flex: 1; }
-        #searchInput { width: 100%; height: 46px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; padding: 0 50px 0 15px; outline: none; box-sizing: border-box; }
+        #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
         #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        
-        #cameraSelect { width: 100%; margin-top: 10px; padding: 10px; border-radius: 10px; border: 1px solid #ddd; font-size: 13px; }
 
-        #scannerWrapper { display: none; width: 92%; max-width: 350px; margin: 15px auto; border-radius: 24px; overflow: hidden; border: 4px solid white; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        #reader { width: 100%; }
+        #catFilterContainer { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 4px 0; scrollbar-width: none; width: 100%; }
+        .cat-chip { padding: 8px 16px; background: #f0f0f0; border-radius: 20px; font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; transition: 0.2s; text-transform: uppercase; }
+        .cat-chip.active { background: var(--miniso-red); color: white; }
+
+        /* MODIFIKASI READER UNTUK HTML5-QRCODE */
+        #reader { display:none; width:100%; max-width:340px; margin:15px auto; background:#000; border-radius:20px; overflow:hidden; position:relative; border: 4px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+        #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
+
+        .main-content { flex: 1; overflow-y: auto; overflow-x: hidden; width: 100%; padding: 0 16px; }
+        #listContainer { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 16px 0 80px 0; width: 100%; }
         
-        .main-content { flex: 1; overflow-y: auto; padding: 16px; }
-        .list-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-bottom: 1px solid #eee; }
-        .product-card { text-align: center; }
-        .product-card img { width: 100%; max-width: 280px; border-radius: 20px; }
-        .price-text { color: var(--miniso-red); font-size: 28px; font-weight: 800; }
+        .list-item { display: flex; align-items: center; gap: 14px; padding: 12px; background: white; border-radius: 16px; border: 1px solid #f0f0f0; cursor: pointer; }
+        .list-img-box { width: 70px; height: 70px; background: #f9f9f9; border-radius: 12px; flex-shrink: 0; overflow: hidden; border: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: center; }
+        .list-img-box img { width: 100%; height: 100%; object-fit: contain; }
+        .list-info { flex: 1; min-width: 0; }
+        .list-name { font-weight: 700; font-size: 14px; color: #111; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+        #detailContainer { display: none; padding-top: 20px; padding-bottom: 80px; max-width: 700px; margin: 0 auto; width: 100%; }
+        .product-card { background: white; border-radius: 20px; overflow: hidden; border: 1px solid #eee; animation: slideUp 0.3s ease-out; }
+        .image-box { background: #fff; text-align: center; padding: 20px; position: relative; }
+        .image-box img { max-width: 100%; height: 300px; object-fit: contain; }
+        .promo-badge { position: absolute; bottom: 15px; right: 15px; background: #ff9800; color: white; padding: 5px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; }
+        .p-info { padding: 24px; }
+        .p-title { font-size: 22px; font-weight: 800; margin: 0 0 10px 0; }
+        
+        .price-comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .price-item { padding: 14px; border-radius: 14px; border-bottom: 4px solid #ddd; background: var(--bg-gray); }
+        .price-item.reg { border-bottom-color: var(--miniso-red); background: var(--miniso-soft); }
+        .price-val { font-size: 19px; font-weight: 800; color: var(--miniso-red); }
+
+        #lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.4s; backdrop-filter: blur(12px); }
+        #lightbox.active { display: flex; opacity: 1; }
+        #lightbox img { max-width: 90%; max-height: 80vh; border-radius: 20px; }
+
+        .floating-back { position: fixed; top: calc(25px + env(safe-area-inset-top)); left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 9999; cursor: pointer; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
 
-<header>
-    <div class="top-bar">
-        <div class="search-container">
-            <input id="searchInput" placeholder="Cari barcode atau nama...">
-            <button id="scanBtn">📸</button>
-        </div>
+<div id="loginOverlay">
+    <div class="login-box">
+        <h2>MMS-X</h2>
+        <p>Silakan masuk ke akun Anda</p>
+        <label>Login As</label>
+        <select id="loginAs">
+            <option value="Administrator">Administrator</option>
+            <option value="Area">Area</option>
+            <option value="Store">Store</option>
+        </select>
+        <label>Username</label>
+        <input type="text" id="username" placeholder="Username" autocomplete="off">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="••••••••">
+        <button class="btn-login" onclick="checkLogin()">MASUK</button>
+        <p id="loginError" style="color:var(--miniso-red); font-size:12px; margin-top:15px; font-weight:700; display:none;">Login Gagal!</p>
     </div>
-    <select id="cameraSelect"></select>
-    <div id="scannerWrapper"><div id="reader"></div></div>
-</header>
+</div>
 
-<main class="main-content">
-    <div id="listContainer"></div>
-    <div id="detailContainer" style="display: none;"></div>
-</main>
+<div id="sidebar" class="sidebar">
+    <h2>MMS-X</h2>
+    <a href="https://miniso-id.github.io/app/" onclick="toggleSidebar()">Home</a>
+    <a href="#" onclick="logout()" style="background:rgba(0,0,0,0.2); margin-top:20px;">Logout</a>
+</div>
+<div id="overlay" onclick="toggleSidebar()"></div>
 
-<audio id="beep" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
+<div id="btnBackFloating" class="floating-back" onclick="back()">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="3"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+</div>
+
+<div id="lightbox" onclick="closeLightbox()"><img id="lightboxImg" src=""></div>
+
+<div id="appContent">
+    <header id="ui-header">
+        <div class="top-bar">
+            <button onclick="toggleSidebar()" style="background:none; border:none; padding:10px 5px;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></button>
+            <div class="search-container">
+                <input id="searchInput" placeholder="Cari nama / barcode..." autocomplete="off">
+                <button id="scanBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg></button>
+            </div>
+        </div>
+        <div id="catFilterContainer"><div class="cat-chip active" onclick="filterCat('All', this)">All</div></div>
+        
+        <div id="reader"></div>
+        <div id="cameraControl">
+            <select id="videoSource" style="padding: 10px; width: 90%; border-radius: 8px; margin: 10px auto;"></select>
+        </div>
+    </header>
+
+    <main class="main-content" id="scrollContainer">
+        <div id="listContainer"></div>
+        <div id="detailContainer"></div>
+    </main>
+</div>
+
+<audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
+    document.addEventListener("DOMContentLoaded", () => { document.body.classList.add("fade-in"); });
+
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let html5QrCode;
-    let isScanning = false;
-
-    async function setupApp() {
-        const devices = await Html5Qrcode.getCameras();
-        const select = document.getElementById('cameraSelect');
-        if (devices && devices.length > 0) {
-            select.innerHTML = devices.map(d => `<option value="${d.id}">${d.label}</option>`).join('');
-            const lastCam = localStorage.getItem('mms_last_cam');
-            if (lastCam) select.value = lastCam;
-        }
-        select.onchange = () => {
-            localStorage.setItem('mms_last_cam', select.value);
-            if (isScanning) restartScanner();
-        };
+    /* --- LOGIKA LOGIN --- */
+    async function checkLogin() {
+        const role = document.getElementById('loginAs').value;
+        const user = document.getElementById('username').value;
+        const pass = document.getElementById('password').value;
+        const btn = document.querySelector('.btn-login');
+        btn.innerText = "LOADING...";
+        try {
+            const { data } = await _supabase.from('users').select('*').eq('login as', role).eq('username', user).eq('password', pass).maybeSingle();
+            if (data) {
+                localStorage.setItem('mms_auth', 'true');
+                localStorage.setItem('mms_role', role);
+                document.getElementById('loginOverlay').style.display = 'none';
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+            }
+        } catch (e) { alert("Error Database"); } finally { btn.innerText = "MASUK"; }
     }
 
-    document.getElementById('scanBtn').onclick = () => isScanning ? stopScanner() : startScanner();
+    if(localStorage.getItem('mms_auth') === 'true') {
+        window.addEventListener('load', () => { document.getElementById('loginOverlay').style.display = 'none'; });
+    }
 
-    async function startScanner() {
-        isScanning = true;
-        document.getElementById('scannerWrapper').style.display = 'block';
-        document.getElementById('detailContainer').style.display = 'none';
+    function logout() { localStorage.clear(); window.location.href = "index.html"; }
+
+    /* --- LOGIKA SCANNER (HTML5-QRCODE) --- */
+    let html5QrCode;
+    let scanning = false;
+    let lastCameraId = localStorage.getItem('preferredCameraId');
+    let currentCategory = 'All';
+
+    async function initCameras() {
+        try {
+            const devices = await Html5Qrcode.getCameras();
+            const source = document.getElementById("videoSource");
+            if (devices && devices.length > 0) {
+                source.innerHTML = devices.map(d => `<option value="${d.id}" ${d.id === lastCameraId ? 'selected' : ''}>${d.label}</option>`).join("");
+                if (!lastCameraId) {
+                    // Default ke kamera belakang jika tersedia
+                    const back = devices.find(d => d.label.toLowerCase().includes('back'));
+                    lastCameraId = back ? back.id : devices[0].id;
+                }
+            }
+        } catch (e) { console.error(e); }
+    }
+    initCameras();
+
+    document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(); };
+
+    async function startScan() {
+        scanning = true;
+        document.getElementById("reader").style.display = "block";
+        document.getElementById("cameraControl").style.display = "block";
+        
+        const selectedId = document.getElementById("videoSource").value;
         html5QrCode = new Html5Qrcode("reader");
+
+        const config = {
+            fps: 20,
+            qrbox: { width: 250, height: 150 },
+            aspectRatio: 1.0
+        };
+
         try {
             await html5QrCode.start(
-                document.getElementById('cameraSelect').value, 
-                { fps: 20, qrbox: { width: 250, height: 150 } },
-                (code) => {
-                    document.getElementById('beep').play();
-                    stopScanner();
-                    fetchData(code);
+                selectedId, 
+                config,
+                (decodedText) => {
+                    document.getElementById("beepOk").play();
+                    stopScan();
+                    showDetail(decodedText);
                 }
             );
-        } catch (err) { stopScanner(); }
+        } catch (err) {
+            console.error(err);
+            stopScan();
+        }
     }
 
-    async function stopScanner() {
-        isScanning = false;
-        document.getElementById('scannerWrapper').style.display = 'none';
-        if (html5QrCode) await html5QrCode.stop();
+    async function stopScan() {
+        scanning = false;
+        document.getElementById("reader").style.display = "none";
+        document.getElementById("cameraControl").style.display = "none";
+        if (html5QrCode) {
+            await html5QrCode.stop();
+            html5QrCode = null;
+        }
     }
 
-    async function fetchData(code) {
-        const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
-        if (data) renderProduct(data);
+    document.getElementById("videoSource").onchange = (e) => {
+        lastCameraId = e.target.value;
+        localStorage.setItem('preferredCameraId', lastCameraId);
+        if (scanning) { stopScan().then(() => startScan()); }
+    };
+
+    /* --- LOGIKA DATA --- */
+    async function fetchCategories() {
+        const { data } = await _supabase.rpc('get_unique_categories');
+        if (data) {
+            const container = document.getElementById('catFilterContainer');
+            container.innerHTML = '<div class="cat-chip active" onclick="filterCat(\'All\', this)">All</div>';
+            data.forEach(item => {
+                const chip = document.createElement('div');
+                chip.className = 'cat-chip';
+                chip.innerText = item.category;
+                chip.onclick = () => filterCat(item.category, chip);
+                container.appendChild(chip);
+            });
+        }
+    }
+    fetchCategories();
+
+    function filterCat(cat, el) {
+        document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        currentCategory = cat;
+        search();
     }
 
-    function renderProduct(p) {
-        document.getElementById('listContainer').style.display = 'none';
-        const det = document.getElementById('detailContainer');
-        det.style.display = 'block';
+    async function search() {
+        const q = document.getElementById("searchInput").value.trim();
+        const list = document.getElementById("listContainer");
+        let query = _supabase.from('export').select('*');
+        if (currentCategory !== 'All') query = query.eq('Category', currentCategory);
+        if (q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
+        let { data } = await query.limit(100);
+        if(data) {
+            list.innerHTML = data.map(p => `
+                <div class="list-item" onclick="showDetail('${p.Barcode}')">
+                    <div class="list-img-box"><img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/150'" loading="lazy"></div>
+                    <div class="list-info">
+                        <div class="list-cat">${p.Category || 'GENERAL'}</div>
+                        <div class="list-name">${p.Name}</div>
+                        <div class="list-bc">${p.Barcode}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+
+    document.getElementById("searchInput").oninput = () => { search(); };
+
+    async function showDetail(bc) {
+        const { data: p } = await _supabase.from('export').select('*').ilike('Barcode', `%${bc}%`).maybeSingle();
+        if(!p) return;
+        document.getElementById("listContainer").style.display = "none";
+        document.getElementById("ui-header").style.display = "none";
+        const det = document.getElementById("detailContainer");
         det.innerHTML = `
             <div class="product-card">
-                <div style="text-align:left; cursor:pointer; padding:10px;" onclick="location.reload()"><b>← KEMBALI</b></div>
-                <img src="${p.Image || ''}">
-                <h2>${p.Name}</h2>
-                <div class="price-text">Rp${parseInt(p["Regular Store Price"] || 0).toLocaleString()}</div>
-                <p>Barcode: ${p.Barcode}</p>
+                <div class="image-box">
+                    <img src="${p.Image || ''}" onclick="openLightbox('${p.Image}')">
+                </div>
+                <div class="p-info">
+                    <span class="p-cat">${p.Category || 'GENERAL'}</span>
+                    <h3 class="p-title">${p.Name}</h3>
+                    <div class="price-comparison-grid">
+                        <div class="price-item reg">
+                            <span class="price-label">Regular Store</span>
+                            <span class="price-val">Rp${parseInt(p["Regular Store Price"] || 0).toLocaleString('id-ID')}</span>
+                        </div>
+                        <div class="price-item str">
+                            <span class="price-label">Street Store</span>
+                            <span class="price-val" style="color:#222">Rp${parseInt(p["Street Store Price"] || 0).toLocaleString('id-ID')}</span>
+                        </div>
+                    </div>
+                    <p style="font-size:12px; color:#888;">BARCODE: ${p.Barcode}</p>
+                </div>
             </div>
         `;
+        det.style.display = "block";
+        document.getElementById("btnBackFloating").style.display = "flex";
     }
 
-    window.onload = setupApp;
+    function back() {
+        document.getElementById("detailContainer").style.display = "none";
+        document.getElementById("ui-header").style.display = "block";
+        document.getElementById("listContainer").style.display = "grid";
+        document.getElementById("btnBackFloating").style.display = "none";
+    }
+
+    function openLightbox(src) { document.getElementById('lightboxImg').src = src; document.getElementById('lightbox').classList.add('active'); }
+    function closeLightbox() { document.getElementById('lightbox').classList.remove('active'); }
+    function toggleSidebar() { document.getElementById("sidebar").classList.toggle("active"); document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none"; }
 </script>
 </body>
 </html>

@@ -1,48 +1,33 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X Stable Version</title>
+    <title>MMS-X Responsive</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     
     <style>
-        :root {
-            --miniso-red: #e61523;
-            --bg-gray: #f4f4f4;
-            --text-dark: #1a1a1a;
-        }
-
+        :root { --miniso-red: #e61523; --bg-gray: #f4f4f4; }
         body { font-family: -apple-system, sans-serif; margin: 0; background: white; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        
-        /* UI HEADER - Persis product(5).html */
+
         header { padding: calc(20px + env(safe-area-inset-top)) 16px 12px; border-bottom: 1px solid #eee; background: white; }
         .top-bar { display: flex; gap: 10px; align-items: center; }
         .search-container { position: relative; flex: 1; }
         #searchInput { width: 100%; height: 46px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; padding: 0 50px 0 15px; outline: none; box-sizing: border-box; }
         #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
         
-        /* STATUS & CAMERA SELECT */
-        #statusLabel { font-size: 11px; text-align: center; margin-top: 8px; font-weight: bold; padding: 4px; border-radius: 4px; }
-        .st-ok { background: #d4edda; color: #155724; }
-        .st-err { background: #f8d7da; color: #721c24; }
-        #cameraSelect { width: 100%; margin-top: 10px; padding: 8px; border-radius: 8px; border: 1px solid #ddd; font-size: 12px; display: none; }
+        #cameraSelect { width: 100%; margin-top: 10px; padding: 10px; border-radius: 10px; border: 1px solid #ddd; font-size: 13px; }
 
-        /* SCANNER BOX */
-        #scannerContainer { display: none; width: 92%; max-width: 350px; aspect-ratio: 1/1; margin: 15px auto; background: #000; border-radius: 24px; overflow: hidden; position: relative; border: 4px solid white; box-shadow: 0 15px 35px rgba(0,0,0,0.2); }
-        #videoElement { width: 100%; height: 100%; object-fit: cover; }
-        .scan-overlay { position: absolute; inset: 20%; border: 2px solid var(--miniso-red); border-radius: 15px; box-shadow: 0 0 0 2000px rgba(0,0,0,0.5); pointer-events: none; }
+        #scannerWrapper { display: none; width: 92%; max-width: 350px; margin: 15px auto; border-radius: 24px; overflow: hidden; border: 4px solid white; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        #reader { width: 100%; }
         
-        /* CONTENT AREA */
-        .main-content { flex: 1; overflow-y: auto; padding: 16px; background: white; }
-        .product-card { text-align: center; animation: fadeIn 0.3s; }
-        .product-card img { width: 100%; max-width: 250px; border-radius: 20px; margin-bottom: 15px; }
-        .price-big { color: var(--miniso-red); font-size: 28px; font-weight: 800; }
-        
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .main-content { flex: 1; overflow-y: auto; padding: 16px; }
+        .list-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-bottom: 1px solid #eee; }
+        .product-card { text-align: center; }
+        .product-card img { width: 100%; max-width: 280px; border-radius: 20px; }
+        .price-text { color: var(--miniso-red); font-size: 28px; font-weight: 800; }
     </style>
 </head>
 <body>
@@ -54,13 +39,8 @@
             <button id="scanBtn">📸</button>
         </div>
     </div>
-    <div id="statusLabel" class="st-ok">MENGHUBUNGKAN AI...</div>
     <select id="cameraSelect"></select>
-
-    <div id="scannerContainer">
-        <video id="videoElement" playsinline muted></video>
-        <div class="scan-overlay"></div>
-    </div>
+    <div id="scannerWrapper"><div id="reader"></div></div>
 </header>
 
 <main class="main-content">
@@ -75,149 +55,70 @@
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let barcodeDetector;
+    let html5QrCode;
     let isScanning = false;
-    let isProcessing = false;
-    let currentStream = null;
 
-    // 1. Inisialisasi MediaPipe (Tanpa cek isSecureContext yang kaku)
-    async function initMediaPipe() {
-        const label = document.getElementById('statusLabel');
-        try {
-            const vision = await tasksVision.FilesetResolver.forVisionTasks(
-                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
-            );
-            barcodeDetector = await tasksVision.BarcodeDetector.createFromOptions(vision, {
-                baseOptions: {
-                    modelAssetPath: "https://storage.googleapis.com/mediapipe-models/barcode_detector/barcode_detector/float16/1/barcode_detector.tflite",
-                    delegate: "GPU"
-                },
-                runningMode: "VIDEO"
-            });
-            label.innerText = "SISTEM SIAP ✅";
-            label.className = "st-ok";
-            setupCameras();
-        } catch (e) {
-            label.innerText = "GAGAL MUAT AI ❌ (Coba Refresh)";
-            label.className = "st-err";
-            console.error(e);
-        }
-    }
-
-    // 2. Setup Kamera & Ingat Pilihan (Catatan 22-02-2026)
-    async function setupCameras() {
+    async function setupApp() {
+        const devices = await Html5Qrcode.getCameras();
         const select = document.getElementById('cameraSelect');
-        try {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const videoDevices = devices.filter(d => d.kind === 'videoinput');
-            
-            if (videoDevices.length > 0) {
-                select.style.display = 'block';
-                select.innerHTML = videoDevices.map(d => `<option value="${d.deviceId}">${d.label || 'Kamera '+d.deviceId.slice(0,5)}</option>`).join('');
-                
-                const lastUsed = localStorage.getItem('lastCameraId');
-                if (lastUsed) select.value = lastUsed;
-
-                select.onchange = () => {
-                    localStorage.setItem('lastCameraId', select.value);
-                    if (isScanning) startScan(select.value);
-                };
-            }
-        } catch (err) { console.log("List kamera gagal", err); }
+        if (devices && devices.length > 0) {
+            select.innerHTML = devices.map(d => `<option value="${d.id}">${d.label}</option>`).join('');
+            const lastCam = localStorage.getItem('mms_last_cam');
+            if (lastCam) select.value = lastCam;
+        }
+        select.onchange = () => {
+            localStorage.setItem('mms_last_cam', select.value);
+            if (isScanning) restartScanner();
+        };
     }
 
-    // 3. Kontrol Scan
-    document.getElementById('scanBtn').onclick = () => isScanning ? stopScan() : startScan(document.getElementById('cameraSelect').value);
+    document.getElementById('scanBtn').onclick = () => isScanning ? stopScanner() : startScanner();
 
-    async function startScan(deviceId) {
-        if (!barcodeDetector) return;
+    async function startScanner() {
         isScanning = true;
-        isProcessing = false;
-        document.getElementById('scannerContainer').style.display = 'block';
+        document.getElementById('scannerWrapper').style.display = 'block';
         document.getElementById('detailContainer').style.display = 'none';
-        
-        if (currentStream) currentStream.getTracks().forEach(t => t.stop());
-
+        html5QrCode = new Html5Qrcode("reader");
         try {
-            currentStream = await navigator.mediaDevices.getUserMedia({
-                video: { deviceId: deviceId ? { exact: deviceId } : undefined, facingMode: "environment" }
-            });
-            const video = document.getElementById('videoElement');
-            video.srcObject = currentStream;
-            video.onloadedmetadata = () => {
-                video.play();
-                requestAnimationFrame(scanLoop);
-            };
-        } catch (e) {
-            alert("Kamera tidak bisa dibuka!");
-            stopScan();
-        }
+            await html5QrCode.start(
+                document.getElementById('cameraSelect').value, 
+                { fps: 20, qrbox: { width: 250, height: 150 } },
+                (code) => {
+                    document.getElementById('beep').play();
+                    stopScanner();
+                    fetchData(code);
+                }
+            );
+        } catch (err) { stopScanner(); }
     }
 
-    function scanLoop() {
-        if (!isScanning) return;
-        const video = document.getElementById('videoElement');
-        if (video.readyState >= 2 && !isProcessing) {
-            const results = barcodeDetector.detectForVideo(video, performance.now());
-            if (results.barcodes.length > 0) {
-                isProcessing = true;
-                handleBarcodeFound(results.barcodes[0].rawValue);
-            }
-        }
-        requestAnimationFrame(scanLoop);
-    }
-
-    async function handleBarcodeFound(code) {
-        const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
-        if (data) {
-            document.getElementById('beep').play();
-            if (navigator.vibrate) navigator.vibrate(100);
-            stopScan();
-            renderProduct(data);
-        } else {
-            // Beri jeda 1.5 detik jika tidak ada di DB agar tidak spamming
-            setTimeout(() => { isProcessing = false; }, 1500);
-        }
-    }
-
-    function stopScan() {
+    async function stopScanner() {
         isScanning = false;
-        if (currentStream) currentStream.getTracks().forEach(t => t.stop());
-        document.getElementById('scannerContainer').style.display = 'none';
+        document.getElementById('scannerWrapper').style.display = 'none';
+        if (html5QrCode) await html5QrCode.stop();
     }
 
-    // 4. Render Hasil
+    async function fetchData(code) {
+        const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
+        if (data) renderProduct(data);
+    }
+
     function renderProduct(p) {
         document.getElementById('listContainer').style.display = 'none';
         const det = document.getElementById('detailContainer');
         det.style.display = 'block';
         det.innerHTML = `
             <div class="product-card">
-                <div style="text-align:left; padding:10px 0;" onclick="location.reload()"><b>← KEMBALI</b></div>
+                <div style="text-align:left; cursor:pointer; padding:10px;" onclick="location.reload()"><b>← KEMBALI</b></div>
                 <img src="${p.Image || ''}">
-                <h2 style="margin:0">${p.Name}</h2>
-                <div class="price-big">Rp${parseInt(p["Regular Store Price"] || 0).toLocaleString()}</div>
-                <p style="color:#888; font-size:12px;">BARCODE: ${p.Barcode}</p>
+                <h2>${p.Name}</h2>
+                <div class="price-text">Rp${parseInt(p["Regular Store Price"] || 0).toLocaleString()}</div>
+                <p>Barcode: ${p.Barcode}</p>
             </div>
         `;
     }
 
-    // Search Manual
-    document.getElementById('searchInput').oninput = async (e) => {
-        const q = e.target.value;
-        if (q.length < 3) return;
-        const { data } = await _supabase.from('export').select('*').or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`).limit(10);
-        if (data) {
-            document.getElementById('listContainer').innerHTML = data.map(p => `
-                <div style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #eee;" onclick='renderProduct(${JSON.stringify(p)})'>
-                    <img src="${p.Image}" style="width:50px; height:50px; border-radius:5px;">
-                    <div><b>${p.Name}</b><br><small>${p.Barcode}</small></div>
-                </div>
-            `).join('');
-        }
-    };
-
-    window.onload = initMediaPipe;
+    window.onload = setupApp;
 </script>
 </body>
 </html>

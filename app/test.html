@@ -270,6 +270,7 @@ function navigateTo(url) {
     // PURE_BARCODE false memberi tahu scanner bahwa ada background di sekitar barcode
     hints.set(ZXing.DecodeHintType.PURE_BARCODE, false);
     hints.set(ZXing.DecodeHintType.ASSUME_GS1, true);
+    hints.set(ZXing.DecodeHintType.ALSO_SUPPORT_CONVEX, true);
 
     // 2. Setting Resolusi Tinggi & Aspect Ratio
     const constraints = {
@@ -280,7 +281,10 @@ function navigateTo(url) {
             frameRate: { ideal: 30, max: 60 },
             facingMode: "environment",
             // Mengunci aspect ratio 16:9 agar barcode tidak terdistorsi/gepeng saat miring
-            aspectRatio: { ideal: 1.7777777778 }
+            aspectRatio: { ideal: 1.7777777778 },
+            focusMode: { ideal: "continuous" },
+            whiteBalanceMode: { ideal: "continuous" }
+            
         }
     };
 

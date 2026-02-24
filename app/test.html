@@ -142,7 +142,7 @@
             <div class="cat-chip active" onclick="filterCat('All', this)">All</div>
         </div>
         <div id="reader">
-            <video id="videoElement" playsinline></video>
+            <video id="videoElement" playsinline muted></video>
             <div class="focus-guide"></div>
             <div class="tap-hint">ARAHKAN BARCODE • TAP UNTUK FOKUS</div>
         </div>
@@ -170,6 +170,7 @@
     let animationFrameId;
     let lastVideoTime = -1;
     let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
+    let isProcessing = false; // Flag agar tidak mendeteksi ganda saat loading
 
     document.addEventListener("DOMContentLoaded", () => { 
         document.body.classList.add("fade-in"); 
@@ -206,10 +207,12 @@
     /* --- MEDIAPIPE CORE --- */
     async function initMediaPipe() {
         try {
-            const filesetResolver = await vision.FilesetResolver.forVisionTasks(
+            // Gunakan tasksVision sebagai namespace global
+            const visionInstance = window.tasksVision || vision;
+            const filesetResolver = await visionInstance.FilesetResolver.forVisionTasks(
                 "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
             );
-            barcodeDetector = await vision.BarcodeDetector.createFromOptions(filesetResolver, {
+            barcodeDetector = await visionInstance.BarcodeDetector.createFromOptions(filesetResolver, {
                 baseOptions: {
                     modelAssetPath: "https://storage.googleapis.com/mediapipe-models/barcode_detector/barcode_detector/float16/1/barcode_detector.tflite",
                     delegate: "GPU"
@@ -227,6 +230,7 @@
         if (!barcodeDetector) return alert("Tunggu sebentar, scanner sedang disiapkan...");
         
         scanning = true;
+        isProcessing = false;
         document.getElementById("reader").style.display = "block";
         const video = document.getElementById('videoElement');
 
@@ -251,7 +255,7 @@
             updateCameraList(videoDevices, deviceId || stream.getVideoTracks()[0].getSettings().deviceId);
         } catch (err) {
             console.error(err);
-            alert("Gagal membuka kamera. Pastikan izin kamera diberikan.");
+            alert("Gagal membuka kamera. Pastikan izin diberikan.");
             stopScan();
         }
     }
@@ -262,9 +266,11 @@
         if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
             lastVideoTime = video.currentTime;
             const result = barcodeDetector.detectForVideo(video, performance.now());
-            if (result.barcodes.length > 0) {
+            
+            // Jika terdeteksi dan sedang tidak memproses data sebelumnya
+            if (result.barcodes.length > 0 && !isProcessing) {
+                isProcessing = true; // Kunci proses
                 onDetected(result.barcodes[0].rawValue);
-                return;
             }
         }
         animationFrameId = requestAnimationFrame(tick);
@@ -272,6 +278,7 @@
 
     function stopScan() {
         scanning = false;
+        isProcessing = false;
         cancelAnimationFrame(animationFrameId);
         const video = document.getElementById('videoElement');
         if (video.srcObject) {
@@ -296,11 +303,19 @@
 
     /* --- SEARCH & DATA --- */
     async function onDetected(code) {
-        const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
-        if(data) {
-            document.getElementById("beepOk").play();
-            stopScan();
-            showDetail(code);
+        try {
+            const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
+            if(data) {
+                document.getElementById("beepOk").play();
+                stopScan();
+                showDetail(code);
+            } else {
+                // Jika tidak ditemukan di database, biarkan scanner jalan lagi setelah jeda 1 detik
+                console.log("Barcode tidak terdaftar:", code);
+                setTimeout(() => { isProcessing = false; }, 1000);
+            }
+        } catch (e) {
+            isProcessing = false;
         }
     }
 

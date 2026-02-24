@@ -4,58 +4,68 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X Fix</title>
+    <title>MMS-X</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     
     <style>
+        /* MENGEMBALIKAN SEMUA STYLE ASLI PRODUCT (5).HTML */
         :root {
             --miniso-red: #e61523;
             --miniso-soft: #fff1f2;
             --text-dark: #1a1a1a;
+            --promo-blue: #007bff;
+            --promo-green: #28a745;
             --bg-gray: #f4f4f4;
             --sidebar-width: 280px;
         }
 
-        body { margin: 0; padding: 0; font-family: -apple-system, sans-serif; background: #ffffff; height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden; }
+        body { opacity: 0; transition: opacity 0.2s ease-in; margin: 0; padding: 0; font-family: -apple-system, sans-serif; background: #ffffff; color: var(--text-dark); height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden; }
+        body.fade-in { opacity: 1; }
+        .fade-out { opacity: 0 !important; transition: opacity 0.2s ease-out; }
 
-        /* --- LOGIN OVERLAY --- */
         #loginOverlay { position: fixed; inset: 0; background: var(--bg-gray); z-index: 20000; display: flex; align-items: center; justify-content: center; }
         .login-box { background: white; width: 90%; max-width: 350px; padding: 35px 25px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); text-align: center; }
+        .login-box h2 { color: var(--miniso-red); margin: 0 0 10px 0; font-weight: 800; font-size: 28px; }
         .btn-login { width: 100%; height: 50px; background: var(--miniso-red); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; }
 
-        /* --- HEADER & SCANNER FIX --- */
-        #ui-header { background: white; padding: calc(20px + env(safe-area-inset-top)) 16px 12px 16px; border-bottom: 1px solid #eee; z-index: 1000; flex-shrink: 0; }
-        .top-bar { display: flex; gap: 10px; align-items: center; }
+        .sidebar { width: var(--sidebar-width); background: var(--miniso-red); color: #fff; position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); transition: 0.4s; z-index: 9500; padding: 25px; }
+        .sidebar.active { transform: translateX(0); }
+        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 9000; display: none; backdrop-filter: blur(4px); }
+
+        #ui-header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); padding: calc(20px + env(safe-area-inset-top)) 16px 12px 16px; border-bottom: 1px solid #eee; z-index: 1000; width: 100%; flex-shrink: 0; }
+        .top-bar { display: flex; gap: 10px; align-items: center; max-width: 1200px; margin-inline: auto; }
         .search-container { position: relative; flex: 1; }
-        #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; }
-        
-        /* Tombol Scan dipastikan berada di lapisan atas agar bisa diklik */
-        #scanBtn { 
-            position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; 
-            background: var(--miniso-red); color: white; border: none; border-radius: 10px; 
-            display: flex; align-items: center; justify-content: center; 
-            cursor: pointer; z-index: 5; 
-        }
+        #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
+        #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; }
 
-        /* Container Scanner */
-        #reader { 
-            display:none; width:100%; max-width:340px; margin:15px auto; 
-            background:#000; border-radius:20px; overflow:hidden; 
-            border: 4px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
-        }
+        #catFilterContainer { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 4px 0; scrollbar-width: none; width: 100%; }
+        .cat-chip { padding: 8px 16px; background: #f0f0f0; border-radius: 20px; font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; text-transform: uppercase; }
+        .cat-chip.active { background: var(--miniso-red); color: white; }
 
-        .main-content { flex: 1; overflow-y: auto; padding: 0 16px; }
+        /* FIX READER CONTAINER */
+        #reader { display:none; width:100%; max-width:340px; margin:15px auto; background:#000; border-radius:20px; overflow:hidden; border: 4px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+        #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
+
+        .main-content { flex: 1; overflow-y: auto; overflow-x: hidden; width: 100%; padding: 0 16px; }
         #listContainer { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 16px 0 80px 0; }
         .list-item { display: flex; align-items: center; gap: 14px; padding: 12px; background: white; border-radius: 16px; border: 1px solid #f0f0f0; cursor: pointer; }
-        
-        /* Detail Page */
-        #detailContainer { display: none; padding: 20px 0 80px 0; }
-        .product-card { background: white; border-radius: 20px; border: 1px solid #eee; overflow: hidden; }
-        .price-val { font-size: 20px; font-weight: 800; color: var(--miniso-red); }
+        .list-img-box { width: 70px; height: 70px; background: #f9f9f9; border-radius: 12px; flex-shrink: 0; overflow: hidden; border: 1px solid #f0f0f0; }
+        .list-img-box img { width: 100%; height: 100%; object-fit: contain; }
 
-        .floating-back { position: fixed; top: 40px; left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 9999; }
+        #detailContainer { display: none; padding-top: 20px; padding-bottom: 80px; max-width: 700px; margin: 0 auto; }
+        .product-card { background: white; border-radius: 20px; overflow: hidden; border: 1px solid #eee; animation: slideUp 0.3s ease-out; }
+        .image-box { text-align: center; padding: 20px; position: relative; border-bottom: 1px solid #f5f5f5; }
+        .image-box img { max-width: 100%; height: 300px; object-fit: contain; }
+        
+        .price-comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; }
+        .price-item { padding: 14px; border-radius: 14px; border-bottom: 4px solid #ddd; background: var(--bg-gray); }
+        .price-item.reg { border-bottom-color: var(--miniso-red); background: var(--miniso-soft); }
+        .price-val { font-size: 19px; font-weight: 800; color: var(--miniso-red); }
+
+        .floating-back { position: fixed; top: 40px; left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 9999; cursor: pointer; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
@@ -63,30 +73,36 @@
 <div id="loginOverlay">
     <div class="login-box">
         <h2>MMS-X</h2>
-        <input type="text" id="username" placeholder="Username" style="width:100%; margin-bottom:10px; padding:10px; border-radius:8px; border:1px solid #ddd;">
-        <input type="password" id="password" placeholder="Password" style="width:100%; margin-bottom:15px; padding:10px; border-radius:8px; border:1px solid #ddd;">
+        <p>Silakan masuk ke akun Anda</p>
+        <select id="loginAs"><option value="Administrator">Administrator</option></select>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
         <button class="btn-login" onclick="checkLogin()">MASUK</button>
+        <p id="loginError" style="color:var(--miniso-red); display:none;">Login Gagal!</p>
     </div>
 </div>
 
 <div id="btnBackFloating" class="floating-back" onclick="back()">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
 </div>
 
 <div id="appContent">
     <header id="ui-header">
         <div class="top-bar">
+            <button onclick="toggleSidebar()" style="background:none; border:none;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></button>
             <div class="search-container">
                 <input id="searchInput" placeholder="Cari nama / barcode...">
                 <button id="scanBtn" type="button">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                 </button>
             </div>
         </div>
-        
-        <select id="videoSource" style="width:100%; margin-top:10px; padding:8px; border-radius:8px; border:1px solid #eee; font-size:12px;"></select>
+        <div id="catFilterContainer"><div class="cat-chip active">All</div></div>
         
         <div id="reader"></div>
+        <div id="cameraControl">
+            <select id="videoSource" style="width:90%; padding:10px; margin:10px auto; display:block; border-radius:8px;"></select>
+        </div>
     </header>
 
     <main class="main-content">
@@ -103,121 +119,83 @@
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let html5QrCode;
-    let isScanning = false;
-    let lastCamId = localStorage.getItem('preferredCameraId'); //
+    let scanning = false;
+    let lastCameraId = localStorage.getItem('preferredCameraId');
 
-    // 1. Inisialisasi Kamera & Dropdown
-    async function initCameras() {
+    // INILISASI KAMERA
+    async function initScanner() {
         try {
             const devices = await Html5Qrcode.getCameras();
             const select = document.getElementById('videoSource');
             if (devices && devices.length > 0) {
-                select.innerHTML = devices.map(d => `<option value="${d.id}" ${d.id === lastCamId ? 'selected' : ''}>${d.label}</option>`).join('');
-                
-                // Jika belum pernah simpan kamera, cari yang labelnya mengandung 'back'
-                if (!lastCamId) {
-                    const backCam = devices.find(d => d.label.toLowerCase().includes('back'));
-                    lastCamId = backCam ? backCam.id : devices[0].id;
-                    select.value = lastCamId;
-                }
+                select.innerHTML = devices.map(d => `<option value="${d.id}" ${d.id === lastCameraId ? 'selected' : ''}>${d.label}</option>`).join('');
+                if (!lastCameraId) lastCameraId = devices[0].id;
             }
-        } catch (e) {
-            console.error("Izin kamera ditolak");
-        }
+        } catch (e) { console.error("Kamera tidak ditemukan"); }
     }
 
-    // 2. Event Handler Tombol Scan (Memastikan klik terdaftar)
-    document.getElementById("scanBtn").addEventListener("click", function(e) {
+    document.getElementById("scanBtn").onclick = (e) => {
         e.preventDefault();
-        if (isScanning) {
-            stopScan();
-        } else {
-            startScan();
-        }
-    });
+        scanning ? stopScan() : startScan();
+    };
 
     async function startScan() {
-        const readerDiv = document.getElementById("reader");
-        readerDiv.style.display = "block";
-        document.getElementById("detailContainer").style.display = "none";
+        scanning = true;
+        document.getElementById("reader").style.display = "block";
+        document.getElementById("cameraControl").style.display = "block";
         
-        isScanning = true;
         html5QrCode = new Html5Qrcode("reader");
-        
-        const config = { 
-            fps: 20, 
-            qrbox: { width: 250, height: 150 },
-            aspectRatio: 1.0 
-        };
+        const selectedId = document.getElementById("videoSource").value;
 
         try {
-            const selectedId = document.getElementById("videoSource").value;
             await html5QrCode.start(
                 selectedId, 
-                config, 
+                { fps: 20, qrbox: { width: 250, height: 150 } },
                 (decodedText) => {
                     document.getElementById("beepOk").play();
                     stopScan();
                     showDetail(decodedText);
                 }
             );
-        } catch (err) {
-            console.error("Gagal start scan:", err);
-            stopScan();
-        }
+        } catch (err) { stopScan(); }
     }
 
     async function stopScan() {
-        isScanning = false;
+        scanning = false;
         document.getElementById("reader").style.display = "none";
+        document.getElementById("cameraControl").style.display = "none";
         if (html5QrCode) {
-            try {
-                await html5QrCode.stop();
-            } catch (e) {}
+            await html5QrCode.stop();
             html5QrCode = null;
         }
     }
 
-    // Simpan pilihan kamera setiap kali diubah
     document.getElementById("videoSource").onchange = (e) => {
-        lastCamId = e.target.value;
-        localStorage.setItem('preferredCameraId', lastCamId);
-        if (isScanning) {
-            stopScan().then(() => startScan());
-        }
+        lastCameraId = e.target.value;
+        localStorage.setItem('preferredCameraId', lastCameraId);
+        if (scanning) stopScan().then(() => startScan());
     };
 
-    /* --- FUNGSI PENDUKUNG --- */
-    async function checkLogin() {
-        const user = document.getElementById('username').value;
-        const pass = document.getElementById('password').value;
-        if(user === "admin" && pass === "123") { // Dummy login
-            localStorage.setItem('mms_auth', 'true');
-            document.getElementById('loginOverlay').style.display = 'none';
-        } else {
-            alert("Login Gagal!");
-        }
-    }
-
-    if(localStorage.getItem('mms_auth') === 'true') {
-        document.getElementById('loginOverlay').style.display = 'none';
-    }
-
+    // LOGIKA DATA ASLI
     async function showDetail(bc) {
         const { data: p } = await _supabase.from('export').select('*').ilike('Barcode', `%${bc}%`).maybeSingle();
-        if(!p) return alert("Produk tidak ditemukan");
+        if(!p) return;
         
-        document.getElementById("ui-header").style.display = "none";
         document.getElementById("listContainer").style.display = "none";
+        document.getElementById("ui-header").style.display = "none";
         const det = document.getElementById("detailContainer");
         det.style.display = "block";
         det.innerHTML = `
             <div class="product-card">
-                <div style="padding:20px; text-align:center;"><img src="${p.Image || ''}" style="max-width:100%; height:250px; object-fit:contain;"></div>
-                <div style="padding:20px;">
-                    <h2 style="margin:0;">${p.Name}</h2>
-                    <p style="color:red; font-size:24px; font-weight:800;">Rp${parseInt(p["Regular Store Price"] || 0).toLocaleString('id-ID')}</p>
-                    <p>Barcode: ${p.Barcode}</p>
+                <div class="image-box"><img src="${p.Image || ''}"></div>
+                <div style="padding:24px;">
+                    <span style="color:red; font-weight:800; font-size:11px;">${p.Category || 'GENERAL'}</span>
+                    <h3 style="margin:5px 0 15px 0;">${p.Name}</h3>
+                    <div class="price-comparison-grid">
+                        <div class="price-item reg"><span style="font-size:10px; display:block;">Regular Store</span><span class="price-val">Rp${parseInt(p["Regular Store Price"] || 0).toLocaleString('id-ID')}</span></div>
+                        <div class="price-item"><span style="font-size:10px; display:block;">Street Store</span><span class="price-val" style="color:#333;">Rp${parseInt(p["Street Store Price"] || 0).toLocaleString('id-ID')}</span></div>
+                    </div>
+                    <p style="font-size:12px; color:#888;">Barcode: ${p.Barcode}</p>
                 </div>
             </div>
         `;
@@ -231,10 +209,20 @@
         document.getElementById("btnBackFloating").style.display = "none";
     }
 
-    // Jalankan inisialisasi saat window load
-    window.addEventListener('load', () => {
-        initCameras();
-    });
+    async function checkLogin() {
+        const user = document.getElementById('username').value;
+        const pass = document.getElementById('password').value;
+        if(user && pass) { 
+            localStorage.setItem('mms_auth', 'true');
+            document.getElementById('loginOverlay').style.display = 'none';
+        }
+    }
+
+    window.onload = () => {
+        document.body.classList.add("fade-in");
+        initScanner();
+        if(localStorage.getItem('mms_auth') === 'true') document.getElementById('loginOverlay').style.display = 'none';
+    };
 </script>
 </body>
 </html>

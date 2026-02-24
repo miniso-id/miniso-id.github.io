@@ -185,9 +185,10 @@
 
     function logout() { localStorage.clear(); location.reload(); }
 
-    /* --- INISIALISASI MEDIAPIPE BARCODE DETECTOR --- */
+    /* --- INISIALISASI MEDIAPIPE BARCODE DETECTOR (READY TO USE) --- */
     let BarcodeDetector, FilesetResolver;
-    let barcodeDetector;
+    let barcodeDetector = null;
+    let isInitializing = false;
     let scanning = false, lastScroll = 0, timer;
     let animationFrameId;
     let lastVideoTime = -1;
@@ -195,8 +196,9 @@
     let currentCategory = 'All';
 
     async function initMediaPipe() {
+        if (isInitializing || barcodeDetector) return;
+        isInitializing = true;
         try {
-            // Import Library Secara Dinamis
             const vision = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js");
             BarcodeDetector = vision.BarcodeDetector;
             FilesetResolver = vision.FilesetResolver;
@@ -211,9 +213,14 @@
                 },
                 runningMode: "VIDEO"
             });
-            console.log("MediaPipe Ready");
-        } catch (error) { console.error("MediaPipe Error:", error); }
+            console.log("Scanner Ready to Use!");
+            isInitializing = false;
+        } catch (error) { 
+            console.error("MediaPipe Error:", error); 
+            isInitializing = false;
+        }
     }
+    // Langsung persiapkan scanner saat halaman dimuat
     initMediaPipe();
 
     /* --- LOGIKA SEARCH & CATEGORY --- */
@@ -266,7 +273,19 @@
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
     async function startScan(deviceId = null) {
-        if (!barcodeDetector) return alert("Menyiapkan Scanner...");
+        // Jika ditekan saat masih inisialisasi, tunggu sebentar (Ready to Use Strategy)
+        if (!barcodeDetector) {
+            if (isInitializing) {
+                const btn = document.getElementById("scanBtn");
+                const originalSVG = btn.innerHTML;
+                btn.innerHTML = "..."; 
+                while (!barcodeDetector) { await new Promise(res => setTimeout(res, 300)); }
+                btn.innerHTML = originalSVG;
+            } else {
+                await initMediaPipe();
+                if (!barcodeDetector) return;
+            }
+        }
         
         scanning = true; 
         document.getElementById("reader").style.display = "block";
@@ -275,8 +294,8 @@
         const constraints = {
             video: {
                 deviceId: deviceId ? { exact: deviceId } : undefined,
-                width: { ideal: 1920 },
-                height: { ideal: 1080 },
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
                 facingMode: "environment"
             }
         };

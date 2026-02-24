@@ -69,7 +69,16 @@ body.fade-in {
             overflow:hidden; position:relative; border: 4px solid white; 
             box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
         }
-        #reader video { width: 100%; height: 100%; object-fit: cover; }
+        /* Cari bagian ini di dalam tag <style> */
+#reader video { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover; 
+    
+    /* TAMBAHKAN KODE BARU DI SINI */
+    filter: contrast(1.4) brightness(1.2) saturate(0); 
+    image-rendering: crisp-edges;
+}
         .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
         .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; }
         #cameraControl { display:none; text-align:center; margin-bottom: 20px; }

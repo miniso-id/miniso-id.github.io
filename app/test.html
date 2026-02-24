@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X Fix</title>
+    <title>MMS-X Final Fix</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.js"></script>
@@ -12,79 +12,53 @@
     <style>
         :root {
             --miniso-red: #e61523;
-            --miniso-soft: #fff1f2;
             --text-dark: #1a1a1a;
             --bg-gray: #f4f4f4;
-            --sidebar-width: 280px;
         }
 
-        body { opacity: 0; transition: opacity 0.2s ease-in; margin: 0; font-family: -apple-system, sans-serif; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
-        body.fade-in { opacity: 1; }
-
-        /* --- LOGIN --- */
-        #loginOverlay { position: fixed; inset: 0; background: var(--bg-gray); z-index: 20000; display: flex; align-items: center; justify-content: center; }
-        .login-box { background: white; width: 90%; max-width: 350px; padding: 35px 25px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); text-align: center; }
-        .login-box input, .login-box select { width: 100%; height: 48px; margin-bottom: 15px; border-radius: 12px; border: 1.5px solid #eee; padding: 0 15px; }
-        .btn-login { width: 100%; height: 50px; background: var(--miniso-red); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; }
-
-        /* --- UI --- */
-        header { background: white; padding: calc(20px + env(safe-area-inset-top)) 16px 12px; border-bottom: 1px solid #eee; }
+        body { margin: 0; font-family: -apple-system, sans-serif; background: white; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* HEADER & SEARCH */
+        header { padding: calc(20px + env(safe-area-inset-top)) 16px 10px; border-bottom: 1px solid #eee; background: white; z-index: 100; }
         .top-bar { display: flex; gap: 10px; align-items: center; }
         .search-container { position: relative; flex: 1; }
-        #searchInput { width: 100%; height: 46px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; padding: 0 50px 0 15px; outline: none; }
-        #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+        #searchInput { width: 100%; height: 44px; border-radius: 12px; border: 1px solid #ddd; background: #f5f5f7; padding: 0 45px 0 12px; outline: none; font-size: 15px; }
+        #scanBtn { position: absolute; right: 5px; top: 5px; width: 34px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         
-        #scanStatus { font-size: 10px; color: #888; text-align: center; margin-top: 5px; font-weight: bold; }
+        #statusInfo { font-size: 10px; text-align: center; margin-top: 5px; color: #999; font-weight: bold; }
 
-        /* --- SCANNER --- */
-        #reader { display: none; width: 100%; max-width: 340px; aspect-ratio: 1/1; margin: 15px auto; background: #000; border-radius: 20px; overflow: hidden; position: relative; border: 4px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+        /* SCANNER BOX */
+        #reader { display: none; width: 90%; max-width: 320px; aspect-ratio: 1/1; margin: 15px auto; background: #000; border-radius: 18px; overflow: hidden; position: relative; border: 3px solid white; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         #videoElement { width: 100%; height: 100%; object-fit: cover; }
-        .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
+        .scanner-overlay { position: absolute; inset: 20%; border: 2px solid var(--miniso-red); border-radius: 12px; box-shadow: 0 0 0 1000px rgba(0,0,0,0.5); pointer-events: none; }
 
-        .main-content { flex: 1; overflow-y: auto; padding: 16px; }
-        #listContainer { display: grid; grid-template-columns: 1fr; gap: 12px; }
-        .list-item { display: flex; align-items: center; gap: 14px; padding: 12px; background: white; border-radius: 16px; border: 1px solid #f0f0f0; }
-        .list-img-box { width: 60px; height: 60px; background: #f9f9f9; border-radius: 10px; overflow: hidden; flex-shrink: 0; }
-        .list-img-box img { width: 100%; height: 100%; object-fit: contain; }
-
-        #detailContainer { display: none; padding-bottom: 80px; }
-        .product-card { background: white; border-radius: 20px; overflow: hidden; border: 1px solid #eee; }
-        .floating-back { position: fixed; top: 30px; left: 20px; width: 40px; height: 40px; background: white; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 1000; }
+        /* LIST & DETAIL */
+        .main-content { flex: 1; overflow-y: auto; padding: 10px 16px 80px; }
+        .list-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-bottom: 1px solid #eee; }
+        .list-img { width: 50px; height: 50px; border-radius: 8px; object-fit: contain; background: #f9f9f9; }
+        
+        #detailContainer { display: none; padding: 10px 0; }
+        .back-btn { padding: 10px 20px; background: #eee; border-radius: 8px; display: inline-block; margin-bottom: 15px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div id="loginOverlay">
-    <div class="login-box">
-        <h2 style="color:var(--miniso-red)">MMS-X</h2>
-        <select id="loginAs"><option>Administrator</option><option>Area</option><option>Store</option></select>
-        <input type="text" id="username" placeholder="Username">
-        <input type="password" id="password" placeholder="Password">
-        <button class="btn-login" onclick="checkLogin()">MASUK</button>
-    </div>
-</div>
-
-<div id="btnBackFloating" class="floating-back" onclick="back()">←</div>
-
-<header id="ui-header">
+<header>
     <div class="top-bar">
         <div class="search-container">
-            <input id="searchInput" placeholder="Cari nama / barcode...">
+            <input id="searchInput" placeholder="Cari barcode atau nama...">
             <button id="scanBtn">📸</button>
         </div>
     </div>
-    <div id="scanStatus">Memuat mesin scanner...</div>
-    
+    <div id="statusInfo">Menginisialisasi sistem...</div>
+
     <div id="reader">
         <video id="videoElement" playsinline muted></video>
-        <div class="focus-guide"></div>
-    </div>
-    <div id="cameraControl" style="display:none; text-align:center;">
-        <select id="videoSource" style="width:90%; padding:8px; margin-top:10px; border-radius:8px;"></select>
+        <div class="scanner-overlay"></div>
     </div>
 </header>
 
-<main class="main-content" id="scrollContainer">
+<main class="main-content">
     <div id="listContainer"></div>
     <div id="detailContainer"></div>
 </main>
@@ -96,157 +70,113 @@
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let barcodeDetector = null;
-    let scanning = false;
-    let isProcessing = false;
-    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
+    let detector = null;
+    let isScanning = false;
+    let isLock = false;
 
-    document.addEventListener("DOMContentLoaded", () => {
-        document.body.classList.add("fade-in");
-        initMediaPipe();
-    });
-
-    async function initMediaPipe() {
-        const status = document.getElementById('scanStatus');
+    // Load Library & Model
+    async function init() {
+        const info = document.getElementById('statusInfo');
         try {
-            // Cek namespace library yang benar
-            const visionInstance = window.tasksVision || window.vision;
-            if (!visionInstance) throw new Error("Library not loaded");
-
-            const filesetResolver = await visionInstance.FilesetResolver.forVisionTasks(
-                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
-            );
-            
-            barcodeDetector = await visionInstance.BarcodeDetector.createFromOptions(filesetResolver, {
-                baseOptions: {
+            const vision = window.tasksVision || window.vision;
+            const files = await vision.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm");
+            detector = await vision.BarcodeDetector.createFromOptions(files, {
+                baseOptions: { 
                     modelAssetPath: "https://storage.googleapis.com/mediapipe-models/barcode_detector/barcode_detector/float16/1/barcode_detector.tflite",
-                    delegate: "GPU"
+                    delegate: "GPU" 
                 },
                 runningMode: "VIDEO"
             });
-            status.innerText = "Scanner Siap ✅";
-            status.style.color = "green";
+            info.innerText = "Scanner Siap ✅";
+            info.style.color = "green";
         } catch (e) {
+            info.innerText = "Error: Library gagal dimuat ❌";
             console.error(e);
-            status.innerText = "Gagal memuat scanner ❌";
-            status.style.color = "red";
         }
     }
+    init();
 
-    document.getElementById("scanBtn").onclick = () => {
-        if (scanning) stopScan(); else startScan(lastSelectedDeviceId);
-    };
+    document.getElementById('scanBtn').onclick = () => isScanning ? stop() : start();
 
-    async function startScan(deviceId = null) {
-        if (!barcodeDetector) return alert("Mesin scanner belum siap, tunggu sebentar.");
-        
-        scanning = true;
-        isProcessing = false;
-        document.getElementById("reader").style.display = "block";
+    async function start() {
+        if (!detector) return alert("Mohon tunggu, sistem sedang loading...");
+        isScanning = true;
+        isLock = false;
+        document.getElementById('reader').style.display = 'block';
         const video = document.getElementById('videoElement');
 
         try {
-            const constraints = {
-                video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: "environment" }
-            };
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
             video.srcObject = stream;
             video.onloadedmetadata = () => {
                 video.play();
-                requestAnimationFrame(tick);
+                draw();
             };
-
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const videoDevices = devices.filter(d => d.kind === 'videoinput');
-            if (videoDevices.length > 1) {
-                const source = document.getElementById("videoSource");
-                document.getElementById("cameraControl").style.display = "block";
-                source.innerHTML = videoDevices.map(d => `<option value="${d.deviceId}" ${d.deviceId === (deviceId || stream.getVideoTracks()[0].getSettings().deviceId) ? 'selected' : ''}>${d.label || 'Kamera'}</option>`).join("");
-                source.onchange = (e) => {
-                    localStorage.setItem('preferredCameraId', e.target.value);
-                    stopScan(); startScan(e.target.value);
-                };
-            }
-        } catch (err) {
-            alert("Izin kamera ditolak atau kamera tidak ditemukan.");
-            stopScan();
+        } catch (e) {
+            alert("Kamera tidak diizinkan.");
+            stop();
         }
     }
 
-    function tick() {
-        if (!scanning) return;
+    function draw() {
+        if (!isScanning) return;
         const video = document.getElementById('videoElement');
-        if (video.readyState >= 2 && !isProcessing) {
-            const result = barcodeDetector.detectForVideo(video, performance.now());
-            if (result.barcodes.length > 0) {
-                isProcessing = true;
-                handleScan(result.barcodes[0].rawValue);
+        if (video.readyState >= 2 && !isLock) {
+            const results = detector.detectForVideo(video, performance.now());
+            if (results.barcodes.length > 0) {
+                isLock = true;
+                processBarcode(results.barcodes[0].rawValue);
             }
         }
-        if (scanning) requestAnimationFrame(tick);
+        requestAnimationFrame(draw);
     }
 
-    async function handleScan(code) {
-        const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
+    async function processBarcode(code) {
+        const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
         if (data) {
-            document.getElementById("beepOk").play();
-            stopScan();
-            showDetail(code);
+            document.getElementById('beepOk').play();
+            stop();
+            showDetail(data);
         } else {
-            console.log("Barcode tidak ada di database:", code);
-            setTimeout(() => { isProcessing = false; }, 1500); // Tunggu 1.5 detik baru scan lagi
+            console.log("Tidak ditemukan:", code);
+            setTimeout(() => { isLock = false; }, 1500); // Lanjut scan lagi setelah 1.5 detik
         }
     }
 
-    function stopScan() {
-        scanning = false;
+    function stop() {
+        isScanning = false;
         const video = document.getElementById('videoElement');
         if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
-        document.getElementById("reader").style.display = "none";
-        document.getElementById("cameraControl").style.display = "none";
+        document.getElementById('reader').style.display = 'none';
     }
 
-    // --- SISANYA (SEARCH, DETAIL, BACK) SAMA SEPERTI KODE LAMA ---
-    async function search() {
-        const q = document.getElementById("searchInput").value;
-        let { data } = await _supabase.from('export').select('*').or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`).limit(20);
+    function showDetail(p) {
+        document.getElementById('listContainer').style.display = 'none';
+        const det = document.getElementById('detailContainer');
+        det.style.display = 'block';
+        det.innerHTML = `
+            <div class="back-btn" onclick="location.reload()">← Kembali</div>
+            <div style="text-align:center"><img src="${p.Image}" style="width:200px"></div>
+            <h2>${p.Name}</h2>
+            <p style="color:var(--miniso-red); font-size:24px; font-weight:bold;">Rp${parseInt(p["Regular Store Price"]).toLocaleString()}</p>
+            <p>Barcode: ${p.Barcode}</p>
+        `;
+    }
+
+    // Search function
+    document.getElementById('searchInput').oninput = async (e) => {
+        const q = e.target.value;
+        if (q.length < 3) return;
+        const { data } = await _supabase.from('export').select('*').or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`).limit(10);
         if (data) {
-            document.getElementById("listContainer").innerHTML = data.map(p => `
-                <div class="list-item" onclick="showDetail('${p.Barcode}')">
-                    <div class="list-img-box"><img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/100'"></div>
+            document.getElementById('listContainer').innerHTML = data.map(p => `
+                <div class="list-item" onclick="processBarcode('${p.Barcode}')">
+                    <img class="list-img" src="${p.Image}">
                     <div><b>${p.Name}</b><br><small>${p.Barcode}</small></div>
                 </div>
             `).join('');
         }
-    }
-    document.getElementById("searchInput").oninput = search;
-
-    async function showDetail(code) {
-        const { data: p } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
-        if (!p) return;
-        document.getElementById("listContainer").style.display = "none";
-        document.getElementById("ui-header").style.display = "none";
-        const det = document.getElementById("detailContainer");
-        det.style.display = "block";
-        document.getElementById("btnBackFloating").style.display = "flex";
-        det.innerHTML = `
-            <div class="product-card">
-                <img src="${p.Image}" style="width:100%">
-                <div style="padding:20px">
-                    <h2>${p.Name}</h2>
-                    <p>Price: Rp${parseInt(p["Regular Store Price"]).toLocaleString()}</p>
-                </div>
-            </div>`;
-    }
-
-    function back() {
-        location.reload(); // Paling aman untuk reset state
-    }
-
-    async function checkLogin() {
-        localStorage.setItem('mmsx_auth', 'true');
-        document.getElementById('loginOverlay').style.display = 'none';
-    }
+    };
 </script>
 </body>
 </html>

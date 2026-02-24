@@ -239,9 +239,38 @@ function navigateTo(url) {
     const loader = document.getElementById('page-loader');
     if (loader) loader.style.display = 'flex';
     document.body.classList.add("fade-out");
+    // GENERATE BARCODE EAN-13 SETELAH HTML DI-RENDER
     setTimeout(() => {
-        window.location.href = url;
-    }, 200); 
+        // Ambil barcode yang akan ditampilkan (prioritas barcode yang di-scan atau barcode pertama)
+        let displayBarcode = p.Barcode;
+        
+        // Jika barcode mengandung "/" (ganda), ambil yang 13 digit atau yang pertama
+        if (displayBarcode.includes('/')) {
+            displayBarcode = displayBarcode.split('/')[1].trim(); // Mengambil barcode kedua (694...)
+        }
+
+        try {
+            JsBarcode("#barcodeCanvas", displayBarcode, {
+                format: "EAN13",
+                width: 1.6,       // Sedikit lebih lebar agar garis guard terlihat jelas
+                height: 50,      // Tinggi garis barcode
+                displayValue: true,
+                fontSize: 15,
+                fontOptions: "bold",
+                background: "transparent",
+                lineColor: "#000",
+                margin: 0
+            });
+        } catch (e) {
+            // Jika format bukan EAN13 (misal barcode internal 12 digit), gunakan CODE128 otomatis
+            JsBarcode("#barcodeCanvas", displayBarcode, {
+                format: "CODE128",
+                width: 1.2,
+                height: 50,
+                displayValue: true
+            });
+        }
+    }, 50); 
 }
     
     if ('serviceWorker' in navigator) {

@@ -226,43 +226,55 @@ async function startScan(deviceId = null) {
         html5QrCode = new Html5Qrcode("reader");
     }
 
-    // KONFIGURASI RESOLUSI 1920x1080
+    // KONFIGURASI OPTIMAL UNTUK BARCODE RETAIL
     const config = {
         fps: 20,
-        qrbox: { width: 250, height: 250 },
+        qrbox: { width: 280, height: 200 }, // Box persegi panjang lebih cocok untuk barcode
         aspectRatio: 1.0,
-        // Menambahkan video constraints untuk resolusi Full HD
+        // Mendefinisikan format barcode secara spesifik agar mesin pencari lebih cepat
+        formatsToSupport: [ 
+            Html5QrcodeSupportedFormats.EAN_13, 
+            Html5QrcodeSupportedFormats.EAN_8, 
+            Html5QrcodeSupportedFormats.CODE_128, 
+            Html5QrcodeSupportedFormats.UPC_A, 
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.QR_CODE 
+        ],
         videoConstraints: {
             deviceId: deviceId ? { exact: deviceId } : undefined,
             width: { ideal: 1920 },
-            height: { ideal: 1080 }
-        },
-        experimentalFeatures: {
-            useBarCodeDetectorIfSupported: true
+            height: { ideal: 1080 },
+            facingMode: "environment"
         }
     };
 
     try {
         const devices = await Html5Qrcode.getCameras();
         if (devices && devices.length > 0) {
-            const backCameras = devices.filter(d => !d.label.toLowerCase().includes('front'));
+            const backCameras = devices.filter(d => 
+                d.label.toLowerCase().includes('back') || 
+                d.label.toLowerCase().includes('rear') ||
+                d.label.toLowerCase().includes('0') // Biasanya kamera utama
+            );
+            
             let selectedId = deviceId || lastSelectedDeviceId || (backCameras.length > 0 ? backCameras[0].id : devices[0].id);
             
             updateCameraList(devices, selectedId);
 
-            // Jika menggunakan videoConstraints di atas, 
-            // kita panggil start dengan konfigurasi tersebut
             await html5QrCode.start(
-                { deviceId: selectedId }, // Menggunakan object deviceId agar constraint resolusi di atas berjalan
+                { deviceId: selectedId }, 
                 config,
-                (decodedText) => onDetected(decodedText)
+                (decodedText) => {
+                    // Validasi sederhana: pastikan hasil scan tidak kosong
+                    if(decodedText) onDetected(decodedText);
+                }
             );
             scanning = true;
         }
     } catch (err) {
-        console.error("Gagal start scan dengan resolusi FHD:", err);
-        // Fallback jika resolusi terlalu tinggi untuk perangkat tertentu
-        if(deviceId) { startScan(null); }
+        console.error("Gagal start scan:", err);
+        // Jika gagal dengan resolusi tinggi, coba tanpa constraints (Auto)
+        if(deviceId) startScan(null);
     }
 }
 function updateCameraList(devices, currentId) {

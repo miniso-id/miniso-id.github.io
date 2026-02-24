@@ -3,59 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X Fix</title>
+    <title>MMS-X MediaPipe Fix</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.js"></script>
     
     <style>
         :root { --miniso-red: #e61523; }
-        body { margin: 0; font-family: sans-serif; }
-        header { padding: 20px; border-bottom: 1px solid #eee; text-align: center; }
-        #statusLabel { font-size: 12px; font-weight: bold; color: orange; margin-bottom: 10px; }
+        body { margin: 0; font-family: sans-serif; background: #f4f4f4; }
+        header { background: white; padding: 20px; text-align: center; border-bottom: 1px solid #ddd; }
         
-        #scannerContainer { 
-            display: none; 
-            width: 300px; height: 300px; 
-            margin: 20px auto; 
-            position: relative; 
-            background: #000;
-            border-radius: 20px;
-            overflow: hidden;
-        }
+        /* Area Status */
+        #statusInfo { font-size: 11px; font-weight: bold; padding: 5px; margin-bottom: 10px; border-radius: 5px; }
+        .status-loading { background: #fff3cd; color: #856404; }
+        .status-ready { background: #d4edda; color: #155724; }
+        .status-error { background: #f8d7da; color: #721c24; }
+
+        /* Kotak Scanner */
+        #scannerBox { display: none; width: 90%; max-width: 350px; aspect-ratio: 1/1; margin: 20px auto; background: black; border-radius: 20px; overflow: hidden; position: relative; }
         video { width: 100%; height: 100%; object-fit: cover; }
-        .guide { 
-            position: absolute; inset: 20%; 
-            border: 2px solid var(--miniso-red); 
-            box-shadow: 0 0 0 1000px rgba(0,0,0,0.5); 
-        }
-        button { 
-            padding: 10px 20px; background: var(--miniso-red); 
-            color: white; border: none; border-radius: 8px; 
-        }
+        .guide-box { position: absolute; inset: 20%; border: 2px solid var(--miniso-red); border-radius: 15px; box-shadow: 0 0 0 1000px rgba(0,0,0,0.5); pointer-events: none; }
+
+        .btn-scan { padding: 12px 25px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        #cameraSelect { width: 80%; padding: 10px; margin-top: 10px; border-radius: 8px; display: none; }
     </style>
 </head>
 <body>
 
 <header>
-    <div id="statusLabel">MENGHUBUNGKAN KE AI...</div>
-    <button id="scanBtn">BUKA SCANNER</button>
+    <div id="statusInfo" class="status-loading">MENGHUBUNGKAN KE AI... (Pastikan Internet Nyala)</div>
+    <button id="scanBtn" class="btn-scan">BUKA SCANNER</button>
+    <br>
+    <select id="cameraSelect"></select>
 </header>
 
-<div id="scannerContainer">
+<div id="scannerBox">
     <video id="webcam" playsinline muted></video>
-    <div class="guide"></div>
+    <div class="guide-box"></div>
 </div>
 
 <script>
     let barcodeDetector;
     let isScanning = false;
+    let currentStream = null;
 
-    // FUNGSI UTAMA: Load AI MediaPipe
-    async function initializeAI() {
-        const label = document.getElementById('statusLabel');
+    // 1. Inisialisasi MediaPipe
+    async function initAI() {
+        const status = document.getElementById('statusInfo');
         try {
-            // Memanggil library MediaPipe
+            // Gunakan FilesetResolver untuk mendownload WASM
             const vision = await tasksVision.FilesetResolver.forVisionTasks(
                 "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
             );
@@ -68,61 +64,85 @@
                 runningMode: "VIDEO"
             });
 
-            label.innerText = "SCANNER SIAP ✅";
-            label.style.color = "green";
-        } catch (error) {
-            label.innerText = "GAGAL MENGHUBUNGKAN ❌";
-            label.style.color = "red";
-            console.error("AI Error:", error);
-            alert("Gagal memuat AI. Pastikan internet lancar dan gunakan HTTPS.");
+            status.innerText = "SISTEM SIAP ✅";
+            status.className = "status-ready";
+            setupCameraList(); // Siapkan list kamera
+        } catch (err) {
+            status.innerText = "GAGAL TERHUBUNG ❌ (Gunakan HTTPS)";
+            status.className = "status-error";
+            console.error(err);
         }
     }
 
-    // Jalankan inisialisasi
-    initializeAI();
-
-    document.getElementById('scanBtn').onclick = async () => {
-        if (!barcodeDetector) return alert("AI belum siap!");
+    // 2. Ambil Daftar Kamera & Ingat Pilihan Terakhir
+    async function setupCameraList() {
+        const select = document.getElementById('cameraSelect');
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
         
-        const container = document.getElementById('scannerContainer');
-        const video = document.getElementById('webcam');
+        if (videoDevices.length > 0) {
+            select.style.display = 'inline-block';
+            select.innerHTML = videoDevices.map(d => `<option value="${d.deviceId}">${d.label || 'Kamera ' + d.deviceId.slice(0,5)}</option>`).join('');
+            
+            // Cek apakah ada kamera yang pernah dipilih sebelumnya (sesuai request kamu)
+            const lastCam = localStorage.getItem('preferredCameraId');
+            if (lastCam) select.value = lastCam;
 
-        if (isScanning) {
-            stopCamera();
-            container.style.display = 'none';
-        } else {
-            container.style.display = 'block';
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-            video.srcObject = stream;
+            select.onchange = () => {
+                localStorage.setItem('preferredCameraId', select.value);
+                if (isScanning) startCamera(select.value);
+            };
+        }
+    }
+
+    // 3. Jalankan Kamera
+    async function startCamera(deviceId) {
+        if (currentStream) currentStream.getTracks().forEach(t => t.stop());
+        
+        const constraints = {
+            video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: "environment" }
+        };
+
+        try {
+            currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+            const video = document.getElementById('webcam');
+            video.srcObject = currentStream;
             video.onloadedmetadata = () => {
                 video.play();
                 isScanning = true;
-                detectLoop();
+                predictLoop();
             };
+        } catch (e) {
+            alert("Kamera tidak bisa diakses. Pastikan izin diberikan.");
+        }
+    }
+
+    function predictLoop() {
+        if (!isScanning) return;
+        const video = document.getElementById('webcam');
+        if (video.readyState >= 2) {
+            const results = barcodeDetector.detectForVideo(video, performance.now());
+            if (results.barcodes.length > 0) {
+                alert("Barcode: " + results.barcodes[0].rawValue);
+                // Di sini kamu bisa panggil fungsi Supabase kamu
+            }
+        }
+        requestAnimationFrame(predictLoop);
+    }
+
+    document.getElementById('scanBtn').onclick = () => {
+        const box = document.getElementById('scannerBox');
+        if (isScanning) {
+            isScanning = false;
+            if (currentStream) currentStream.getTracks().forEach(t => t.stop());
+            box.style.display = 'none';
+        } else {
+            box.style.display = 'block';
+            startCamera(document.getElementById('cameraSelect').value);
         }
     };
 
-    function detectLoop() {
-        if (!isScanning) return;
-        const video = document.getElementById('webcam');
-        
-        if (video.readyState >= 2) {
-            const detections = barcodeDetector.detectForVideo(video, performance.now());
-            if (detections.barcodes.length > 0) {
-                alert("Barcode: " + detections.barcodes[0].rawValue);
-                stopCamera();
-                return;
-            }
-        }
-        requestAnimationFrame(detectLoop);
-    }
-
-    function stopCamera() {
-        isScanning = false;
-        const video = document.getElementById('webcam');
-        if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
-        document.getElementById('scannerContainer').style.display = 'none';
-    }
+    initAI();
 </script>
 </body>
 </html>

@@ -269,6 +269,7 @@ function navigateTo(url) {
     
     // PURE_BARCODE false memberi tahu scanner bahwa ada background di sekitar barcode
     hints.set(ZXing.DecodeHintType.PURE_BARCODE, false);
+    hints.set(ZXing.DecodeHintType.ASSUME_GS1, true);
 
     // 2. Setting Resolusi Tinggi & Aspect Ratio
     const constraints = {
@@ -318,6 +319,10 @@ function navigateTo(url) {
             const targetZoom = Math.min(capabilities.zoom.min + 0.5, capabilities.zoom.max);
             advanced.zoom = targetZoom;
         }
+
+        if (capabilities.exposureMode && capabilities.exposureMode.includes('continuous')) {
+    advanced.exposureMode = 'continuous';
+}
 
         if (Object.keys(advanced).length > 0) {
             await videoTrack.applyConstraints({ advanced: [advanced] });

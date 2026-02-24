@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mms-x-v1.1.5'; // Pastikan versi ini sama dengan di HTML
+const CACHE_NAME = 'mms-x-v1.1.6'; // Pastikan versi ini sama dengan di HTML
 const OFFLINE_URL = './offline.html'; // Tentukan URL offline
 const ASSETS_TO_CACHE = [
   './',
@@ -7,7 +7,7 @@ const ASSETS_TO_CACHE = [
   './index.html',
   'https://miniso-id.github.io/app/user512.png',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
-  'https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js'
+  'https://unpkg.com/@zxing/library@latest'
 ];
 
 // 1. Tahap Install - Menyimpan aset ke cache

@@ -1,44 +1,37 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X Final Fix</title>
+    <title>MMS-X Fix2</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/vision_bundle.js"></script>
     
     <style>
-        :root {
-            --miniso-red: #e61523;
-            --text-dark: #1a1a1a;
-            --bg-gray: #f4f4f4;
-        }
-
+        :root { --miniso-red: #e61523; --bg-gray: #f4f4f4; }
         body { margin: 0; font-family: -apple-system, sans-serif; background: white; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
-        /* HEADER & SEARCH */
-        header { padding: calc(20px + env(safe-area-inset-top)) 16px 10px; border-bottom: 1px solid #eee; background: white; z-index: 100; }
+        header { padding: calc(20px + env(safe-area-inset-top)) 16px 10px; border-bottom: 1px solid #eee; background: white; }
         .top-bar { display: flex; gap: 10px; align-items: center; }
         .search-container { position: relative; flex: 1; }
-        #searchInput { width: 100%; height: 44px; border-radius: 12px; border: 1px solid #ddd; background: #f5f5f7; padding: 0 45px 0 12px; outline: none; font-size: 15px; }
-        #scanBtn { position: absolute; right: 5px; top: 5px; width: 34px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        #searchInput { width: 100%; height: 44px; border-radius: 12px; border: 1px solid #ddd; background: #f5f5f7; padding: 0 45px 0 12px; outline: none; }
+        #scanBtn { position: absolute; right: 5px; top: 5px; width: 34px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
         
-        #statusInfo { font-size: 10px; text-align: center; margin-top: 5px; color: #999; font-weight: bold; }
+        #statusTag { font-size: 10px; text-align: center; margin-top: 5px; font-weight: bold; color: #999; }
 
-        /* SCANNER BOX */
-        #reader { display: none; width: 90%; max-width: 320px; aspect-ratio: 1/1; margin: 15px auto; background: #000; border-radius: 18px; overflow: hidden; position: relative; border: 3px solid white; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        /* SCANNER STYLE */
+        #reader { display: none; width: 90%; max-width: 320px; aspect-ratio: 1/1; margin: 15px auto; background: #000; border-radius: 20px; overflow: hidden; position: relative; border: 4px solid white; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         #videoElement { width: 100%; height: 100%; object-fit: cover; }
-        .scanner-overlay { position: absolute; inset: 20%; border: 2px solid var(--miniso-red); border-radius: 12px; box-shadow: 0 0 0 1000px rgba(0,0,0,0.5); pointer-events: none; }
+        .scanner-guide { position: absolute; inset: 20%; border: 2px solid var(--miniso-red); border-radius: 15px; box-shadow: 0 0 0 1000px rgba(0,0,0,0.5); pointer-events: none; }
 
-        /* LIST & DETAIL */
         .main-content { flex: 1; overflow-y: auto; padding: 10px 16px 80px; }
-        .list-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-bottom: 1px solid #eee; }
-        .list-img { width: 50px; height: 50px; border-radius: 8px; object-fit: contain; background: #f9f9f9; }
+        #listContainer { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .item-card { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; border: 1px solid #eee; }
+        .item-img { width: 50px; height: 50px; background: #f9f9f9; border-radius: 8px; object-fit: contain; }
         
-        #detailContainer { display: none; padding: 10px 0; }
-        .back-btn { padding: 10px 20px; background: #eee; border-radius: 8px; display: inline-block; margin-bottom: 15px; cursor: pointer; font-weight: bold; }
+        #detailView { display: none; }
+        .back-btn { padding: 8px 15px; background: #eee; border-radius: 8px; font-weight: bold; cursor: pointer; display: inline-block; margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -46,21 +39,21 @@
 <header>
     <div class="top-bar">
         <div class="search-container">
-            <input id="searchInput" placeholder="Cari barcode atau nama...">
+            <input id="searchInput" placeholder="Cari barcode/nama...">
             <button id="scanBtn">📸</button>
         </div>
     </div>
-    <div id="statusInfo">Menginisialisasi sistem...</div>
+    <div id="statusTag">MEMUAT MESIN...</div>
 
     <div id="reader">
         <video id="videoElement" playsinline muted></video>
-        <div class="scanner-overlay"></div>
+        <div class="scanner-guide"></div>
     </div>
 </header>
 
 <main class="main-content">
     <div id="listContainer"></div>
-    <div id="detailContainer"></div>
+    <div id="detailView"></div>
 </main>
 
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
@@ -72,78 +65,86 @@
 
     let detector = null;
     let isScanning = false;
-    let isLock = false;
+    let isLocked = false;
 
-    // Load Library & Model
-    async function init() {
-        const info = document.getElementById('statusInfo');
+    // 1. INISIALISASI (Ini yang bikin tidak macet)
+    async function initScanner() {
+        const tag = document.getElementById('statusTag');
         try {
-            const vision = window.tasksVision || window.vision;
-            const files = await vision.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm");
-            detector = await vision.BarcodeDetector.createFromOptions(files, {
-                baseOptions: { 
+            const vision = await tasksVision.FilesetResolver.forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+            );
+            detector = await tasksVision.BarcodeDetector.createFromOptions(vision, {
+                baseOptions: {
                     modelAssetPath: "https://storage.googleapis.com/mediapipe-models/barcode_detector/barcode_detector/float16/1/barcode_detector.tflite",
-                    delegate: "GPU" 
+                    delegate: "GPU"
                 },
                 runningMode: "VIDEO"
             });
-            info.innerText = "Scanner Siap ✅";
-            info.style.color = "green";
+            tag.innerText = "SCANNER SIAP ✅";
+            tag.style.color = "green";
         } catch (e) {
-            info.innerText = "Error: Library gagal dimuat ❌";
+            tag.innerText = "GAGAL LOAD ENGINE ❌";
             console.error(e);
         }
     }
-    init();
+    initScanner();
 
-    document.getElementById('scanBtn').onclick = () => isScanning ? stop() : start();
+    // 2. LOGIKA TOMBOL SCAN
+    document.getElementById('scanBtn').onclick = () => {
+        if (isScanning) stopScan(); else startScan();
+    };
 
-    async function start() {
-        if (!detector) return alert("Mohon tunggu, sistem sedang loading...");
+    async function startScan() {
+        if (!detector) return alert("Mesin belum siap!");
         isScanning = true;
-        isLock = false;
+        isLocked = false;
         document.getElementById('reader').style.display = 'block';
         const video = document.getElementById('videoElement');
 
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "environment", width: 640, height: 640 } 
+            });
             video.srcObject = stream;
             video.onloadedmetadata = () => {
                 video.play();
-                draw();
+                requestAnimationFrame(renderLoop);
             };
         } catch (e) {
-            alert("Kamera tidak diizinkan.");
-            stop();
+            alert("Kamera diblokir browser!");
+            stopScan();
         }
     }
 
-    function draw() {
+    function renderLoop() {
         if (!isScanning) return;
         const video = document.getElementById('videoElement');
-        if (video.readyState >= 2 && !isLock) {
-            const results = detector.detectForVideo(video, performance.now());
-            if (results.barcodes.length > 0) {
-                isLock = true;
-                processBarcode(results.barcodes[0].rawValue);
+        
+        if (video.readyState >= 2 && !isLocked) {
+            const result = detector.detectForVideo(video, performance.now());
+            if (result.barcodes.length > 0) {
+                isLocked = true; // Kunci biar tidak scan berkali-kali
+                handleResult(result.barcodes[0].rawValue);
             }
         }
-        requestAnimationFrame(draw);
+        requestAnimationFrame(renderLoop);
     }
 
-    async function processBarcode(code) {
+    async function handleResult(code) {
         const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
         if (data) {
             document.getElementById('beepOk').play();
-            stop();
+            stopScan();
             showDetail(data);
         } else {
             console.log("Tidak ditemukan:", code);
-            setTimeout(() => { isLock = false; }, 1500); // Lanjut scan lagi setelah 1.5 detik
+            // Lepas kunci setelah 1.5 detik kalau tidak ketemu, biar bisa scan lagi
+            setTimeout(() => { isLocked = false; }, 1500);
         }
     }
 
-    function stop() {
+    function stopScan() {
         isScanning = false;
         const video = document.getElementById('videoElement');
         if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
@@ -152,26 +153,26 @@
 
     function showDetail(p) {
         document.getElementById('listContainer').style.display = 'none';
-        const det = document.getElementById('detailContainer');
+        const det = document.getElementById('detailView');
         det.style.display = 'block';
         det.innerHTML = `
             <div class="back-btn" onclick="location.reload()">← Kembali</div>
-            <div style="text-align:center"><img src="${p.Image}" style="width:200px"></div>
-            <h2>${p.Name}</h2>
-            <p style="color:var(--miniso-red); font-size:24px; font-weight:bold;">Rp${parseInt(p["Regular Store Price"]).toLocaleString()}</p>
-            <p>Barcode: ${p.Barcode}</p>
+            <div style="text-align:center"><img src="${p.Image}" style="width:100%; max-width:300px; border-radius:20px;"></div>
+            <h2 style="margin:15px 0 5px">${p.Name}</h2>
+            <p style="color:var(--miniso-red); font-size:28px; font-weight:bold; margin:0">Rp${parseInt(p["Regular Store Price"]).toLocaleString()}</p>
+            <p style="color:#888">Barcode: ${p.Barcode}</p>
         `;
     }
 
-    // Search function
+    // 3. SEARCH MANUAL
     document.getElementById('searchInput').oninput = async (e) => {
-        const q = e.target.value;
-        if (q.length < 3) return;
-        const { data } = await _supabase.from('export').select('*').or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`).limit(10);
+        const val = e.target.value;
+        if (val.length < 3) return;
+        const { data } = await _supabase.from('export').select('*').or(`Name.ilike.%${val}%,Barcode.ilike.%${val}%`).limit(10);
         if (data) {
             document.getElementById('listContainer').innerHTML = data.map(p => `
-                <div class="list-item" onclick="processBarcode('${p.Barcode}')">
-                    <img class="list-img" src="${p.Image}">
+                <div class="item-card" onclick="showDetail(${JSON.stringify(p).replace(/"/g, '&quot;')})">
+                    <img class="item-img" src="${p.Image}">
                     <div><b>${p.Name}</b><br><small>${p.Barcode}</small></div>
                 </div>
             `).join('');

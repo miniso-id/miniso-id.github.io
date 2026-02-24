@@ -226,10 +226,17 @@ async function startScan(deviceId = null) {
         html5QrCode = new Html5Qrcode("reader");
     }
 
+    // KONFIGURASI RESOLUSI 1920x1080
     const config = {
         fps: 20,
         qrbox: { width: 250, height: 250 },
         aspectRatio: 1.0,
+        // Menambahkan video constraints untuk resolusi Full HD
+        videoConstraints: {
+            deviceId: deviceId ? { exact: deviceId } : undefined,
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+        },
         experimentalFeatures: {
             useBarCodeDetectorIfSupported: true
         }
@@ -243,19 +250,21 @@ async function startScan(deviceId = null) {
             
             updateCameraList(devices, selectedId);
 
+            // Jika menggunakan videoConstraints di atas, 
+            // kita panggil start dengan konfigurasi tersebut
             await html5QrCode.start(
-                selectedId, 
+                { deviceId: selectedId }, // Menggunakan object deviceId agar constraint resolusi di atas berjalan
                 config,
                 (decodedText) => onDetected(decodedText)
             );
             scanning = true;
         }
     } catch (err) {
-        console.error("Gagal start scan:", err);
+        console.error("Gagal start scan dengan resolusi FHD:", err);
+        // Fallback jika resolusi terlalu tinggi untuk perangkat tertentu
         if(deviceId) { startScan(null); }
     }
 }
-
 function updateCameraList(devices, currentId) {
     const source = document.getElementById("videoSource");
     const control = document.getElementById("cameraControl");

@@ -219,62 +219,93 @@ async function search() {
 document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
 async function startScan(deviceId = null) {
-    if (scanning) await stopScan();
+    // 1. Bersihkan scanner lama jika ada
+    if (scanning) {
+        await stopScan();
+    }
     
-    document.getElementById("reader").style.display = "block";
+    const readerElem = document.getElementById("reader");
+    readerElem.style.display = "block";
+    
+    // 2. Pastikan container bersih sebelum inisialisasi baru
+    readerElem.innerHTML = '<div id="qr-canvas"></div><div class="focus-guide"></div><div class="tap-hint">ARAHKAN BARCODE • SCAN OTOMATIS</div>';
+
     if (!html5QrCode) {
+        // Inisialisasi pada div internal agar tidak merusak layout
         html5QrCode = new Html5Qrcode("reader");
     }
 
-    // KONFIGURASI OPTIMAL UNTUK BARCODE RETAIL
+    // 3. Konfigurasi Fokus Tinggi & Format Barcode Spesifik
     const config = {
-        fps: 20,
-        qrbox: { width: 280, height: 200 }, // Box persegi panjang lebih cocok untuk barcode
+        fps: 25, // FPS lebih tinggi untuk deteksi lebih cepat
+        qrbox: { width: 280, height: 180 }, // Box persegi panjang (khas barcode)
         aspectRatio: 1.0,
-        // Mendefinisikan format barcode secara spesifik agar mesin pencari lebih cepat
+        // WAJIB: Daftarkan format barcode yang digunakan Miniso (EAN/UPC/Code128)
         formatsToSupport: [ 
             Html5QrcodeSupportedFormats.EAN_13, 
             Html5QrcodeSupportedFormats.EAN_8, 
             Html5QrcodeSupportedFormats.CODE_128, 
             Html5QrcodeSupportedFormats.UPC_A, 
-            Html5QrcodeSupportedFormats.UPC_E,
-            Html5QrcodeSupportedFormats.QR_CODE 
+            Html5QrcodeSupportedFormats.UPC_E 
         ],
-        videoConstraints: {
-            deviceId: deviceId ? { exact: deviceId } : undefined,
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-            facingMode: "environment"
+        experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true // Gunakan engine native HP jika tersedia (jauh lebih cepat)
         }
+    };
+
+    // 4. Constraint Resolusi 1080p
+    const videoConstraints = {
+        deviceId: deviceId ? { exact: deviceId } : undefined,
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        facingMode: "environment"
     };
 
     try {
         const devices = await Html5Qrcode.getCameras();
         if (devices && devices.length > 0) {
+            // Filter kamera belakang (mengutamakan kamera dengan label '0' atau 'back')
             const backCameras = devices.filter(d => 
                 d.label.toLowerCase().includes('back') || 
                 d.label.toLowerCase().includes('rear') ||
-                d.label.toLowerCase().includes('0') // Biasanya kamera utama
+                d.label.toLowerCase().includes('0')
             );
             
             let selectedId = deviceId || lastSelectedDeviceId || (backCameras.length > 0 ? backCameras[0].id : devices[0].id);
             
             updateCameraList(devices, selectedId);
 
+            // Jalankan scanner
             await html5QrCode.start(
-                { deviceId: selectedId }, 
+                videoConstraints, 
                 config,
                 (decodedText) => {
-                    // Validasi sederhana: pastikan hasil scan tidak kosong
                     if(decodedText) onDetected(decodedText);
+                },
+                (errorMessage) => {
+                    // Abaikan error saat sedang mencari (noise)
                 }
             );
+            
             scanning = true;
+            
+            // 5. Tambahan: Paksa fokus jika browser mendukung
+            const videoTrack = document.querySelector('#reader video')?.srcObject?.getVideoTracks()[0];
+            if (videoTrack && videoTrack.getCapabilities().focusMode) {
+                videoTrack.applyConstraints({
+                    advanced: [{ focusMode: "continuous" }]
+                }).catch(e => console.log("Manual focus tidak didukung"));
+            }
+
         }
     } catch (err) {
-        console.error("Gagal start scan:", err);
-        // Jika gagal dengan resolusi tinggi, coba tanpa constraints (Auto)
-        if(deviceId) startScan(null);
+        console.error("Scan Error:", err);
+        // Jika resolusi 1080p ditolak, coba mode default
+        if(deviceId) {
+            console.log("Mencoba fallback ke resolusi standar...");
+            await html5QrCode.start({ facingMode: "environment" }, config, (txt) => onDetected(txt));
+            scanning = true;
+        }
     }
 }
 function updateCameraList(devices, currentId) {

@@ -7,6 +7,8 @@
     <title>MMS-X</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js"></script>
+    
     <style>
         :root {
             --miniso-red: #e61523;
@@ -18,28 +20,68 @@
             --sidebar-width: 280px;
         }
 
-        body { opacity: 0; transition: opacity 0.2s ease-in; }
-        body.fade-in { opacity: 1; }
-        .fade-out { opacity: 0 !important; transition: opacity 0.2s ease-out; }
+/* Animasi Masuk Halaman */
+body {
+    opacity: 0;
+    transition: opacity 0.2s ease-in;
+}
 
-        #loginOverlay { position: fixed; inset: 0; background: var(--bg-gray); z-index: 20000; display: flex; align-items: center; justify-content: center; }
-        .login-box { background: white; width: 90%; max-width: 350px; padding: 35px 25px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); text-align: center; }
+body.fade-in {
+    opacity: 1;
+}
+
+/* Animasi Keluar Halaman */
+.fade-out {
+    opacity: 0 !important;
+    transition: opacity 0.2s ease-out;
+}
+
+        /* --- LOGIN OVERLAY (TEMA SEPADAN) --- */
+        #loginOverlay {
+            position: fixed; inset: 0; background: var(--bg-gray); 
+            z-index: 20000; display: flex; align-items: center; justify-content: center;
+        }
+        .login-box {
+            background: white; width: 90%; max-width: 350px; padding: 35px 25px; 
+            border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); text-align: center;
+        }
         .login-box h2 { color: var(--miniso-red); margin: 0 0 10px 0; font-weight: 800; font-size: 28px; }
         .login-box p { color: #666; font-size: 14px; margin-bottom: 25px; }
         .login-box label { display: block; text-align: left; font-size: 11px; font-weight: 800; color: #999; margin: 0 0 5px 5px; text-transform: uppercase; }
-        .login-box input, .login-box select { width: 100%; height: 48px; margin-bottom: 15px; padding: 0 15px; border-radius: 12px; border: 1.5px solid #eee; background: #f9f9f9; outline: none; font-size: 15px; transition: 0.3s; }
+        .login-box input, .login-box select { 
+            width: 100%; height: 48px; margin-bottom: 15px; padding: 0 15px; 
+            border-radius: 12px; border: 1.5px solid #eee; background: #f9f9f9; outline: none; font-size: 15px; transition: 0.3s;
+        }
         .login-box input:focus { border-color: var(--miniso-red); background: white; }
-        .btn-login { width: 100%; height: 50px; background: var(--miniso-red); color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 10px; }
+        .btn-login { 
+            width: 100%; height: 50px; background: var(--miniso-red); color: white; 
+            border: none; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 10px;
+        }
+        .btn-login:active { transform: scale(0.98); }
 
+        /* --- STYLE ASLI --- */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; padding: 0; font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto; background: #ffffff; color: var(--text-dark); height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden; }
+        body { 
+            margin: 0; padding: 0; 
+            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto; 
+            background: #ffffff; color: var(--text-dark); 
+            height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden;
+        }
 
         .sidebar { width: var(--sidebar-width); background: var(--miniso-red); color: #fff; position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 9500; padding: 25px; }
         .sidebar.active { transform: translateX(0); }
         .sidebar a { color: #fff; text-decoration: none; display: block; padding: 15px; border-radius: 12px; margin-bottom: 10px; font-weight: 600; background: rgba(255,255,255,0.1); }
         #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 9000; display: none; backdrop-filter: blur(4px); }
 
-        #ui-header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); padding: calc(20px + env(safe-area-inset-top)) 16px 12px 16px; border-bottom: 1px solid #eee; z-index: 1000; width: 100%; flex-shrink: 0; }
+        #ui-header { 
+            background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(15px); 
+            padding: calc(20px + env(safe-area-inset-top)) 16px 12px 16px; 
+            border-bottom: 1px solid #eee; 
+            z-index: 1000; 
+            width: 100%; 
+            flex-shrink: 0; 
+        }
         .top-bar { display: flex; gap: 10px; align-items: center; max-width: 1200px; margin-inline: auto; width: 100%; }
         .search-container { position: relative; flex: 1; }
         #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
@@ -50,7 +92,12 @@
         .cat-chip { padding: 8px 16px; background: #f0f0f0; border-radius: 20px; font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; border: 1px solid transparent; transition: 0.2s; flex-shrink: 0; text-transform: uppercase; }
         .cat-chip.active { background: var(--miniso-red); color: white; }
 
-        #reader { display:none; width:100%; max-width:340px; aspect-ratio:1/1; margin:15px auto; background:#000; border-radius:20px; overflow:hidden; position:relative; border: 4px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+        #reader { 
+            display:none; width:100%; max-width:340px; aspect-ratio:1/1; 
+            margin:15px auto; background:#000; border-radius:20px; 
+            overflow:hidden; position:relative; border: 4px solid white; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
+        }
         #reader video { width: 100%; height: 100%; object-fit: cover; }
         .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
         .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; }
@@ -58,29 +105,35 @@
 
         .main-content { flex: 1; overflow-y: auto; overflow-x: hidden; width: 100%; padding: 0 16px; }
         #listContainer { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 16px 0 80px 0; width: 100%; }
+        
         @media (min-width: 768px) { #listContainer { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; } }
 
         .list-item { display: flex; align-items: center; gap: 14px; padding: 12px; background: white; border-radius: 16px; border: 1px solid #f0f0f0; transition: 0.2s; cursor: pointer; width: 100%; min-width: 0; }
+        .list-item:active { transform: scale(0.98); background: #fafafa; }
         .list-img-box { width: 70px; height: 70px; background: #f9f9f9; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; border: 1px solid #f0f0f0; }
         .list-img-box img { width: 100%; height: 100%; object-fit: contain; }
         .list-info { flex: 1; min-width: 0; }
         .list-cat { font-size: 10px; color: var(--miniso-red); font-weight: 800; text-transform: uppercase; margin-bottom: 2px; }
         .list-name { font-weight: 700; font-size: 14px; color: #111; line-height: 1.4; margin-bottom: 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
-        .list-bc { font-size: 11px; color: #888; }
+        .list-bc { font-size: 11px; color: #888; word-break: break-all; line-height: 1.2; }
 
         #detailContainer { display: none; padding-top: 20px; padding-bottom: 80px; max-width: 700px; margin: 0 auto; width: 100%; }
         .product-card { background: white; border-radius: 20px; overflow: hidden; border: 1px solid #eee; width: 100%; animation: slideUp 0.3s ease-out; }
         .image-box { background: #fff; text-align: center; padding: 20px; position: relative; border-bottom: 1px solid #f5f5f5; }
-        .image-box img { max-width: 100%; height: 300px; object-fit: contain; }
+        .image-box img { max-width: 100%; height: 300px; object-fit: contain; cursor: zoom-in; }
         .p-info { padding: 24px; }
         .p-cat { font-size: 11px; font-weight: 800; color: var(--miniso-red); text-transform: uppercase; margin-bottom: 8px; display: block; }
-        .p-title { font-size: 22px; font-weight: 800; margin: 0 0 10px 0; color: #000; line-height: 1.3; }
+        .p-title { font-size: 22px; font-weight: 800; margin: 0 0 10px 0; color: #000; line-height: 1.3; word-break: break-word; }
         
         .price-comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
         .price-item { padding: 14px; border-radius: 14px; border-bottom: 4px solid #ddd; background: var(--bg-gray); }
         .price-item.reg { border-bottom-color: var(--miniso-red); background: var(--miniso-soft); }
-        .price-label { font-size: 10px; font-weight: 800; color: #777; margin-bottom: 5px; text-transform: uppercase; }
+        .price-label { font-size: 10px; font-weight: 800; color: #777; margin-bottom: 5px; text-transform: uppercase; display: block; }
         .price-val { font-size: 19px; font-weight: 800; color: #222; }
+
+        #lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.4s; backdrop-filter: blur(12px); }
+        #lightbox.active { display: flex; opacity: 1; }
+        #lightbox img { max-width: 95%; max-height: 85vh; border-radius: 24px; }
 
         .floating-back { position: fixed; top: calc(25px + env(safe-area-inset-top)); left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 9999; cursor: pointer; border: 1px solid #eee; }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -118,10 +171,14 @@
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
 </div>
 
+<div id="lightbox" onclick="closeLightbox()">
+    <img id="lightboxImg" src="">
+</div>
+
 <div id="appContent" style="display:flex; height: 100vh; flex-direction: column;">
     <header id="ui-header">
         <div class="top-bar">
-            <button onclick="toggleSidebar()" style="background:none; border:none; padding:10px 5px;">
+            <button onclick="toggleSidebar()" style="background:none; border:none; padding:10px 5px; cursor:pointer;">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             <div class="search-container">
@@ -153,13 +210,16 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
-    document.addEventListener("DOMContentLoaded", () => { document.body.classList.add("fade-in"); });
+    document.addEventListener("DOMContentLoaded", () => { 
+        document.body.classList.add("fade-in"); 
+        initMediaPipe(); // Background init
+    });
 
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    /* --- LOGIKA LOGIN --- */
+    /* --- LOGIN --- */
     async function checkLogin() {
         const role = document.getElementById('loginAs').value;
         const user = document.getElementById('username').value;
@@ -180,50 +240,134 @@
     }
 
     if(localStorage.getItem('mmsx_auth') === 'true') {
-        window.addEventListener('load', () => { document.getElementById('loginOverlay').style.display = 'none'; });
+        document.getElementById('loginOverlay').style.display = 'none';
     }
 
     function logout() { localStorage.clear(); location.reload(); }
+    function toggleSidebar() {
+        const s = document.getElementById('sidebar');
+        const o = document.getElementById('overlay');
+        s.classList.toggle('active');
+        o.style.display = s.classList.contains('active') ? 'block' : 'none';
+    }
 
-    /* --- INISIALISASI MEDIAPIPE BARCODE DETECTOR (READY TO USE) --- */
-    let BarcodeDetector, FilesetResolver;
+    /* --- MEDIAPIPE CORE (READY TO USE) --- */
     let barcodeDetector = null;
     let isInitializing = false;
-    let scanning = false, lastScroll = 0, timer;
+    let scanning = false;
     let animationFrameId;
     let lastVideoTime = -1;
-    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId'); 
-    let currentCategory = 'All';
+    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
 
     async function initMediaPipe() {
         if (isInitializing || barcodeDetector) return;
         isInitializing = true;
         try {
-            const vision = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js");
-            BarcodeDetector = vision.BarcodeDetector;
-            FilesetResolver = vision.FilesetResolver;
-
-            const visionWasm = await FilesetResolver.forVisionTasks(
+            const vision = await FilesetResolver.forVisionTasks(
                 "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
             );
-            barcodeDetector = await BarcodeDetector.createFromOptions(visionWasm, {
+            barcodeDetector = await BarcodeDetector.createFromOptions(vision, {
                 baseOptions: {
                     modelAssetPath: `https://storage.googleapis.com/mediapipe-models/barcode_detector/barcode_detector/float16/1/barcode_detector.tflite`,
                     delegate: "GPU"
                 },
                 runningMode: "VIDEO"
             });
-            console.log("Scanner Ready to Use!");
-            isInitializing = false;
-        } catch (error) { 
-            console.error("MediaPipe Error:", error); 
-            isInitializing = false;
+            console.log("Scanner Ready!");
+        } catch (e) { console.error("MediaPipe Load Error:", e); }
+        isInitializing = false;
+    }
+
+    /* --- SCANNER FUNCTIONS --- */
+    document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
+
+    async function startScan(deviceId = null) {
+        // Jika belum siap, kita inisialisasi paksa
+        if (!barcodeDetector) {
+            if (!isInitializing) await initMediaPipe();
+            // Jika masih loading, beri feedback visual singkat
+            const btn = document.getElementById("scanBtn");
+            btn.style.opacity = "0.5";
+            while(!barcodeDetector) { await new Promise(r => setTimeout(r, 100)); }
+            btn.style.opacity = "1";
+        }
+
+        scanning = true;
+        document.getElementById("reader").style.display = "block";
+        const video = document.getElementById('videoElement');
+
+        try {
+            const constraints = {
+                video: {
+                    deviceId: deviceId ? { exact: deviceId } : undefined,
+                    facingMode: "environment",
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
+            };
+
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            video.srcObject = stream;
+            
+            video.onloadedmetadata = () => {
+                video.play();
+                const track = stream.getVideoTracks()[0];
+                const caps = track.getCapabilities();
+                if (caps.zoom) track.applyConstraints({ advanced: [{ zoom: Math.min(caps.zoom.min + 0.5, caps.zoom.max) }] });
+                tick();
+            };
+
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            updateCameraList(devices.filter(d => d.kind === 'videoinput'), deviceId || stream.getVideoTracks()[0].getSettings().deviceId);
+
+        } catch (err) {
+            console.error(err);
+            if(deviceId) { stopScan(); startScan(null); }
         }
     }
-    // Langsung persiapkan scanner saat halaman dimuat
-    initMediaPipe();
 
-    /* --- LOGIKA SEARCH & CATEGORY --- */
+    function tick() {
+        if (!scanning) return;
+        const video = document.getElementById('videoElement');
+        if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
+            lastVideoTime = video.currentTime;
+            const result = barcodeDetector.detectForVideo(video, performance.now());
+            if (result.barcodes.length > 0) {
+                onDetected(result.barcodes[0].rawValue);
+                return;
+            }
+        }
+        animationFrameId = requestAnimationFrame(tick);
+    }
+
+    function stopScan() {
+        scanning = false;
+        cancelAnimationFrame(animationFrameId);
+        lastVideoTime = -1;
+        const video = document.getElementById('videoElement');
+        if (video.srcObject) {
+            video.srcObject.getTracks().forEach(t => t.stop());
+            video.srcObject = null;
+        }
+        document.getElementById("reader").style.display = "none";
+        document.getElementById("cameraControl").style.display = "none";
+    }
+
+    function updateCameraList(devices, currentId) {
+        const source = document.getElementById("videoSource");
+        const control = document.getElementById("cameraControl");
+        control.style.display = devices.length > 1 ? "block" : "none";
+        source.innerHTML = devices.map(d => `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>${d.label || 'Camera'}</option>`).join("");
+    }
+
+    document.getElementById("videoSource").onchange = (e) => {
+        lastSelectedDeviceId = e.target.value;
+        localStorage.setItem('preferredCameraId', lastSelectedDeviceId);
+        stopScan();
+        startScan(lastSelectedDeviceId);
+    };
+
+    /* --- DATA FUNCTIONS --- */
     async function fetchCategories() {
         const { data } = await _supabase.rpc('get_unique_categories');
         if (data) {
@@ -240,6 +384,7 @@
     }
     fetchCategories();
 
+    let currentCategory = 'All';
     function filterCat(cat, el) {
         document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
         el.classList.add('active');
@@ -247,13 +392,18 @@
         search();
     }
 
-    document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 400); };
+    let timer;
+    document.getElementById("searchInput").oninput = () => {
+        clearTimeout(timer);
+        timer = setTimeout(search, 400);
+    };
 
     async function search() {
         const q = document.getElementById("searchInput").value.trim();
         let query = _supabase.from('export').select('*');
         if (currentCategory !== 'All') query = query.eq('Category', currentCategory);
         if (q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
+        
         let { data } = await query.limit(100);
         if(data) {
             document.getElementById("listContainer").innerHTML = data.map(p => `
@@ -269,118 +419,28 @@
         }
     }
 
-    /* --- SCANNER FUNCTIONS --- */
-    document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
-
-    async function startScan(deviceId = null) {
-        // Jika ditekan saat masih inisialisasi, tunggu sebentar (Ready to Use Strategy)
-        if (!barcodeDetector) {
-            if (isInitializing) {
-                const btn = document.getElementById("scanBtn");
-                const originalSVG = btn.innerHTML;
-                btn.innerHTML = "..."; 
-                while (!barcodeDetector) { await new Promise(res => setTimeout(res, 300)); }
-                btn.innerHTML = originalSVG;
-            } else {
-                await initMediaPipe();
-                if (!barcodeDetector) return;
-            }
-        }
-        
-        scanning = true; 
-        document.getElementById("reader").style.display = "block";
-        const video = document.getElementById('videoElement');
-
-        const constraints = {
-            video: {
-                deviceId: deviceId ? { exact: deviceId } : undefined,
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
-                facingMode: "environment"
-            }
-        };
-
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
-            video.srcObject = stream;
-            await video.play();
-
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const videoDevices = devices.filter(d => d.kind === 'videoinput');
-            updateCameraList(videoDevices, deviceId || stream.getVideoTracks()[0].getSettings().deviceId);
-
-            // Zoom Otomatis untuk Label Melengkung
-            const track = stream.getVideoTracks()[0];
-            const caps = track.getCapabilities();
-            if (caps.zoom) track.applyConstraints({ advanced: [{ zoom: Math.min(caps.zoom.min + 0.5, caps.zoom.max) }] });
-
-            tick();
-        } catch (err) { 
-            console.error(err); 
-            if(deviceId) { stopScan(); startScan(null); }
-        }
-    }
-
-    async function tick() {
-        if (!scanning) return;
-        const video = document.getElementById('videoElement');
-        
-        if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
-            lastVideoTime = video.currentTime;
-            try {
-                const result = await barcodeDetector.detectForVideo(video, performance.now());
-                if (result.barcodes.length > 0) {
-                    onDetected(result.barcodes[0].rawValue);
-                    return;
-                }
-            } catch (e) {}
-        }
-        animationFrameId = requestAnimationFrame(tick);
-    }
-
-    function stopScan() { 
-        scanning = false; 
-        cancelAnimationFrame(animationFrameId);
-        lastVideoTime = -1;
-        const video = document.getElementById('videoElement');
-        if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
-        document.getElementById("reader").style.display = "none"; 
-        document.getElementById("cameraControl").style.display = "none"; 
-    }
-
-    function updateCameraList(devices, currentId) {
-        const source = document.getElementById("videoSource");
-        const control = document.getElementById("cameraControl");
-        control.style.display = devices.length > 1 ? "block" : "none";
-        source.innerHTML = devices.map(d => `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>${d.label || 'Kamera'}</option>`).join("");
-    }
-
-    document.getElementById("videoSource").onchange = (e) => { 
-        lastSelectedDeviceId = e.target.value; 
-        localStorage.setItem('preferredCameraId', lastSelectedDeviceId); 
-        stopScan(); startScan(lastSelectedDeviceId); 
-    };
-
     async function onDetected(code) {
         const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
-        if(data) { 
-            document.getElementById("beepOk").play(); 
-            stopScan(); 
-            showDetail(code); 
+        if(data) {
+            document.getElementById("beepOk").play();
+            stopScan();
+            showDetail(code);
         }
     }
 
+    let lastScroll = 0;
     async function showDetail(code) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;
         const { data: p } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
         if(!p) return;
-        
+
         document.getElementById("listContainer").style.display = "none";
         document.getElementById("ui-header").style.display = "none";
         const det = document.getElementById("detailContainer");
+        
         det.innerHTML = `
             <div class="product-card">
-                <div class="image-box"><img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/500'"></div>
+                <div class="image-box"><img src="${p.Image || ''}" onclick="openLightbox('${p.Image}')" onerror="this.src='https://via.placeholder.com/500'"></div>
                 <div class="p-info">
                     <span class="p-cat">${p.Category || 'GENERAL'}</span>
                     <h3 class="p-title">${p.Name}</h3>
@@ -403,6 +463,19 @@
         document.getElementById("btnBackFloating").style.display = "none";
         document.getElementById("scrollContainer").scrollTop = lastScroll;
     }
+
+    function openLightbox(src) {
+        const l = document.getElementById('lightbox');
+        document.getElementById('lightboxImg').src = src;
+        l.classList.add('active');
+    }
+    function closeLightbox() { document.getElementById('lightbox').classList.remove('active'); }
+
+    /* --- TRANSLATIONS (HIDDEN LOGIC KEPT) --- */
+    const translations = {
+        id: { searchPlace: "Cari nama / barcode...", tapHint: "ARAHKAN BARCODE • TAP UNTUK FOKUS", allCat: "Semua", barcodeLabel: "BARCODE", regStoreLabel: "Regular Store", strStoreLabel: "Street Store" },
+        en: { searchPlace: "Search name / barcode...", tapHint: "POINT AT BARCODE • TAP TO FOCUS", allCat: "All", barcodeLabel: "BARCODE", regStoreLabel: "Regular Store", strStoreLabel: "Street Store" }
+    };
 </script>
 </body>
 </html>

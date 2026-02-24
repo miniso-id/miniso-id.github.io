@@ -411,6 +411,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
         hints.set(ZXing.DecodeHintType.TRY_HARDER, true); 
         hints.set(ZXing.DecodeHintType.CHARACTER_SET, 'utf-8');
         hints.set(ZXing.DecodeHintType.PURE_BARCODE, false);
+        hints.set(ZXing.DecodeHintType.ASSUME_GS1, true);
 
         const constraints = {
             video: {
@@ -451,6 +452,10 @@ if(localStorage.getItem('mms_auth') === 'true') {
                 const targetZoom = Math.min(capabilities.zoom.min + 0.5, capabilities.zoom.max);
                 advanced.zoom = targetZoom;
             }
+
+            if (capabilities.exposureMode && capabilities.exposureMode.includes('continuous')) {
+    advanced.exposureMode = 'continuous';
+}
 
             if (Object.keys(advanced).length > 0) {
                 await videoTrack.applyConstraints({ advanced: [advanced] });

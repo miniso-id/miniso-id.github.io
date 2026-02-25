@@ -536,7 +536,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
         }
     }
 
-    async function showDetail(fullBarcode) {
+async function showDetail(fullBarcode) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;
         const { data: p } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();
         if(!p) return;
@@ -548,7 +548,11 @@ if(localStorage.getItem('mms_auth') === 'true') {
         const discountLabel = (promoText !== "" && promoText !== "NORMAL PRICE" && p["Regular Store Promo"] !== "NORMAL") 
         ? `<div class="promo-badge">${promoText}</div>` 
         : "";
-             const det = document.getElementById("detailContainer");
+
+        // Logika: Ambil barcode pertama saja sebelum tanda "/"
+        const firstBarcode = p.Barcode ? p.Barcode.split('/')[0].trim() : "";
+
+        const det = document.getElementById("detailContainer");
         det.innerHTML = `
             <div class="product-card">
                 <div class="image-box">
@@ -574,7 +578,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
                             <span style="color:#888; font-weight:600; margin-top:3px;">BARCODE</span>
                             <div style="text-align:right; max-width:70%;">
                                 <span style="font-weight:700; word-break:break-all; display:block; margin-bottom:8px;">${p.Barcode}</span>
-                                <img src="https://barcode.tec-it.com/barcode.ashx?data=${p.Barcode}&code=Code128&dpi=96" alt="Barcode" style="max-height:45px; max-width:100%; object-fit:contain; background:white; padding:4px; border-radius:6px; border:1px solid #eee;">
+                                <img src="https://barcode.tec-it.com/barcode.ashx?data=${firstBarcode}&code=Code128&dpi=96" alt="Barcode" style="max-height:45px; max-width:100%; object-fit:contain; background:white; padding:4px; border-radius:6px; border:1px solid #eee;">
                             </div>
                         </div>
                         <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px;">

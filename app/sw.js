@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mms-x-v1.1.6'; // Pastikan versi ini sama dengan di HTML
+const CACHE_NAME = 'mms-x-v1.1.7'; // Pastikan versi ini sama dengan di HTML
 const OFFLINE_URL = './offline.html'; // Tentukan URL offline
 const ASSETS_TO_CACHE = [
   './',

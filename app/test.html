@@ -351,9 +351,16 @@ body.fade-in {
         <div id="wIcon" class="weather-icon">☀️</div>
         <div>
             <div id="wTemp" class="weather-temp">--°C</div>
-            <div id="wDesc" class="weather-detail">Mencari lokasi...</div>
+            <div id="wDesc" class="weather-detail" onclick="fetchWeather()" style="cursor:pointer; color: var(--miniso-red); font-weight:bold;">
+                Tap untuk Izin Lokasi 📍
+            </div>
         </div>
     </div>
+    <div style="text-align: right;">
+        <div id="wLocationCity" style="font-size: 10px; color: #999; font-weight: bold;">LOKASI</div>
+        <div id="wLocationDetail" style="font-size: 10px; color: #bbb;">MMS-X Smart Weather</div>
+    </div>
+</div>
     <div style="text-align: right;">
         <div id="wLocationCity" style="font-size: 10px; color: #999; font-weight: bold;">MENDETEKSI...</div>
         <div id="wLocationDetail" style="font-size: 10px; color: #bbb;">Lokasi Saat Ini</div>
@@ -860,37 +867,44 @@ function launchCelebration(color) {
 
 async function fetchWeather() {
     const wDesc = document.getElementById('wDesc');
-    const wCity = document.getElementById('wLocationCity');
 
-    // Pengaturan GPS: Akurasi tinggi dan timeout 5 detik
-    const geoOptions = {
-        enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 0
-    };
-
-    if ("geolocation" in navigator) {
-        wDesc.innerText = "Meminta izin lokasi...";
-        
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                // JIKA DIIZINKAN: Ambil koordinat asli
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                getWeatherData(lat, lon, "LOKASI AKTIF");
-            },
-            (error) => {
-                // JIKA DITOLAK ATAU ERROR: Pakai lokasi Central Park sebagai cadangan
-                console.warn("Akses lokasi ditolak/error:", error.message);
-                getWeatherData(-6.1774, 106.7907, "JAKARTA BARAT");
-                wDesc.innerText = "Lokasi Store 12 (Default)";
-            },
-            geoOptions
-        );
-    } else {
-        // Browser jadul yang tidak support GPS
-        getWeatherData(-6.1774, 106.7907, "JAKARTA BARAT");
+    if (!navigator.geolocation) {
+        alert("Browser kamu tidak mendukung GPS.");
+        return;
     }
+
+    wDesc.innerText = "Meminta izin...";
+
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            // Berhasil dapat lokasi
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            getWeatherData(lat, lon, "LOKASI AKTIF");
+        },
+        (error) => {
+            // Gagal/Ditolak
+            let pesan = "";
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    pesan = "Izin ditolak. Cek setelan browser.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    pesan = "Sinyal GPS tidak ketemu.";
+                    break;
+                case error.TIMEOUT:
+                    pesan = "Waktu habis (Timeout).";
+                    break;
+                default:
+                    pesan = "Error tidak diketahui.";
+            }
+            alert(pesan);
+            // Tetap tampilkan cuaca default Central Park agar tidak kosong
+            getWeatherData(-6.1774, 106.7907, "JAKARTA BARAT");
+            wDesc.innerText = "Lokasi Store (Default)";
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+    );
 }
 </script>
 </body>

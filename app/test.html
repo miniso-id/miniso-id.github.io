@@ -862,52 +862,35 @@ async function fetchWeather() {
     const wDesc = document.getElementById('wDesc');
     const wCity = document.getElementById('wLocationCity');
 
-    // Cek apakah browser mendukung Geolocation
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(async (position) => {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
+    // Pengaturan GPS: Akurasi tinggi dan timeout 5 detik
+    const geoOptions = {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+    };
 
-            try {
-                const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
-                const data = await response.json();
-                const weather = data.current_weather;
-
-                // Update Tampilan
-                document.getElementById('wTemp').innerText = `${Math.round(weather.temperature)}°C`;
-                wCity.innerText = "LOKASI AKTIF";
-                
-                // Logika Icon
-                updateWeatherUI(weather.weathercode);
-            } catch (error) {
-                wDesc.innerText = "Gagal memuat data";
-            }
-        }, (error) => {
-            // Jika user menolak izin lokasi, gunakan default Central Park
-            console.log("Akses lokasi ditolak, menggunakan lokasi default.");
-            fetchWeatherDefault(); 
-        });
+    if ("geolocation" in navigator) {
+        wDesc.innerText = "Meminta izin lokasi...";
+        
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                // JIKA DIIZINKAN: Ambil koordinat asli
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                getWeatherData(lat, lon, "LOKASI AKTIF");
+            },
+            (error) => {
+                // JIKA DITOLAK ATAU ERROR: Pakai lokasi Central Park sebagai cadangan
+                console.warn("Akses lokasi ditolak/error:", error.message);
+                getWeatherData(-6.1774, 106.7907, "JAKARTA BARAT");
+                wDesc.innerText = "Lokasi Store 12 (Default)";
+            },
+            geoOptions
+        );
     } else {
-        fetchWeatherDefault();
+        // Browser jadul yang tidak support GPS
+        getWeatherData(-6.1774, 106.7907, "JAKARTA BARAT");
     }
-}
-
-// Fungsi pembantu untuk Update Icon & Teks
-function updateWeatherUI(code) {
-    const wIcon = document.getElementById('wIcon');
-    const wDesc = document.getElementById('wDesc');
-
-    if (code <= 3) { wIcon.innerText = "☀️"; wDesc.innerText = "Cerah"; }
-    else if (code >= 51 && code <= 67) { wIcon.innerText = "🌧️"; wDesc.innerText = "Hujan"; }
-    else if (code >= 95) { wIcon.innerText = "⛈️"; wDesc.innerText = "Badai Petir"; }
-    else { wIcon.innerText = "☁️"; wDesc.innerText = "Berawan"; }
-}
-
-// Fungsi cadangan jika GPS mati
-async function fetchWeatherDefault() {
-    const lat = -6.1774; // Central Park
-    const lon = 106.7907;
-    // ... (sama seperti logika fetch sebelumnya)
 }
 </script>
 </body>

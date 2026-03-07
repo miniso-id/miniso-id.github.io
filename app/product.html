@@ -272,6 +272,27 @@ body.fade-in {
 
 <script>
 
+// --- KODE BARU: OPTIMASI CACHE EGRESS ---
+const CACHE_KEY = "mmsx_cache_";
+const CACHE_TIME = 3600000; // 1 Jam
+
+function saveToCache(barcode, data) {
+    const entry = { timestamp: Date.now(), payload: data };
+    localStorage.setItem(CACHE_KEY + barcode, JSON.stringify(entry));
+}
+
+function getFromCache(barcode) {
+    const raw = localStorage.getItem(CACHE_KEY + barcode);
+    if (!raw) return null;
+    const entry = JSON.parse(raw);
+    if (Date.now() - entry.timestamp > CACHE_TIME) {
+        localStorage.removeItem(CACHE_KEY + barcode);
+        return null;
+    }
+    return entry.payload;
+}
+// ---------------------------------------
+
 // Jalankan saat halaman dimuat
 document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.add("fade-in");
@@ -421,10 +442,11 @@ if(localStorage.getItem('mms_auth') === 'true') {
     async function search() {
         const q = document.getElementById("searchInput").value.trim();
         const list = document.getElementById("listContainer");
-        let query = _supabase.from('export').select('*');
+        // OPTIMASI EGRESS: Pilih kolom yang dibutuhkan saja dan limit lebih kecil (10)
+        let query = _supabase.from('export').select('Barcode, Name, Category, Image');
         if (currentCategory !== 'All') query = query.eq('Category', currentCategory);
         if (q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
-        let { data } = await query.limit(100);
+        let { data } = await query.limit(10);
         if(data) {
             list.innerHTML = data.map(p => `
                 <div class="list-item" onclick="showDetail('${p.Barcode}')">
@@ -568,6 +590,16 @@ if(localStorage.getItem('mms_auth') === 'true') {
     }
 
     async function onDetected(code) {
+        // OPTIMASI EGRESS: Cek cache sebelum fetch
+        if (getFromCache(code)) {
+            document.getElementById("beepOk").play(); 
+            stopScan(); 
+            document.getElementById("searchInput").blur(); 
+            document.getElementById("searchInput").value = code; 
+            showDetail(code);
+            return;
+        }
+
         const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
         if(data) { 
             document.getElementById("beepOk").play(); 
@@ -580,8 +612,16 @@ if(localStorage.getItem('mms_auth') === 'true') {
 
 async function showDetail(fullBarcode) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;
-        const { data: p } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();
-        if(!p) return;
+
+        // OPTIMASI EGRESS: Gunakan cache jika ada
+        let p = getFromCache(fullBarcode);
+        if (!p) {
+            const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();
+            if(!data) return;
+            p = data;
+            saveToCache(fullBarcode, p);
+        }
+
         document.getElementById("listContainer").style.display = "none";
         document.getElementById("ui-header").style.display = "none";
         const regPrice = cleanPrice(p["Regular Store Price"]);

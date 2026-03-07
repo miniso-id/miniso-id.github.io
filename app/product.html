@@ -446,7 +446,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
         let query = _supabase.from('export').select('Barcode, Name, Category, Image');
         if (currentCategory !== 'All') query = query.eq('Category', currentCategory);
         if (q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
-        let { data } = await query.limit(10);
+        let { data } = await query.limit(200);
         if(data) {
             list.innerHTML = data.map(p => `
                 <div class="list-item" onclick="showDetail('${p.Barcode}')">

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mms-x-v1.2.2'; // Pastikan versi ini sama dengan di HTML
+const CACHE_NAME = 'mms-x-v1.2.3'; // Pastikan versi ini sama dengan di HTML
 const OFFLINE_URL = './offline.html'; // Tentukan URL offline
 const ASSETS_TO_CACHE = [
   './',
@@ -6,6 +6,7 @@ const ASSETS_TO_CACHE = [
   './offline.html', // Tambahkan ini
   './index.html',
   './price.html',
+  './product.html',
   'https://miniso-id.github.io/app/user512.png',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
   'https://unpkg.com/@zxing/library@latest'

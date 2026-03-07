@@ -215,6 +215,24 @@ body.fade-in {
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
+// --- SISTEM CACHE MENGHEMAT EGRESS ---
+const CACHE_EXPIRATION = 3600000; // 1 Jam
+
+function saveToLocalCache(barcode, data) {
+    const cacheEntry = { timestamp: Date.now(), payload: data };
+    localStorage.setItem(`cache_${barcode}`, JSON.stringify(cacheEntry));
+}
+
+function getLocalCache(barcode) {
+    const rawData = localStorage.getItem(`cache_${barcode}`);
+    if (!rawData) return null;
+    const cacheEntry = JSON.parse(rawData);
+    if ((Date.now() - cacheEntry.timestamp) > CACHE_EXPIRATION) {
+        localStorage.removeItem(`cache_${barcode}`);
+        return null;
+    }
+    return cacheEntry.payload;
+}
 
 // Jalankan saat halaman dimuat
 document.addEventListener("DOMContentLoaded", () => {
@@ -272,11 +290,14 @@ function navigateTo(url) {
     async function search() {
         const q = document.getElementById("searchInput").value.trim();
         const list = document.getElementById("listContainer");
-        let query = _supabase.from('export').select('*');
+        
+        // OPTIMASI: Hanya ambil kolom yang butuh ditampilkan di list
+        let query = _supabase.from('export').select('Barcode, Name, Category, Image');
         
         if (q) query = query.ilike('Barcode', `%${q}%`);
         
-        let { data } = await query.limit(1);
+        // Limit dipasang agar tidak bocor egress
+        let { data } = await query.limit(10);
         if(data) {
             list.innerHTML = data.map(p => `
                 <div class="list-item" onclick="showDetail('${p.Barcode}')">
@@ -438,20 +459,31 @@ function navigateTo(url) {
     }
 
     async function onDetected(code) {
-        const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
-        if(data) { 
+        // Cek Cache dulu
+        const cachedData = getLocalCache(code);
+        if (cachedData) {
             document.getElementById("beepOk").play(); 
             stopScan(); 
             document.getElementById("searchInput").blur(); 
             document.getElementById("searchInput").value = code; 
-            showDetail(code); 
+            showDetail(code); // Panggil fungsi asli agar terjemahan tetap jalan
+            return;
+        }
+
+        // Fetch lengkap sekali saja, simpan ke cache, lalu panggil showDetail
+        const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
+        if(data) { 
+            saveToLocalCache(code, data); // Simpan ke cache
+            document.getElementById("beepOk").play(); 
+            stopScan(); 
+            document.getElementById("searchInput").blur(); 
+            document.getElementById("searchInput").value = code; 
+            showDetail(code); // showDetail akan temukan cache dan tidak fetch ulang
         }
     }
 
-    async function showDetail(fullBarcode) {
-        lastScroll = document.getElementById("scrollContainer").scrollTop;
-        const { data: p } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();
-        if(!p) return;
+    // FUNGSI RENDER DIPISAH AGAR BISA DIPANGGIL CACHE
+    function renderDetailView(p) {
         document.getElementById("listContainer").style.display = "none";
         document.getElementById("ui-header").style.display = "none";
         const regPrice = cleanPrice(p["Regular Store Price"]);
@@ -500,6 +532,22 @@ function navigateTo(url) {
         det.classList.add('active');
         document.getElementById("btnBackFloating").style.display = "flex";
         document.getElementById("scrollContainer").scrollTo(0, 0);
+    }
+
+    async function showDetail(fullBarcode) {
+        lastScroll = document.getElementById("scrollContainer").scrollTop;
+        
+        let p = getLocalCache(fullBarcode);
+        
+        // Hanya tarik API jika cache tidak ada
+        if (!p) {
+            const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();
+            if(!data) return;
+            p = data;
+            saveToLocalCache(fullBarcode, p);
+        }
+        
+        renderDetailView(p);
     }
 
     function back() {

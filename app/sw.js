@@ -5,8 +5,6 @@ const ASSETS_TO_CACHE = [
   './manifest.json',
   './offline.html', // Tambahkan ini
   './index.html',
-  './price.html',
-  './product.html',
   'https://miniso-id.github.io/app/user512.png',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
   'https://unpkg.com/@zxing/library@latest'

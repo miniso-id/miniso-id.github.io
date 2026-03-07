@@ -8,6 +8,7 @@
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     
     <style>
         :root {
@@ -36,7 +37,7 @@ body.fade-in {
     transition: opacity 0.2s ease-out;
 }
 
-/* Animasi Garis Laser Scan */
+        /* Animasi Garis Laser Scan */
 .scan-line {
     position: absolute;
     top: 20%;
@@ -77,6 +78,30 @@ body.fade-in {
 .focus-guide::before { top: -2px; left: -2px; border-right: 0; border-bottom: 0; border-top-left-radius: 12px; }
 .focus-guide::after { bottom: -2px; right: -2px; border-left: 0; border-top: 0; border-bottom-right-radius: 12px; }
 
+        /* --- LOGIN OVERLAY (TEMA SEPADAN) --- */
+        #loginOverlay {
+            position: fixed; inset: 0; background: var(--bg-gray); 
+            z-index: 20000; display: flex; align-items: center; justify-content: center;
+        }
+        .login-box {
+            background: white; width: 90%; max-width: 350px; padding: 35px 25px; 
+            border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); text-align: center;
+        }
+        .login-box h2 { color: var(--miniso-red); margin: 0 0 10px 0; font-weight: 800; font-size: 28px; }
+        .login-box p { color: #666; font-size: 14px; margin-bottom: 25px; }
+        .login-box label { display: block; text-align: left; font-size: 11px; font-weight: 800; color: #999; margin: 0 0 5px 5px; text-transform: uppercase; }
+        .login-box input, .login-box select { 
+            width: 100%; height: 48px; margin-bottom: 15px; padding: 0 15px; 
+            border-radius: 12px; border: 1.5px solid #eee; background: #f9f9f9; outline: none; font-size: 15px; transition: 0.3s;
+        }
+        .login-box input:focus { border-color: var(--miniso-red); background: white; }
+        .btn-login { 
+            width: 100%; height: 50px; background: var(--miniso-red); color: white; 
+            border: none; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 10px;
+        }
+        .btn-login:active { transform: scale(0.98); }
+
+        /* --- STYLE ASLI --- */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
             margin: 0; padding: 0; 
@@ -104,14 +129,18 @@ body.fade-in {
         #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
         #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
+        #catFilterContainer { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 4px 0; scrollbar-width: none; width: 100%; }
+        #catFilterContainer::-webkit-scrollbar { display: none; }
+        .cat-chip { padding: 8px 16px; background: #f0f0f0; border-radius: 20px; font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; border: 1px solid transparent; transition: 0.2s; flex-shrink: 0; text-transform: uppercase; }
+        .cat-chip.active { background: var(--miniso-red); color: white; }
+
         #reader { 
             display:none; width:100%; max-width:340px; aspect-ratio:1/1; 
             margin:15px auto; background:#000; border-radius:20px; 
             overflow:hidden; position:relative; border: 4px solid white; 
             box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
         }
-        /* Cari bagian ini di dalam tag <style> */
-#reader video { 
+        #reader video { 
     width: 100%; 
     height: 100%; 
     object-fit: cover; 
@@ -171,9 +200,33 @@ body.fade-in {
     <div class="spinner" style="border-top-color: var(--miniso-red); width: 40px; height: 40px; border-width: 4px;"></div>
 </div>
 
+<div id="loginOverlay">
+    <div class="login-box">
+        <h2>MMS-X</h2>
+        <p>Silakan masuk ke akun Anda</p>
+        
+        <label>Login As</label>
+        <select id="loginAs">
+            <option value="Administrator">Administrator</option>
+            <option value="Area">Area</option>
+            <option value="Store">Store</option>
+        </select>
+        
+        <label>Username</label>
+        <input type="text" id="username" placeholder="Username" autocomplete="off">
+        
+        <label>Password</label>
+        <input type="password" id="password" placeholder="••••••••">
+        
+        <button class="btn-login" onclick="checkLogin()">MASUK</button>
+        <p id="loginError" style="color:var(--miniso-red); font-size:12px; margin-top:15px; font-weight:700; display:none;">Login Gagal! Periksa data Anda.</p>
+    </div>
+</div>
+
 <div id="sidebar" class="sidebar">
     <h2>MMS-X</h2>
     <a href="https://miniso-id.github.io/app/" onclick="toggleSidebar()">Home</a>
+    <a href="#" onclick="logout()" style="background:rgba(0,0,0,0.2); margin-top:20px;">Logout</a>
 </div>
 <div id="overlay" onclick="toggleSidebar()"></div>
 
@@ -192,11 +245,14 @@ body.fade-in {
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             <div class="search-container">
-                <input id="searchInput" placeholder="Scan / Input Barcode..." autocomplete="off">
+                <input id="searchInput" placeholder="Cari nama / barcode..." autocomplete="off">
                 <button id="scanBtn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                 </button>
             </div>
+        </div>
+        <div id="catFilterContainer">
+            <div class="cat-chip active" onclick="filterCat('All', this)">All</div>
         </div>
         <div id="reader">
     <video id="videoElement"></video>
@@ -247,7 +303,7 @@ function navigateTo(url) {
         window.location.href = url;
     }, 200); 
 }
-
+    
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js')
@@ -260,11 +316,104 @@ function navigateTo(url) {
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let scanning = false, lastScroll = 0, timer;
-    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
+    const USER_SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co"; 
+    const USER_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
+    const _userSupabase = supabase.createClient(USER_SUPABASE_URL, USER_SUPABASE_KEY);
 
-    // Inisialisasi ZXing
+    /* --- LOGIKA LOGIN TERINTEGRASI --- */
+    async function checkLogin() {
+        const role = document.getElementById('loginAs').value;
+        const user = document.getElementById('username').value;
+        const pass = document.getElementById('password').value;
+        const err = document.getElementById('loginError');
+        const btn = document.querySelector('.btn-login');
+
+        btn.innerText = "LOADING...";
+        err.style.display = 'none';
+
+        try {
+            const { data } = await _userSupabase
+                .from('users') 
+                .select('*')
+                .eq('login as', role)
+                .eq('username', user)
+                .eq('password', pass)
+                .maybeSingle();
+
+            if (data) {
+                localStorage.setItem('mmsx_auth', 'true');
+                localStorage.setItem('mmsx_role', role); 
+                
+                document.getElementById('loginOverlay').style.display = 'none';
+            } else {
+                err.style.display = 'block';
+            }
+        } catch (e) {
+            alert("Error Koneksi Database User");
+        } finally {
+            btn.innerText = "MASUK";
+        }
+    }
+
+(function autoLoginCheck() {
+    const isAuth = localStorage.getItem('mms_auth'); 
+    const userRole = localStorage.getItem('mms_role');
+
+    if (isAuth === 'true' && userRole !== 'Staff') { 
+        document.addEventListener("DOMContentLoaded", () => {
+            const overlay = document.getElementById('loginOverlay');
+            if(overlay) overlay.style.display = 'none';
+        });
+    }
+})();
+
+if(localStorage.getItem('mms_auth') === 'true') {
+    window.addEventListener('load', () => {
+        const overlay = document.getElementById('loginOverlay');
+        if(overlay) overlay.style.display = 'none';
+    });
+}
+    function logout() {
+    localStorage.clear(); 
+    window.location.href = "index.html"; 
+}
+
+    /* --- INISIALISASI ZXING --- */
     const codeReader = new ZXing.BrowserMultiFormatReader();
+    let scanning = false, lastScroll = 0, timer;
+    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId'); // Rekaman kamera terakhir
+    let currentCategory = 'All';
+
+    async function fetchCategories() {
+        const { data, error } = await _supabase.rpc('get_unique_categories');
+
+        if (error) {
+            console.error("Gagal mengambil kategori:", error);
+            return;
+        }
+
+        if (data) {
+            const container = document.getElementById('catFilterContainer');
+            container.innerHTML = '<div class="cat-chip active" onclick="filterCat(\'All\', this)">All</div>';
+
+            data.forEach(item => {
+                const catName = item.category; 
+                const chip = document.createElement('div');
+                chip.className = 'cat-chip';
+                chip.innerText = catName;
+                chip.onclick = () => filterCat(catName, chip);
+                container.appendChild(chip);
+            });
+        }
+    }
+    fetchCategories();
+
+    function filterCat(cat, el) {
+        document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        currentCategory = cat;
+        search();
+    }
 
     function openLightbox(src) {
         if(!src || src.includes('placeholder')) return;
@@ -291,17 +440,19 @@ function navigateTo(url) {
         const q = document.getElementById("searchInput").value.trim();
         const list = document.getElementById("listContainer");
         
-        // OPTIMASI: Hanya ambil kolom yang butuh ditampilkan di list
+        // OPTIMASI: Hanya ambil kolom yang dibutuhkan untuk tampilan list
         let query = _supabase.from('export').select('Barcode, Name, Category, Image');
         
-        if (q) query = query.ilike('Barcode', `%${q}%`);
+        if (currentCategory !== 'All') query = query.eq('Category', currentCategory);
+        if (q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
         
         // Limit dipasang agar tidak bocor egress
         let { data } = await query.limit(10);
+        
         if(data) {
             list.innerHTML = data.map(p => `
                 <div class="list-item" onclick="showDetail('${p.Barcode}')">
-                    <div class="list-img-box" onclick="event.stopPropagation(); openLightbox('${p.Image || ''}')">
+                    <div class="list-img-box" onclick="event.stopPropagation(); openLightbox('${p.Image}')">
                         <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/150x150?text=Miniso'" loading="lazy">
                     </div>
                     <div class="list-info">
@@ -314,104 +465,87 @@ function navigateTo(url) {
         }
     }
 
+    /* --- LOGIKA SCANNER ZXING --- */
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
     async function startScan(deviceId = null) {
-    scanning = true; 
-    document.getElementById("reader").style.display = "block";
-    
-    // 1. Definisikan Hints untuk ZXing (Kunci Ketajaman & 360 Derajat)
-    const hints = new Map();
-    const formats = [
-        ZXing.BarcodeFormat.EAN_13,
-        ZXing.BarcodeFormat.EAN_8,
-        ZXing.BarcodeFormat.CODE_128,
-        ZXing.BarcodeFormat.UPC_A,
-        ZXing.BarcodeFormat.UPC_E
-    ];
-    
-    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
-    
-    // TRY_HARDER wajib aktif untuk mencari barcode miring/distorsi
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, true); 
-    
-    // CHARACTER_SET membantu pembacaan data yang lebih stabil
-    hints.set(ZXing.DecodeHintType.CHARACTER_SET, 'utf-8');
-    
-    // PURE_BARCODE false memberi tahu scanner bahwa ada background di sekitar barcode
-    hints.set(ZXing.DecodeHintType.PURE_BARCODE, false);
-    hints.set(ZXing.DecodeHintType.ASSUME_GS1, true);
-    hints.set(ZXing.DecodeHintType.ALSO_SUPPORT_CONVEX, true);
-
-    // 2. Setting Resolusi Tinggi & Aspect Ratio
-    const constraints = {
-        video: {
-            deviceId: deviceId ? { exact: deviceId } : undefined,
-            width: { min: 1280, ideal: 1920, max: 2560 },
-            height: { min: 720, ideal: 1080, max: 1440 },
-            frameRate: { ideal: 30, max: 60 },
-            facingMode: "environment",
-            // Mengunci aspect ratio 16:9 agar barcode tidak terdistorsi/gepeng saat miring
-            aspectRatio: { ideal: 1.7777777778 },
-            focusMode: { ideal: "continuous" },
-            whiteBalanceMode: { ideal: "continuous" }
-            
-        }
-    };
-
-    try {
-        const videoDevices = await codeReader.listVideoInputDevices();
-        const backCameras = videoDevices.filter(d => !d.label.toLowerCase().includes('front'));
-        let selectedId = deviceId || lastSelectedDeviceId || (backCameras.length > 0 ? backCameras[0].deviceId : videoDevices[0].deviceId);
+        scanning = true; 
+        document.getElementById("reader").style.display = "block";
         
-        updateCameraList(backCameras, selectedId);
+        const hints = new Map();
+        const formats = [
+            ZXing.BarcodeFormat.EAN_13,
+            ZXing.BarcodeFormat.EAN_8,
+            ZXing.BarcodeFormat.CODE_128,
+            ZXing.BarcodeFormat.UPC_A,
+            ZXing.BarcodeFormat.UPC_E
+        ];
+        
+        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+        hints.set(ZXing.DecodeHintType.TRY_HARDER, true); 
+        hints.set(ZXing.DecodeHintType.CHARACTER_SET, 'utf-8');
+        hints.set(ZXing.DecodeHintType.PURE_BARCODE, false);
+        hints.set(ZXing.DecodeHintType.ASSUME_GS1, true);
+        hints.set(ZXing.DecodeHintType.ALSO_SUPPORT_CONVEX, true);
 
-        // 3. Pasang hints ke reader sebelum mulai
-        codeReader.hints = hints;
-
-        // Gunakan decodeFromConstraints untuk menerapkan setting video di atas
-        await codeReader.decodeFromConstraints(constraints, 'videoElement', (result, err) => {
-            if (result) {
-                // ZXing secara otomatis mendeteksi rotasi jika TRY_HARDER aktif
-                onDetected(result.text);
+        const constraints = {
+            video: {
+                deviceId: deviceId ? { exact: deviceId } : undefined,
+                width: { min: 1280, ideal: 1920, max: 2560 },
+                height: { min: 720, ideal: 1080, max: 1440 },
+                frameRate: { ideal: 30, max: 60 },
+                facingMode: "environment",
+                aspectRatio: { ideal: 1.7777777778 },
+                whiteBalanceMode: { ideal: "continuous" }
             }
-        });
+        };
 
-        // 4. Maksimalkan Hardware Focus & Zoom
-        const videoTrack = document.getElementById('videoElement').srcObject.getVideoTracks()[0];
-        const capabilities = videoTrack.getCapabilities();
-        
-        const advanced = {};
-        
-        // Paksa Continuous Focus (Sangat penting untuk angle miring)
-        if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
-            advanced.focusMode = 'continuous';
-        }
+        try {
+            const videoDevices = await codeReader.listVideoInputDevices();
+            const backCameras = videoDevices.filter(d => !d.label.toLowerCase().includes('front'));
+            let selectedId = deviceId || lastSelectedDeviceId || (backCameras.length > 0 ? backCameras[0].deviceId : videoDevices[0].deviceId);
+            
+            updateCameraList(backCameras, selectedId);
 
-        // Gunakan sedikit Zoom (0.5 di atas minimum) 
-        // Ini membantu sensor memisahkan garis barcode yang merapat akibat angle miring
-        if (capabilities.zoom) {
-            const targetZoom = Math.min(capabilities.zoom.min + 0.5, capabilities.zoom.max);
-            advanced.zoom = targetZoom;
-        }
+            codeReader.hints = hints;
 
-        if (capabilities.exposureMode && capabilities.exposureMode.includes('continuous')) {
+            await codeReader.decodeFromConstraints(constraints, 'videoElement', (result, err) => {
+                if (result) {
+                    onDetected(result.text);
+                }
+            });
+
+            const videoTrack = document.getElementById('videoElement').srcObject.getVideoTracks()[0];
+            const capabilities = videoTrack.getCapabilities();
+            
+            const advanced = {};
+            
+            if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
+                advanced.focusMode = 'continuous';
+            }
+
+            if (capabilities.zoom) {
+                const targetZoom = Math.min(capabilities.zoom.min + 0.5, capabilities.zoom.max);
+                advanced.zoom = targetZoom;
+            }
+
+            if (capabilities.exposureMode && capabilities.exposureMode.includes('continuous')) {
     advanced.exposureMode = 'continuous';
 }
 
-        if (Object.keys(advanced).length > 0) {
-            await videoTrack.applyConstraints({ advanced: [advanced] });
-        }
+            if (Object.keys(advanced).length > 0) {
+                await videoTrack.applyConstraints({ advanced: [advanced] });
+            }
 
-    } catch (err) {
-        console.error("Gagal optimasi kamera:", err);
-        // Fallback jika deviceId bermasalah
-        if(deviceId) { 
-            codeReader.reset(); 
-            startScan(null); 
+        } catch (err) {
+            console.error("Gagal optimasi kamera:", err);
+            if(deviceId) { 
+                codeReader.reset(); 
+                startScan(null); 
+            }
         }
     }
-}
+
     function updateCameraList(devices, currentId) {
         const source = document.getElementById("videoSource");
         const control = document.getElementById("cameraControl");
@@ -434,22 +568,21 @@ function navigateTo(url) {
     };
 
     document.getElementById("reader").onclick = async () => {
-    const videoTrack = document.getElementById('videoElement').srcObject?.getVideoTracks()[0];
-    if (videoTrack) {
-        try {
-            const capabilities = videoTrack.getCapabilities();
-            // Jika mendukung fokus manual (manual-focus atau single-shot)
-            if (capabilities.focusMode) {
-                await videoTrack.applyConstraints({
-                    advanced: [{ focusMode: 'continuous' }] // Paksa balik ke continuous
-                });
-                console.log("Fokus dipicu ulang");
+        const videoTrack = document.getElementById('videoElement').srcObject?.getVideoTracks()[0];
+        if (videoTrack) {
+            try {
+                const capabilities = videoTrack.getCapabilities();
+                if (capabilities.focusMode) {
+                    await videoTrack.applyConstraints({
+                        advanced: [{ focusMode: 'continuous' }] 
+                    });
+                    console.log("Fokus dipicu ulang");
+                }
+            } catch (e) {
+                console.warn("Fokus manual tidak didukung pada perangkat ini.");
             }
-        } catch (e) {
-            console.warn("Fokus manual tidak didukung pada perangkat ini.");
         }
-    }
-};
+    };
 
     function stopScan() { 
         codeReader.reset(); 
@@ -490,15 +623,18 @@ function navigateTo(url) {
         const strPrice = cleanPrice(p["Street Store Price"]);
         const promoText = (p["Extra Promo"] || "").trim();
         const discountLabel = (promoText !== "" && promoText !== "NORMAL PRICE" && p["Regular Store Promo"] !== "NORMAL") 
-            ? `<div class="promo-badge">${promoText}</div>` 
-            : "";
-            
+        ? `<div class="promo-badge">${promoText}</div>` 
+        : "";
+
+        // Logika: Ambil barcode pertama saja sebelum tanda "/"
+        const firstBarcode = p.Barcode ? p.Barcode.split('/')[0].trim() : "";
+
         const det = document.getElementById("detailContainer");
         det.innerHTML = `
             <div class="product-card">
                 <div class="image-box">
                     ${discountLabel}
-                    <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/500x500?text=Miniso+Product'" onclick="openLightbox('${p.Image || ''}')">
+                    <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/500x500?text=Miniso+Product'" onclick="openLightbox('${p.Image}')">
                 </div>
                 <div class="p-info">
                     <span class="p-cat">${p.Category || 'GENERAL'}</span>
@@ -515,9 +651,12 @@ function navigateTo(url) {
                         </div>
                     </div>
                     <div style="border-top: 1px solid #eee; padding-top: 20px;">
-                        <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px;">
-                            <span style="color:#888; font-weight:600;">BARCODE</span><span style="font-weight:700; word-break:break-all; text-align:right; max-width:60%;">${p.Barcode}</span>
+                        
+                        <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:15px; width:100%;">
+                            <span style="font-weight:700; font-size:12px; word-break:break-all; margin-bottom:8px; text-align:center;">${p.Barcode}</span>
+                            <svg id="barcodeCanvas" style="max-height:60px; width:auto; max-width:100%; background:white; padding:5px; border-radius:4px; border:1px solid #eee;"></svg>
                         </div>
+                        
                         <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px;">
                             <span style="color:#888; font-weight:600;">REG PROMO</span><span style="font-weight:700; color:var(--promo-blue)">${p["Regular Store Promo"] || '-'}</span>
                         </div>
@@ -528,13 +667,24 @@ function navigateTo(url) {
                 </div>
             </div>
         `;
+        // Generate Barcode secara lokal
+        if(firstBarcode) {
+            JsBarcode("#barcodeCanvas", firstBarcode, {
+                format: "CODE128",
+                lineColor: "#000",
+                width: 2,
+                height: 40,
+                displayValue: false 
+            });
+        }
+
         det.style.display = "block";
         det.classList.add('active');
         document.getElementById("btnBackFloating").style.display = "flex";
         document.getElementById("scrollContainer").scrollTo(0, 0);
     }
 
-    async function showDetail(fullBarcode) {
+async function showDetail(fullBarcode) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;
         
         let p = getLocalCache(fullBarcode);
@@ -558,64 +708,94 @@ function navigateTo(url) {
         document.getElementById("scrollContainer").scrollTop = lastScroll;
         startScan(lastSelectedDeviceId);
     }
-
-    // Jalankan scan otomatis saat startup
-    startScan(lastSelectedDeviceId);
 </script>
 
 <script>
-const priceTranslations = {
+const prodTranslations = {
     id: {
-        searchPlaceholder: "Scan / Input Barcode...",
+        loginTitle: "MMS-X",
+        loginDesc: "Silakan masuk ke akun Anda",
+        labelRole: "MASUK SEBAGAI",
+        labelUser: "NAMA PENGGUNA",
+        labelPass: "KATA SANDI",
+        btnMasuk: "MASUK",
+        loginFail: "Login Gagal! Periksa data Anda.",
+        searchPlace: "Cari nama / barcode...",
         tapHint: "ARAHKAN BARCODE • TAP UNTUK FOKUS",
-        sidebarHome: "Beranda",
+        allCat: "SEMUA",
         regStoreLabel: "Toko Reguler",
         strStoreLabel: "Toko Ruko",
         barcodeLabel: "BARCODE",
         regPromoLabel: "PROMO REGULER",
-        strPromoLabel: "PROMO RUKO",
-        generalCat: "UMUM"
+        strPromoLabel: "PROMO RUKO"
     },
     en: {
-        searchPlaceholder: "Scan / Enter Barcode...",
+        loginTitle: "MMS-X",
+        loginDesc: "Please login to your account",
+        labelRole: "LOGIN AS",
+        labelUser: "USERNAME",
+        labelPass: "PASSWORD",
+        btnMasuk: "LOGIN",
+        loginFail: "Login Failed! Check your credentials.",
+        searchPlace: "Search name / barcode...",
         tapHint: "POINT AT BARCODE • TAP TO FOCUS",
-        sidebarHome: "Home",
+        allCat: "ALL",
         regStoreLabel: "Regular Store",
         strStoreLabel: "Street Store",
         barcodeLabel: "BARCODE",
         regPromoLabel: "REGULAR STORE PROMO",
-        strPromoLabel: "STREET STORE PROMO",
-        generalCat: "GENERAL"
+        strPromoLabel: "STREET STORE PROMO"
     },
     cn: {
-        searchPlaceholder: "扫描 / 输入条形码...",
+        loginTitle: "MMS-X",
+        loginDesc: "请登录您的账户",
+        labelRole: "登录身份",
+        labelUser: "用户名",
+        labelPass: "密码",
+        btnMasuk: "登录",
+        loginFail: "登录失败！请检查您的信息。",
+        searchPlace: "搜索名称 / 条码...",
         tapHint: "对准条形码 • 轻触对焦",
-        sidebarHome: "首页",
+        allCat: "全部",
         regStoreLabel: "常规店价格",
         strStoreLabel: "街边店价格",
         barcodeLabel: "条码",
         regPromoLabel: "常规促销",
-        strPromoLabel: "街边店促销",
-        generalCat: "普通"
+        strPromoLabel: "街边店促销"
     }
 };
 
-function applyPriceLanguage() {
+function applyProductLanguage() {
     const lang = localStorage.getItem('mms_lang') || 'id';
-    const t = priceTranslations[lang];
+    const t = prodTranslations[lang];
+
+    const loginBox = document.querySelector('.login-box');
+    if (loginBox) {
+        loginBox.querySelector('p').innerText = t.loginDesc;
+        const labels = loginBox.querySelectorAll('label');
+        if (labels.length >= 3) {
+            labels[0].innerText = t.labelRole;
+            labels[1].innerText = t.labelUser;
+            labels[2].innerText = t.labelPass;
+        }
+        document.querySelector('.btn-login').innerText = t.btnMasuk;
+        document.getElementById('loginError').innerText = t.loginFail;
+    }
 
     const searchInput = document.getElementById('searchInput');
-    if (searchInput) searchInput.placeholder = t.searchPlaceholder;
+    if (searchInput) searchInput.placeholder = t.searchPlace;
     
     const tapHint = document.querySelector('.tap-hint');
     if (tapHint) tapHint.innerText = t.tapHint;
 
-    const sidebarHome = document.querySelector('#sidebar a');
-    if (sidebarHome) sidebarHome.innerText = t.sidebarHome;
+    const allChip = document.querySelector('.cat-chip');
+    if (allChip && allChip.innerText.toLowerCase() === 'all') {
+        allChip.innerText = t.allCat;
+    }
 
     const originalShowDetail = window.showDetail;
     window.showDetail = async function(fullBarcode) {
-        await originalShowDetail(fullBarcode); 
+        await originalShowDetail(fullBarcode);
         
         const labels = document.querySelectorAll('.price-label');
         if (labels.length >= 2) {
@@ -632,7 +812,7 @@ function applyPriceLanguage() {
     };
 }
 
-document.addEventListener('DOMContentLoaded', applyPriceLanguage);
+document.addEventListener('DOMContentLoaded', applyProductLanguage);
 </script>
 </body>
 </html>

@@ -288,31 +288,38 @@ function navigateTo(url) {
     document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 400); };
 
     async function search() {
-        const q = document.getElementById("searchInput").value.trim();
-        const list = document.getElementById("listContainer");
-        
-        // OPTIMASI: Hanya ambil kolom yang butuh ditampilkan di list
-        let query = _supabase.from('export').select('Barcode, Name, Category, Image');
-        
-        if (q) query = query.ilike('Barcode', `%${q}%`);
-        
-        // Limit dipasang agar tidak bocor egress
-        let { data } = await query.limit(10);
-        if(data) {
-            list.innerHTML = data.map(p => `
-                <div class="list-item" onclick="showDetail('${p.Barcode}')">
-                    <div class="list-img-box" onclick="event.stopPropagation(); openLightbox('${p.Image || ''}')">
-                        <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/150x150?text=Miniso'" loading="lazy">
-                    </div>
-                    <div class="list-info">
-                        <div class="list-cat">${p.Category || 'GENERAL'}</div>
-                        <div class="list-name">${p.Name}</div>
-                        <div class="list-bc">${p.Barcode}</div>
-                    </div>
-                </div>
-            `).join('');
-        }
+    const q = document.getElementById("searchInput").value.trim();
+    const list = document.getElementById("listContainer");
+    
+    // Jika input kosong, hapus tampilan list dan berhenti
+    if (q === "") {
+        list.innerHTML = "";
+        return;
     }
+    
+    // OPTIMASI: Hanya ambil kolom yang butuh ditampilkan di list
+    let query = _supabase.from('export').select('Barcode, Name, Category, Image');
+    
+    // Filter barcode berdasarkan input
+    query = query.ilike('Barcode', `%${q}%`);
+    
+    // Limit dipasang agar tidak bocor egress
+    let { data } = await query.limit(1);
+    if(data) {
+        list.innerHTML = data.map(p => `
+            <div class="list-item" onclick="showDetail('${p.Barcode}')">
+                <div class="list-img-box" onclick="event.stopPropagation(); openLightbox('${p.Image || ''}')">
+                    <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/150x150?text=Miniso'" loading="lazy">
+                </div>
+                <div class="list-info">
+                    <div class="list-cat">${p.Category || 'GENERAL'}</div>
+                    <div class="list-name">${p.Name}</div>
+                    <div class="list-bc">${p.Barcode}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+}
 
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 

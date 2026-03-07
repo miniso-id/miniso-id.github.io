@@ -457,7 +457,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
         // Karena kita sudah cek q di atas, maka bagian ini pasti dijalankan saat ada teks
         query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
         
-        let { data } = await query.limit(10);
+        let { data } = await query.limit(200);
         
         if(data) {
             list.innerHTML = data.map(p => `

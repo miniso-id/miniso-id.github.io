@@ -442,11 +442,23 @@ if(localStorage.getItem('mms_auth') === 'true') {
     async function search() {
         const q = document.getElementById("searchInput").value.trim();
         const list = document.getElementById("listContainer");
+
+        // LOGIKA BARU: Jika input kosong, hapus tampilan list dan berhenti di sini
+        if (q === "") {
+            list.innerHTML = "";
+            return;
+        }
+
         // OPTIMASI EGRESS: Pilih kolom yang dibutuhkan saja dan limit lebih kecil (10)
         let query = _supabase.from('export').select('Barcode, Name, Category, Image');
+        
         if (currentCategory !== 'All') query = query.eq('Category', currentCategory);
-        if (q) query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
-        let { data } = await query.limit(200);
+        
+        // Karena kita sudah cek q di atas, maka bagian ini pasti dijalankan saat ada teks
+        query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
+        
+        let { data } = await query.limit(10);
+        
         if(data) {
             list.innerHTML = data.map(p => `
                 <div class="list-item" onclick="showDetail('${p.Barcode}')">

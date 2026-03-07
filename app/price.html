@@ -216,7 +216,7 @@ body.fade-in {
 
 <script>
 // --- SISTEM CACHE MENGHEMAT EGRESS ---
-const CACHE_EXPIRATION = 3600000; // 1 Jam
+const CACHE_EXPIRATION = 86400000;
 
 function saveToLocalCache(barcode, data) {
     const cacheEntry = { timestamp: Date.now(), payload: data };

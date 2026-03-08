@@ -462,7 +462,7 @@ const checkOCR = async () => {
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
         // --- PROSES 1: BACA NORMAL ---
-        ctx.filter = 'grayscale(1) contrast(2)';
+        ctx.filter = 'grayscale(1) contrast(1)';
         ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
         
         let result = await ocrWorker.recognize(canvas);
@@ -475,7 +475,7 @@ const checkOCR = async () => {
             ctx.translate(cropWidth / 2, cropHeight / 2);
             ctx.rotate(Math.PI); // Putar 180 derajat di memori saja
             ctx.translate(-cropWidth / 2, -cropHeight / 2);
-            ctx.filter = 'grayscale(1) contrast(2)';
+            ctx.filter = 'grayscale(1) contrast(1)';
             ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
             ctx.restore();
 

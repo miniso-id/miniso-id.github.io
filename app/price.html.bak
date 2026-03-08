@@ -8,6 +8,7 @@
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     
     <style>
         :root {
@@ -323,11 +324,14 @@ function navigateTo(url) {
 
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
-    async function startScan(deviceId = null) {
+    // Variable global untuk OCR (Letakkan di luar fungsi)
+let ocrWorker = null;
+
+async function startScan(deviceId = null) {
     scanning = true; 
     document.getElementById("reader").style.display = "block";
     
-    // 1. Definisikan Hints untuk ZXing (Kunci Ketajaman & 360 Derajat)
+    // --- 1. Definisikan Hints (STRUKTUR ASLI ANDA) ---
     const hints = new Map();
     const formats = [
         ZXing.BarcodeFormat.EAN_13,
@@ -336,21 +340,14 @@ function navigateTo(url) {
         ZXing.BarcodeFormat.UPC_A,
         ZXing.BarcodeFormat.UPC_E
     ];
-    
     hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
-    
-    // TRY_HARDER wajib aktif untuk mencari barcode miring/distorsi
     hints.set(ZXing.DecodeHintType.TRY_HARDER, true); 
-    
-    // CHARACTER_SET membantu pembacaan data yang lebih stabil
     hints.set(ZXing.DecodeHintType.CHARACTER_SET, 'utf-8');
-    
-    // PURE_BARCODE false memberi tahu scanner bahwa ada background di sekitar barcode
     hints.set(ZXing.DecodeHintType.PURE_BARCODE, false);
     hints.set(ZXing.DecodeHintType.ASSUME_GS1, true);
     hints.set(ZXing.DecodeHintType.ALSO_SUPPORT_CONVEX, true);
 
-    // 2. Setting Resolusi Tinggi & Aspect Ratio
+    // --- 2. Setting Constraints (STRUKTUR ASLI ANDA) ---
     const constraints = {
         video: {
             deviceId: deviceId ? { exact: deviceId } : undefined,
@@ -358,11 +355,9 @@ function navigateTo(url) {
             height: { min: 720, ideal: 1080, max: 1440 },
             frameRate: { ideal: 30, max: 60 },
             facingMode: "environment",
-            // Mengunci aspect ratio 16:9 agar barcode tidak terdistorsi/gepeng saat miring
             aspectRatio: { ideal: 1.7777777778 },
             focusMode: { ideal: "continuous" },
             whiteBalanceMode: { ideal: "continuous" }
-            
         }
     };
 
@@ -372,47 +367,90 @@ function navigateTo(url) {
         let selectedId = deviceId || lastSelectedDeviceId || (backCameras.length > 0 ? backCameras[0].deviceId : videoDevices[0].deviceId);
         
         updateCameraList(backCameras, selectedId);
-
-        // 3. Pasang hints ke reader sebelum mulai
         codeReader.hints = hints;
 
-        // Gunakan decodeFromConstraints untuk menerapkan setting video di atas
+        // --- 3. Dekode Constraints (STRUKTUR ASLI ANDA) ---
         await codeReader.decodeFromConstraints(constraints, 'videoElement', (result, err) => {
             if (result) {
-                // ZXing secara otomatis mendeteksi rotasi jika TRY_HARDER aktif
                 onDetected(result.text);
             }
         });
 
-        // 4. Maksimalkan Hardware Focus & Zoom
-        const videoTrack = document.getElementById('videoElement').srcObject.getVideoTracks()[0];
+        // --- 4. Maksimalkan Hardware (STRUKTUR ASLI ANDA) ---
+        const videoElement = document.getElementById('videoElement');
+        const videoTrack = videoElement.srcObject.getVideoTracks()[0];
         const capabilities = videoTrack.getCapabilities();
-        
         const advanced = {};
         
-        // Paksa Continuous Focus (Sangat penting untuk angle miring)
         if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
             advanced.focusMode = 'continuous';
         }
-
-        // Gunakan sedikit Zoom (0.5 di atas minimum) 
-        // Ini membantu sensor memisahkan garis barcode yang merapat akibat angle miring
         if (capabilities.zoom) {
             const targetZoom = Math.min(capabilities.zoom.min + 0.5, capabilities.zoom.max);
             advanced.zoom = targetZoom;
         }
-
         if (capabilities.exposureMode && capabilities.exposureMode.includes('continuous')) {
-    advanced.exposureMode = 'continuous';
-}
-
+            advanced.exposureMode = 'continuous';
+        }
         if (Object.keys(advanced).length > 0) {
             await videoTrack.applyConstraints({ advanced: [advanced] });
         }
 
+        // ==========================================
+        // TAMBAHAN LOGIKA HYBRID OCR (TIDAK MERUBAH ATAS)
+        // ==========================================
+        if (!ocrWorker) {
+            ocrWorker = await Tesseract.createWorker('eng'); 
+        }
+
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d', { willReadFrequently: true });
+        let frameCounter = 0;
+
+        // --- MODIFIKASI PADA BAGIAN checkOCR ---
+const checkOCR = async () => {
+    if (!scanning) return;
+    
+    frameCounter++;
+    // Kita perkecil intervalnya ke 30 agar lebih responsif (setiap ~1 detik)
+    if (frameCounter % 10 === 0 && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
+        
+        // 1. Tentukan ukuran area potong (sesuai kotak merah Anda, sekitar 60% area tengah)
+        const cropWidth = videoElement.videoWidth * 0.9;
+        const cropHeight = 220;
+        const startX = (videoElement.videoWidth - cropWidth) / 2;
+        const startY = ((videoElement.videoHeight - cropHeight) / 2) + 120;
+
+        // 2. Set ukuran canvas hanya sebesar kotak potong (Hemat Memori & Proses)
+        canvas.width = cropWidth;
+        canvas.height = cropHeight;
+        // Menjaga ketajaman saat cropping
+context.imageSmoothingEnabled = true;
+context.imageSmoothingQuality = 'high';
+
+        // 3. Gambar hanya area tengah ke canvas
+        context.filter = 'contrast(2) grayscale(1)'; // Pre-processing instan agar angka lebih tajam
+        context.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+
+        try {
+            // 4. Jalankan OCR hanya pada potongan gambar kecil tadi
+            const { data: { text } } = await ocrWorker.recognize(canvas);
+            const cleanCode = text.replace(/\s/g, '').match(/\d{8,13}/);
+            
+            if (cleanCode) {
+                onDetected(cleanCode[0]);
+            }
+        } catch (e) {
+            console.warn("OCR skip");
+        }
+    }
+    requestAnimationFrame(checkOCR);
+};
+        checkOCR();
+        // ==========================================
+
     } catch (err) {
         console.error("Gagal optimasi kamera:", err);
-        // Fallback jika deviceId bermasalah
         if(deviceId) { 
             codeReader.reset(); 
             startScan(null); 

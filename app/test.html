@@ -446,7 +446,7 @@ const checkOCR = async () => {
     
     frameCounter++;
     // Cek setiap 15 frame agar lebih responsif tapi tetap hemat baterai
-    if (frameCounter % 10 === 0 && ocrWorker && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
+    if (frameCounter % 20 === 0 && ocrWorker && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
         
         const vW = videoElement.videoWidth;
         const vH = videoElement.videoHeight;

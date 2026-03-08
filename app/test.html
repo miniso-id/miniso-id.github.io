@@ -446,22 +446,18 @@ const checkOCR = async () => {
     // Cek setiap 15 frame agar lebih responsif tapi tetap hemat baterai
     if (frameCounter % 10 === 0 && ocrWorker && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
         
-        const vW = videoElement.videoWidth;
-        const vH = videoElement.videoHeight;
-        const cropWidth = vW * 0.95;
-        const cropHeight = 220; 
-        const startX = (vW - cropWidth) / 2;
-        const startY = (vH - cropHeight) / 2; 
+        const cropWidth = videoElement.videoWidth * 0.9;
+        const cropHeight = 160;
+        const startX = (videoElement.videoWidth - cropWidth) / 2;
+        const startY = (videoElement.videoHeight - cropHeight) / 2; 
 
         // Tentukan faktor perbesaran (2x lebih tajam)
 const scale = 2;
 canvas.width = cropWidth * scale;
 canvas.height = cropHeight * scale;
-const ctx = canvas.getContext('2d', { willReadFrequently: true });
-ctx.scale(scale, scale);
-ctx.filter = 'grayscale(1) contrast(2.5) brightness(1.1)';
 ctx.imageSmoothingEnabled = true;
 ctx.imageSmoothingQuality = 'high';
+ctx.filter = 'grayscale(1) contrast(2.5) brightness(1.1)';
 ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
         
         let result = await ocrWorker.recognize(canvas);

@@ -450,7 +450,7 @@ const checkOCR = async () => {
         
         const vW = videoElement.videoWidth;
         const vH = videoElement.videoHeight;
-        const cropWidth = vW * 0.8;
+        const cropWidth = vW * 0.9;
         const cropHeight = 160; 
         const startX = (vW - cropWidth) / 2;
         const startY = (vH - cropHeight) / 2; 
@@ -460,7 +460,7 @@ const checkOCR = async () => {
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
         // --- PROSES 1: BACA NORMAL ---
-        ctx.filter = 'grayscale(1) contrast(2.5) brightness(1.1)';
+        ctx.filter = 'grayscale(1) contrast(2)';
         ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
         
         let result = await ocrWorker.recognize(canvas);
@@ -473,6 +473,7 @@ const checkOCR = async () => {
             ctx.translate(cropWidth / 2, cropHeight / 2);
             ctx.rotate(Math.PI); // Putar 180 derajat di memori saja
             ctx.translate(-cropWidth / 2, -cropHeight / 2);
+            ctx.filter = 'grayscale(1) contrast(2)';
             ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
             ctx.restore();
 

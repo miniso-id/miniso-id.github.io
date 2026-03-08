@@ -117,8 +117,8 @@ body.fade-in {
     object-fit: cover; 
     
     /* TAMBAHKAN KODE BARU DI SINI */
-    filter: contrast(1.4) brightness(1.2) saturate(0); 
-    image-rendering: crisp-edges;
+    filter: contrast(1.6) brightness(1.1) saturate(0) grayscale(1); 
+    image-rendering: pixelated;
 }
         .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
         .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; }
@@ -349,6 +349,7 @@ function navigateTo(url) {
     hints.set(ZXing.DecodeHintType.PURE_BARCODE, false);
     hints.set(ZXing.DecodeHintType.ASSUME_GS1, true);
     hints.set(ZXing.DecodeHintType.ALSO_SUPPORT_CONVEX, true);
+    codeReader.setHints(hints);
 
     // 2. Setting Resolusi Tinggi & Aspect Ratio
     const constraints = {
@@ -447,9 +448,10 @@ function navigateTo(url) {
             const capabilities = videoTrack.getCapabilities();
             // Jika mendukung fokus manual (manual-focus atau single-shot)
             if (capabilities.focusMode) {
-                await videoTrack.applyConstraints({
-                    advanced: [{ focusMode: 'continuous' }] // Paksa balik ke continuous
-                });
+                await videoTrack.applyConstraints({ advanced: [{ focusMode: 'none' }] });
+            setTimeout(async () => {
+                await videoTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+            }, 100);
                 console.log("Fokus dipicu ulang");
             }
         } catch (e) {

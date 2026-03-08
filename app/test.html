@@ -412,7 +412,7 @@ async function startScan(deviceId = null) {
             
             // OCR hanya running setiap 80 frame (sekitar 2 detik) agar tidak berat
             frameCounter++;
-            if (frameCounter % 80 === 0 && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
+            if (frameCounter % 40 === 0 && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
                 canvas.width = videoElement.videoWidth;
                 canvas.height = videoElement.videoHeight;
                 context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);

@@ -432,7 +432,7 @@ const checkOCR = async () => {
         const cropWidth = vW * 0.9;
         const cropHeight = 200; 
         const startX = (vW - cropWidth) / 2;
-        const startY = (vH - cropHeight) / 2; 
+        const startY = ((vH - cropHeight) / 2) + 120; 
 
         const scale = 2;
         canvas.width = cropWidth * scale;

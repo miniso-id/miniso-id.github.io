@@ -349,6 +349,7 @@ function navigateTo(url) {
     hints.set(ZXing.DecodeHintType.PURE_BARCODE, false);
     hints.set(ZXing.DecodeHintType.ASSUME_GS1, true);
     hints.set(ZXing.DecodeHintType.ALSO_SUPPORT_CONVEX, true);
+    codeReader.setHints(hints);
 
     // 2. Setting Resolusi Tinggi & Aspect Ratio
     const constraints = {

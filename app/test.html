@@ -457,6 +457,8 @@ const checkOCR = async () => {
 
         canvas.width = cropWidth;
         canvas.height = cropHeight;
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = 'high';
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
         // --- PROSES 1: BACA NORMAL ---

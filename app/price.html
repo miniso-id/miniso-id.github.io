@@ -117,7 +117,7 @@ body.fade-in {
     object-fit: cover; 
     
     /* TAMBAHKAN KODE BARU DI SINI */
-    filter: contrast(1.6) brightness(1.1) saturate(0) grayscale(1); 
+    filter: contrast(1.6) brightness(1.1) grayscale(1);
     image-rendering: pixelated;
 }
         .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
@@ -448,10 +448,9 @@ function navigateTo(url) {
             const capabilities = videoTrack.getCapabilities();
             // Jika mendukung fokus manual (manual-focus atau single-shot)
             if (capabilities.focusMode) {
-                await videoTrack.applyConstraints({ advanced: [{ focusMode: 'none' }] });
-            setTimeout(async () => {
-                await videoTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
-            }, 100);
+                await videoTrack.applyConstraints({
+                    advanced: [{ focusMode: 'continuous' }] // Paksa balik ke continuous
+                });
                 console.log("Fokus dipicu ulang");
             }
         } catch (e) {

@@ -435,9 +435,9 @@ async function startScan(deviceId = null) {
             isOcrProcessing = true;
 
             const cropWidth = videoElement.videoWidth * 0.9;
-            const cropHeight = 180;
+            const cropHeight = 450;
             const startX = (videoElement.videoWidth - cropWidth) / 2;
-            const startY = ((videoElement.videoHeight - cropHeight) / 2) + 120;
+            const startY = (videoElement.videoHeight - cropHeight) / 2;
 
             canvas.width = cropWidth;
             canvas.height = cropHeight;

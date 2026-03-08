@@ -440,7 +440,7 @@ const checkOCR = async () => {
 
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         ctx.scale(scale, scale);
-        ctx.filter = 'grayscale(1) contrast(2.5) brightness(1.1)';
+        ctx.filter = 'contrast(2) grayscale(1)';
 
         // --- 1. MODE NORMAL ---
         updateScanUI("NORMAL"); 
@@ -458,6 +458,7 @@ const checkOCR = async () => {
             ctx.translate(cropWidth / 2, cropHeight / 2);
             ctx.rotate(Math.PI); // Balik 180 derajat di memori
             ctx.translate(-cropWidth / 2, -cropHeight / 2);
+            ctx.filter = 'contrast(2) grayscale(1)';
             ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
             ctx.restore();
 

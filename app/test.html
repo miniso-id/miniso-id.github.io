@@ -116,7 +116,9 @@ body.fade-in {
     width: 100%; 
     height: 100%; 
     object-fit: cover; 
-    filter: grayscale(1) contrast(2.5) brightness(1.1);
+    
+    /* TAMBAHKAN KODE BARU DI SINI */
+    filter: contrast(2.5) brightness(0.8) grayscale(1); 
     image-rendering: -webkit-optimize-contrast;
 }
         .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
@@ -162,31 +164,6 @@ body.fade-in {
 
         .floating-back { position: fixed; top: calc(25px + env(safe-area-inset-top)); left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 9999; cursor: pointer; border: 1px solid #eee; }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-    
-    /* Indikator Mode Scan di dalam kotak scanner */
-.scan-mode-indicator {
-    position: absolute;
-    top: 10px;
-    right: 15px;
-    background: rgba(0, 0, 0, 0.6);
-    color: white;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 10px;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    z-index: 10;
-    border: 1px solid rgba(255,255,255,0.2);
-}
-
-.mode-icon {
-    width: 12px; height: 12px;
-    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.mode-icon.rotate { transform: rotate(180deg); }
     </style>
 </head>
 <body>
@@ -222,17 +199,10 @@ body.fade-in {
                 </button>
             </div>
         </div>
-       <div id="reader">
+        <div id="reader">
     <video id="videoElement"></video>
-    <div class="scan-mode-indicator">
-        <svg class="mode-icon" id="modeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-            <path d="M7 13l5 5 5-5M7 6l5 5 5-5"/>
-        </svg>
-        <span id="modeText">NORMAL</span>
-    </div>
     <div class="focus-guide"></div>
-    <div class="scan-line"></div> 
-    <div class="tap-hint">ARAHKAN BARCODE KE TENGAH KOTAK</div>
+    <div class="scan-line"></div> <div class="tap-hint">ARAHKAN BARCODE KE TENGAH KOTAK</div>
 </div>
         <div id="cameraControl"><select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select></div>
     </header>
@@ -438,69 +408,71 @@ async function startScan(deviceId = null) {
         let frameCounter = 0;
 
         // --- MODIFIKASI PADA BAGIAN checkOCR ---
-let flipToggle = false;
 const checkOCR = async () => {
     if (!scanning) return;
     
     frameCounter++;
-    // Cek setiap 15 frame agar lebih responsif tapi tetap hemat baterai
-    if (frameCounter % 10 === 0 && ocrWorker && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
+    // Dijalankan setiap 15 frame agar tetap responsif tapi tidak lag
+    if (frameCounter % 15 === 0 && ocrWorker && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
         
-        const cropWidth = videoElement.videoWidth * 0.9;
-        const cropHeight = 160;
-        const startX = (videoElement.videoWidth - cropWidth) / 2;
-        const startY = (videoElement.videoHeight - cropHeight) / 2; 
+        const vW = videoElement.videoWidth;
+        const vH = videoElement.videoHeight;
+        
+        // Area potong (Crop): Fokus di tengah layar
+        const cropWidth = vW * 0.9;
+        const cropHeight = 220; // Lebih tinggi agar lebih mudah menangkap angka
+        const startX = (vW - cropWidth) / 2;
+        const startY = (vH - cropHeight) / 2; 
 
-        // Tentukan faktor perbesaran (2x lebih tajam)
-const scale = 2;
-canvas.width = cropWidth * scale;
-canvas.height = cropHeight * scale;
-ctx.imageSmoothingEnabled = true;
-ctx.imageSmoothingQuality = 'high';
-ctx.filter = 'grayscale(1) contrast(2.5) brightness(1.1)';
-ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+        // TINGKATKAN RESOLUSI: Gunakan skala 2x agar angka lebih tajam di mata OCR
+        const scale = 2;
+        canvas.width = cropWidth * scale;
+        canvas.height = cropHeight * scale;
+
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.scale(scale, scale); // Terapkan perbesaran resolusi
+        
+        // Pengaturan ketajaman gambar
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.filter = 'grayscale(1) contrast(2.5) brightness(1.1)';
+
+        // --- LANGKAH 1: COBA BACA NORMAL ---
+        ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
         
         let result = await ocrWorker.recognize(canvas);
         let code = result.data.text.replace(/\D/g, '').trim();
 
-        // --- PROSES 2: BACA TERBALIK (Hanya jika proses 1 gagal) ---
+        // --- LANGKAH 2: JIKA GAGAL, COBA BACA TERBALIK (180°) ---
         if (code.length < 8 || result.data.confidence < 50) {
-            ctx.clearRect(0, 0, cropWidth, cropHeight);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save();
+            // Putar canvas 180 derajat tepat di tengah
             ctx.translate(cropWidth / 2, cropHeight / 2);
-            ctx.rotate(Math.PI); // Putar 180 derajat di memori saja
+            ctx.rotate(Math.PI); 
             ctx.translate(-cropWidth / 2, -cropHeight / 2);
-            ctx.filter = 'grayscale(1) contrast(2.5) brightness(1.1)';
+            
             ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
             ctx.restore();
 
             const resultFlip = await ocrWorker.recognize(canvas);
             const codeFlip = resultFlip.data.text.replace(/\D/g, '').trim();
-            
-            // Ambil hasil yang lebih bagus/panjang
+
+            // Bandingkan hasil, ambil yang lebih meyakinkan
             if (codeFlip.length > code.length || resultFlip.data.confidence > result.data.confidence) {
-                result = resultFlip;
                 code = codeFlip;
+                result = resultFlip;
             }
         }
 
-        // EKSEKUSI JIKA TEMBUS
+        // --- LANGKAH 3: EKSEKUSI ---
         if (result.data.confidence > 45 && code.length >= 8 && code.length <= 13) {
+            console.log("OCR Berhasil:", code, "Conf:", result.data.confidence);
             onDetected(code);
         }
     }
     requestAnimationFrame(checkOCR);
 };
-// Fungsi pembantu untuk ganti tulisan di layar
-function updateScanUI(status) {
-    const txt = document.getElementById('modeText');
-    const ico = document.getElementById('modeIcon');
-    if (txt) txt.innerText = status;
-    if (ico) {
-        // Ikon berputar hanya jika statusnya TERBALIK
-        status === "NORMAL" ? ico.classList.remove('rotate') : ico.classList.add('rotate');
-    }
-}
         checkOCR();
         // ==========================================
 

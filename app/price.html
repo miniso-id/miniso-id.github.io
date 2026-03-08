@@ -443,13 +443,13 @@ function navigateTo(url) {
     document.getElementById("reader").onclick = async () => {
     const videoTrack = document.getElementById('videoElement').srcObject?.getVideoTracks()[0];
     if (videoTrack) {
-        const capabilities = videoTrack.getCapabilities();
-        if (capabilities.focusMode) {
-            // Matikan sebentar lalu nyalakan lagi untuk memicu 're-focus' hardware
-            await videoTrack.applyConstraints({ advanced: [{ focusMode: 'none' }] });
-            setTimeout(async () => {
-                await videoTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
-            }, 100);
+        try {
+            const capabilities = videoTrack.getCapabilities();
+            // Jika mendukung fokus manual (manual-focus atau single-shot)
+            if (capabilities.focusMode) {
+                await videoTrack.applyConstraints({
+                    advanced: [{ focusMode: 'continuous' }] // Paksa balik ke continuous
+                });
                 console.log("Fokus dipicu ulang");
             }
         } catch (e) {

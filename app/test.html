@@ -416,8 +416,8 @@ const checkOCR = async () => {
     if (frameCounter % 15 === 0 && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
         
         // 1. Tentukan ukuran area potong (sesuai kotak merah Anda, sekitar 60% area tengah)
-        const cropWidth = videoElement.videoWidth * 0.8;
-        const cropHeight = videoElement.videoHeight * 0.5;
+        const cropWidth = videoElement.videoWidth * 0.9;
+        const cropHeight = videoElement.videoHeight * 0.6;
         const startX = (videoElement.videoWidth - cropWidth) / 2;
         const startY = (videoElement.videoHeight - cropHeight) / 2;
 

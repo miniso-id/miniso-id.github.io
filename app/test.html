@@ -404,8 +404,8 @@ async function startScan(deviceId = null) {
         }
 
         const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d', { willReadFrequently: true });
-        let frameCounter = 0;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        let frameCounter = 10;
 
 function updateScanUI(status) {
     const txt = document.getElementById('modeText');

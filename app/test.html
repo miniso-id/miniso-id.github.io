@@ -445,57 +445,65 @@ const checkOCR = async () => {
     if (!scanning) return;
     
     frameCounter++;
-    // Kita perkecil intervalnya ke 30 agar lebih responsif (setiap ~1 detik)
-    if (frameCounter % 10 === 0 && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
+    // Kita jalankan setiap 30 frame (~1 detik sekali) agar HP tidak panas
+    if (frameCounter % 10 === 0 && ocrWorker && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
         
-        // 1. Tentukan ukuran area potong (sesuai kotak merah Anda, sekitar 60% area tengah)
-        const cropWidth = videoElement.videoWidth * 0.9;
-        const cropHeight = 140;
-        const startX = (videoElement.videoWidth - cropWidth) / 2;
-        const startY = (videoElement.videoHeight - cropHeight) / 2;
+        const vW = videoElement.videoWidth;
+        const vH = videoElement.videoHeight;
+        
+        // Area potong: Fokus di tengah layar (Tempat angka barcode biasanya ada)
+        const cropWidth = vW * 0.8;
+        const cropHeight = 160; 
+        const startX = (vW - cropWidth) / 2;
+        const startY = (vH - cropHeight) / 2; 
 
-        // 2. Set ukuran canvas hanya sebesar kotak potong (Hemat Memori & Proses)
         canvas.width = cropWidth;
         canvas.height = cropHeight;
 
-        // --- UPDATE UI & ROTASI ---
-        const modeIcon = document.getElementById('modeIcon');
-        const modeText = document.getElementById('modeText');
+        // --- STEP 1: COBA BACA NORMAL ---
+        updateScanUI("NORMAL"); 
+        ctx.filter = 'grayscale(1) contrast(2) brightness(1.2)';
+        ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+        
+        let result = await ocrWorker.recognize(canvas);
+        let code = result.data.text.replace(/\D/g, '').trim();
 
-        context.save();
-        if (flipToggle) {
-            // Putar gambar 180 derajat di memori canvas
-            context.translate(cropWidth / 2, cropHeight / 2);
-            context.rotate(Math.PI);
-            context.translate(-cropWidth / 2, -cropHeight / 2);
-            if(modeIcon) modeIcon.classList.add('rotate');
-            if(modeText) modeText.innerText = "UPSIDE DOWN";
-        } else {
-            if(modeIcon) modeIcon.classList.remove('rotate');
-            if(modeText) modeText.innerText = "NORMAL";
-        }
-        // Menjaga ketajaman saat cropping
-context.imageSmoothingEnabled = true;
-context.imageSmoothingQuality = 'high';
-
-        // 3. Gambar hanya area tengah ke canvas
-        context.filter = 'contrast(2) grayscale(1)'; // Pre-processing instan agar angka lebih tajam
-        context.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-
-        try {
-            // 4. Jalankan OCR hanya pada potongan gambar kecil tadi
-            const { data: { text } } = await ocrWorker.recognize(canvas);
-            const cleanCode = text.replace(/\s/g, '').match(/\d{8,13}/);
+        // Jika gagal di normal (pendek atau low confidence), COBA TERBALIK
+        if (code.length < 8 || result.data.confidence < 50) {
             
-            if (cleanCode) {
-                onDetected(cleanCode[0]);
-            }
-        } catch (e) {
-            console.warn("OCR skip");
+            // --- STEP 2: COBA BACA TERBALIK (180 DEG) ---
+            updateScanUI("TERBALIK (AUTO)");
+            ctx.clearRect(0, 0, cropWidth, cropHeight); // Bersihkan canvas
+            ctx.save();
+            ctx.translate(cropWidth / 2, cropHeight / 2);
+            ctx.rotate(Math.PI); // Putar 180 derajat
+            ctx.translate(-cropWidth / 2, -cropHeight / 2);
+            ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+            ctx.restore();
+
+            result = await ocrWorker.recognize(canvas);
+            code = result.data.text.replace(/\D/g, '').trim();
+        }
+
+        // --- STEP 3: EKSEKUSI HASIL ---
+        if (result.data.confidence > 45 && code.length >= 8 && code.length <= 13) {
+            console.log("OCR Berhasil:", code, "Conf:", result.data.confidence);
+            onDetected(code);
         }
     }
     requestAnimationFrame(checkOCR);
 };
+
+// Fungsi pembantu untuk ganti tulisan di layar
+function updateScanUI(status) {
+    const txt = document.getElementById('modeText');
+    const ico = document.getElementById('modeIcon');
+    if (txt) txt.innerText = status;
+    if (ico) {
+        // Ikon berputar hanya jika statusnya TERBALIK
+        status === "NORMAL" ? ico.classList.remove('rotate') : ico.classList.add('rotate');
+    }
+}
         checkOCR();
         // ==========================================
 

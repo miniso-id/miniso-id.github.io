@@ -425,12 +425,12 @@ const checkOCR = async () => {
     if (!scanning) return;
     
     frameCounter++;
-    if (frameCounter % 15 === 0 && ocrWorker && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
+    if (frameCounter % 10 === 0 && ocrWorker && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
         
         const vW = videoElement.videoWidth;
         const vH = videoElement.videoHeight;
         const cropWidth = vW * 0.9;
-        const cropHeight = 200; 
+        const cropHeight = 220; 
         const startX = (vW - cropWidth) / 2;
         const startY = ((vH - cropHeight) / 2) + 120; 
 
@@ -470,7 +470,7 @@ const checkOCR = async () => {
             }
         }
 
-        if (result.data.confidence > 45 && code.length >= 8 && code.length <= 13) {
+        if (result.data.confidence > 25 && code.length >= 8 && code.length <= 13) {
             onDetected(code);
         }
     }

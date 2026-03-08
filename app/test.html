@@ -431,7 +431,7 @@ const checkOCR = async () => {
     
     frameCounter++;
     // Turunkan ke 15 atau 20 karena sudah ada whitelist (lebih ringan)
-    if (frameCounter % 20 === 0 && isOcrReady && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
+    if (frameCounter % 30 === 0 && isOcrReady && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
         
         // Area Perluas sesuai permintaan Anda (90% lebar, 60% tinggi)
         const cropWidth = videoElement.videoWidth * 0.9;
@@ -443,16 +443,21 @@ const checkOCR = async () => {
         canvas.height = cropHeight;
 
         // Pertajam gambar sebelum dikirim ke Tesseract
-        context.filter = 'contrast(1.5) grayscale(1)'; 
+        context.filter = 'grayscale(1) contrast(2) brightness(1.2)'; 
         context.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
         try {
             // Gunakan 'worker' yang sudah didefinisikan di atas
-            const { data: { text } } = await worker.recognize(canvas);
-            const cleanCode = text.replace(/\s/g, '').match(/\d{8,13}/);
+            const { data: { text, confidence } } = await worker.recognize(canvas);
             
-            if (cleanCode && scanning) {
-                onDetected(cleanCode[0]);
+            if (confidence > 50) {
+                const cleanCode = text.replace(/\D/g, '').trim();
+                
+                // Miniso biasanya pakai EAN-13 (13 digit) atau EAN-8 (8 digit)
+                if ((cleanCode.length >= 8 && cleanCode.length <= 13) && scanning) {
+                    console.log("OCR Match:", cleanCode, "Conf:", confidence);
+                    onDetected(cleanCode);
+                }
             }
         } catch (e) {
             console.warn("OCR busy");

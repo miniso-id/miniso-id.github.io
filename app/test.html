@@ -235,9 +235,29 @@ function getLocalCache(barcode) {
     return cacheEntry.payload;
 }
 
+// Global Variables for OCR
+let ocrWorker = null;
+let isOcrReady = false;
+let isOcrProcessing = false;
+
+// Pre-load Tesseract in background
+async function initOcrWorker() {
+    try {
+        ocrWorker = await Tesseract.createWorker('eng');
+        await ocrWorker.setParameters({
+            tessedit_char_whitelist: '0123456789',
+        });
+        isOcrReady = true;
+        console.log("OCR Engine Ready");
+    } catch (err) {
+        console.error("OCR Load Failed", err);
+    }
+}
+
 // Jalankan saat halaman dimuat
 document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.add("fade-in");
+    initOcrWorker(); // Pre-load Tesseract
 });
 
 function navigateTo(url) {
@@ -324,9 +344,6 @@ function navigateTo(url) {
 
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
-    // Variable global untuk OCR (Letakkan di luar fungsi)
-let ocrWorker = null;
-
 async function startScan(deviceId = null) {
     scanning = true; 
     document.getElementById("reader").style.display = "block";
@@ -397,69 +414,64 @@ async function startScan(deviceId = null) {
         }
 
         // ==========================================
-        // TAMBAHAN LOGIKA HYBRID OCR (TIDAK MERUBAH ATAS)
+        // TAMBAHAN LOGIKA HYBRID OCR (OPTIMIZED & INVERT SUPPORT)
         // ==========================================
-// ==========================================
-        // TAMBAHAN LOGIKA HYBRID OCR (DIOPTIMALKAN)
-        // ==========================================
-        if (!ocrWorker) {
-            ocrWorker = await Tesseract.createWorker('eng');
-            
-            // OPTIMASI 1: Whitelist. Paksa Tesseract HANYA membaca angka.
-            // Ini akan memangkas waktu proses hingga 60% lebih cepat.
-            await ocrWorker.setParameters({
-                tessedit_char_whitelist: '0123456789',
-            });
+        if (!isOcrReady) {
+            await initOcrWorker();
         }
 
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d', { willReadFrequently: true });
         
-        // OPTIMASI 2: Gunakan flag state, bukan frame counter
-        let isOcrProcessing = false; 
-
         const checkOCR = async () => {
             if (!scanning) return;
             
-            // Jika worker masih memproses frame sebelumnya, skip frame ini.
-            // Ini mencegah HP panas dan lag akibat antrean proses yang menumpuk.
+            // Gate: Jangan kirim frame baru jika yang lama belum kelar
             if (isOcrProcessing || videoElement.readyState !== videoElement.HAVE_ENOUGH_DATA) {
                 requestAnimationFrame(checkOCR);
                 return;
             }
 
-            isOcrProcessing = true; // Kunci proses
+            isOcrProcessing = true;
 
             const cropWidth = videoElement.videoWidth * 0.9;
-            const cropHeight = 180; // Diperkecil sedikit agar area proses lebih fokus (menghemat memori)
+            const cropHeight = 180;
             const startX = (videoElement.videoWidth - cropWidth) / 2;
             const startY = ((videoElement.videoHeight - cropHeight) / 2) + 120;
 
             canvas.width = cropWidth;
             canvas.height = cropHeight;
-            
-            // OPTIMASI 3: Matikan smoothing. OCR mesin lebih suka pixel yang tajam/kasar daripada yang di-blur/smooth.
             context.imageSmoothingEnabled = false;
 
-            // Terapkan filter contrast tinggi
+            // --- Pass 1: Normal Position ---
             context.filter = 'contrast(2.5) grayscale(1)'; 
             context.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
             try {
-                const { data: { text } } = await ocrWorker.recognize(canvas);
-                const cleanCode = text.replace(/\s/g, '').match(/\d{8,13}/);
+                let { data: { text } } = await ocrWorker.recognize(canvas);
+                let cleanCode = text.replace(/\s/g, '').match(/\d{8,13}/);
                 
-                // Pastikan masih mode scanning saat hasil OCR keluar (mencegah double-input)
+                // --- Pass 2: Upside Down (Jika Pass 1 Gagal) ---
+                if (!cleanCode) {
+                    context.save();
+                    context.clearRect(0, 0, canvas.width, canvas.height);
+                    context.translate(canvas.width/2, canvas.height/2);
+                    context.rotate(Math.PI); // Putar 180 derajat
+                    context.drawImage(videoElement, startX, startY, cropWidth, cropHeight, -cropWidth/2, -cropHeight/2, cropWidth, cropHeight);
+                    context.restore();
+                    
+                    const resultInverted = await ocrWorker.recognize(canvas);
+                    cleanCode = resultInverted.data.text.replace(/\s/g, '').match(/\d{8,13}/);
+                }
+
                 if (cleanCode && scanning) {
                     onDetected(cleanCode[0]);
                 }
             } catch (e) {
-                console.warn("OCR skip");
+                console.warn("OCR frame skip");
             } finally {
-                // Buka kunci proses setelah selesai (baik sukses maupun error)
-                // Lalu segera jadwalkan frame berikutnya
                 isOcrProcessing = false;
-                requestAnimationFrame(checkOCR); 
+                requestAnimationFrame(checkOCR);
             }
         };
         

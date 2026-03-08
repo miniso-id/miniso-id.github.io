@@ -111,13 +111,13 @@ body.fade-in {
             box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
         }
         /* Cari bagian ini di dalam tag <style> */
+/* Update di bagian <style> */
 #reader video { 
     width: 100%; 
     height: 100%; 
     object-fit: cover; 
-    
-    /* TAMBAHKAN KODE BARU DI SINI */
-    filter: contrast(2.5) brightness(0.8) grayscale(1); 
+    filter: contrast(1.8) brightness(0.9) grayscale(1);
+    -webkit-transform: translateZ(0); /* Memaksa akselerasi hardware di iOS */
     image-rendering: -webkit-optimize-contrast;
 }
         .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }

@@ -7,7 +7,8 @@ const ASSETS_TO_CACHE = [
   './index.html',
   'https://miniso-id.github.io/app/user512.png',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
-  'https://unpkg.com/@zxing/library@latest'
+  'https://unpkg.com/@zxing/library@latest',
+  'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'
 ];
 
 // 1. Tahap Install - Menyimpan aset ke cache

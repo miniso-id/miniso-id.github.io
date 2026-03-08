@@ -407,67 +407,70 @@ async function startScan(deviceId = null) {
         const context = canvas.getContext('2d', { willReadFrequently: true });
         let frameCounter = 0;
 
-        // --- MODIFIKASI PADA BAGIAN checkOCR ---
+function updateScanUI(status) {
+    const txt = document.getElementById('modeText');
+    const ico = document.getElementById('modeIcon');
+    if (txt) {
+        txt.innerText = status;
+        // Memberi warna berbeda agar kamu tahu mode mana yang sedang bekerja
+        txt.style.color = (status === "NORMAL") ? "white" : "#ffeb3b"; 
+    }
+    if (ico) {
+        // Ikon tetap tegak, hanya warna yang berubah sebagai indikator dinamis
+        ico.style.color = (status === "NORMAL") ? "white" : "#ffeb3b";
+    }
+}
+ 
 const checkOCR = async () => {
     if (!scanning) return;
     
     frameCounter++;
-    // Dijalankan setiap 15 frame agar tetap responsif tapi tidak lag
     if (frameCounter % 15 === 0 && ocrWorker && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
         
         const vW = videoElement.videoWidth;
         const vH = videoElement.videoHeight;
-        
-        // Area potong (Crop): Fokus di tengah layar
         const cropWidth = vW * 0.9;
-        const cropHeight = 220; // Lebih tinggi agar lebih mudah menangkap angka
+        const cropHeight = 200; 
         const startX = (vW - cropWidth) / 2;
         const startY = (vH - cropHeight) / 2; 
 
-        // TINGKATKAN RESOLUSI: Gunakan skala 2x agar angka lebih tajam di mata OCR
         const scale = 2;
         canvas.width = cropWidth * scale;
         canvas.height = cropHeight * scale;
 
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        ctx.scale(scale, scale); // Terapkan perbesaran resolusi
-        
-        // Pengaturan ketajaman gambar
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
+        ctx.scale(scale, scale);
         ctx.filter = 'grayscale(1) contrast(2.5) brightness(1.1)';
 
-        // --- LANGKAH 1: COBA BACA NORMAL ---
+        // --- 1. MODE NORMAL ---
+        updateScanUI("NORMAL"); 
         ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
         
         let result = await ocrWorker.recognize(canvas);
         let code = result.data.text.replace(/\D/g, '').trim();
 
-        // --- LANGKAH 2: JIKA GAGAL, COBA BACA TERBALIK (180°) ---
+        // --- 2. MODE TERBALIK (JIKA GAGAL) ---
         if (code.length < 8 || result.data.confidence < 50) {
+            updateScanUI("REVERSE MODE"); // Indikator berubah secara dinamis
+            
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save();
-            // Putar canvas 180 derajat tepat di tengah
             ctx.translate(cropWidth / 2, cropHeight / 2);
-            ctx.rotate(Math.PI); 
+            ctx.rotate(Math.PI); // Balik 180 derajat di memori
             ctx.translate(-cropWidth / 2, -cropHeight / 2);
-            
             ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
             ctx.restore();
 
             const resultFlip = await ocrWorker.recognize(canvas);
             const codeFlip = resultFlip.data.text.replace(/\D/g, '').trim();
 
-            // Bandingkan hasil, ambil yang lebih meyakinkan
             if (codeFlip.length > code.length || resultFlip.data.confidence > result.data.confidence) {
                 code = codeFlip;
                 result = resultFlip;
             }
         }
 
-        // --- LANGKAH 3: EKSEKUSI ---
         if (result.data.confidence > 45 && code.length >= 8 && code.length <= 13) {
-            console.log("OCR Berhasil:", code, "Conf:", result.data.confidence);
             onDetected(code);
         }
     }

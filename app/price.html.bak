@@ -117,8 +117,8 @@ body.fade-in {
     object-fit: cover; 
     
     /* TAMBAHKAN KODE BARU DI SINI */
-    filter: contrast(1.4) brightness(1.2) saturate(0); 
-    image-rendering: crisp-edges;
+    filter: contrast(2.5) brightness(0.8) grayscale(1); 
+    image-rendering: -webkit-optimize-contrast;
 }
         .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
         .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; }

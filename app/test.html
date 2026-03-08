@@ -407,29 +407,42 @@ async function startScan(deviceId = null) {
         const context = canvas.getContext('2d', { willReadFrequently: true });
         let frameCounter = 0;
 
-        const checkOCR = async () => {
-            if (!scanning) return;
-            
-            // OCR hanya running setiap 80 frame (sekitar 2 detik) agar tidak berat
-            frameCounter++;
-            if (frameCounter % 40 === 0 && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
-                canvas.width = videoElement.videoWidth;
-                canvas.height = videoElement.videoHeight;
-                context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+        // --- MODIFIKASI PADA BAGIAN checkOCR ---
+const checkOCR = async () => {
+    if (!scanning) return;
+    
+    frameCounter++;
+    // Kita perkecil intervalnya ke 30 agar lebih responsif (setiap ~1 detik)
+    if (frameCounter % 30 === 0 && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
+        
+        // 1. Tentukan ukuran area potong (sesuai kotak merah Anda, sekitar 60% area tengah)
+        const cropWidth = videoElement.videoWidth * 0.6;
+        const cropHeight = videoElement.videoHeight * 0.3;
+        const startX = (videoElement.videoWidth - cropWidth) / 2;
+        const startY = (videoElement.videoHeight - cropHeight) / 2;
 
-                try {
-                    const { data: { text } } = await ocrWorker.recognize(canvas);
-                    // Filter: Cari deretan angka 8-13 digit (Barang Miniso)
-                    const cleanCode = text.replace(/\s/g, '').match(/\d{8,13}/);
-                    if (cleanCode) {
-                        onDetected(cleanCode[0]);
-                    }
-                } catch (e) {
-                    console.warn("OCR skip frame");
-                }
+        // 2. Set ukuran canvas hanya sebesar kotak potong (Hemat Memori & Proses)
+        canvas.width = cropWidth;
+        canvas.height = cropHeight;
+
+        // 3. Gambar hanya area tengah ke canvas
+        context.filter = 'contrast(2) grayscale(1)'; // Pre-processing instan agar angka lebih tajam
+        context.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+
+        try {
+            // 4. Jalankan OCR hanya pada potongan gambar kecil tadi
+            const { data: { text } } = await ocrWorker.recognize(canvas);
+            const cleanCode = text.replace(/\s/g, '').match(/\d{8,13}/);
+            
+            if (cleanCode) {
+                onDetected(cleanCode[0]);
             }
-            requestAnimationFrame(checkOCR);
-        };
+        } catch (e) {
+            console.warn("OCR skip");
+        }
+    }
+    requestAnimationFrame(checkOCR);
+};
         checkOCR();
         // ==========================================
 

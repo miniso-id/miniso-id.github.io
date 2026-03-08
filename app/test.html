@@ -450,8 +450,8 @@ const checkOCR = async () => {
         let code = result.data.text.replace(/\D/g, '').trim();
 
         // --- 2. MODE TERBALIK (JIKA GAGAL) ---
-        if (code.length < 8 || result.data.confidence < 50) {
-            updateScanUI("REVERSE MODE"); // Indikator berubah secara dinamis
+        if (code.length < 8) {
+            if (typeof updateScanUI === "function") updateScanUI("REVERSE");
             
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save();
@@ -471,7 +471,7 @@ const checkOCR = async () => {
             }
         }
 
-        if (result.data.confidence > 25 && code.length >= 8 && code.length <= 13) {
+        if (code.length >= 8 && code.length <= 13) {
             onDetected(code);
         }
     }

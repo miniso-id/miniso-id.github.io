@@ -413,7 +413,7 @@ const checkOCR = async () => {
     
     frameCounter++;
     // Kita perkecil intervalnya ke 30 agar lebih responsif (setiap ~1 detik)
-    if (frameCounter % 20 === 0 && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
+    if (frameCounter % 15 === 0 && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
         
         // 1. Tentukan ukuran area potong (sesuai kotak merah Anda, sekitar 60% area tengah)
         const cropWidth = videoElement.videoWidth * 0.9;

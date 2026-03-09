@@ -386,7 +386,7 @@ async function startScan(deviceId = null) {
             advanced.focusMode = 'continuous';
         }
         if (capabilities.zoom) {
-            const targetZoom = Math.min(capabilities.zoom.min + 1.0, capabilities.zoom.max);
+            const targetZoom = Math.min(capabilities.zoom.min + 0.3, capabilities.zoom.max);
             advanced.zoom = targetZoom;
         }
         if (capabilities.exposureMode && capabilities.exposureMode.includes('continuous')) {

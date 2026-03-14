@@ -8,21 +8,18 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --primary: #2563eb; --danger: #dc2626; --bg: #f8fafc; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; cursor: pointer; /* Memberi hint bahwa bisa diklik */ }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; cursor: pointer; }
         
         /* State Standby */
         .standby-msg { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #cbd5e1; z-index: -1; }
         .standby-msg h1 { font-size: 3rem; margin: 0; letter-spacing: -1px; }
         .standby-msg p { font-size: 1.2rem; margin: 5px 0; }
 
-        /* --- PERUBAHAN PENTING DI SINI --- */
-        /* Jangan opacity 0 atau display none. Lempar keluar layar saja */
         .search-container { 
             position: fixed; 
             top: -5000px; 
             left: 0; 
         }
-        /* -------------------------------- */
 
         /* Result Display */
         #result { width: 100%; max-width: 500px; padding: 20px; box-sizing: border-box; }
@@ -85,14 +82,21 @@ async function checkConn() {
 checkConn();
 
 /* ================= SEARCH ================= */
+// [OPTIMASI] Tambahan flag untuk mencegah double scan beruntun dari alat fisik
+let isSearching = false; 
+
 async function search(q) {
     standbyDiv.style.opacity = "0.1";
+    isSearching = true; // Kunci input
     
     try {
         const { data, error } = await supabaseClient
             .from('export')
-            .select('*')
-            .or(`Barcode.ilike.%${q}%,Name.ilike.%${q}%`) 
+            // [OPTIMASI] Hanya mengambil kolom yang dipakai untuk menekan Egress Supabase (hindari select '*')
+            // Catatan: Pastikan nama kolom di bawah ini benar-benar sesuai dengan yang ada di database Anda
+            .select('Name, Barcode, Category, "Detail Category", Image, "Regular Store Price", "Street Store Price", "Regular Store Promo", "Street Store Promo", "Extra Promo"')
+            // [OPTIMASI] Gunakan .eq untuk Barcode agar query lebih ringan dan presisi
+            .or(`Barcode.eq.${q},Name.ilike.%${q}%`) 
             .limit(1);
 
         if (error) throw error;
@@ -107,6 +111,8 @@ async function search(q) {
         beepErr.play().catch(e => console.log("Audio play blocked until interaction"));
         resultDiv.innerHTML = `<div style="text-align:center; color:white; background:#dc2626; padding:15px; border-radius:10px;">Produk tidak ditemukan!</div>`;
         setTimeout(() => { if(!input.value) resetUI(); }, 3000);
+    } finally {
+        isSearching = false; // Buka kembali kunci setelah request selesai
     }
 }
 
@@ -193,6 +199,9 @@ setInterval(() => {
 // 4. Input Handler
 input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
+        // [OPTIMASI] Jika masih proses fetch dari database, hiraukan pencetan Enter berikutnya
+        if (isSearching) return; 
+
         const val = input.value.trim();
         if(val) search(val);
         input.value = "";

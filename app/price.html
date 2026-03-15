@@ -292,33 +292,42 @@ function navigateTo(url) {
     const q = document.getElementById("searchInput").value.trim();
     const list = document.getElementById("listContainer");
     
-    // Jika input kosong, hapus tampilan list dan berhenti
     if (q === "") {
         list.innerHTML = "";
         return;
     }
+
+    // --- FITUR AUTO-DIRECT (13 DIGIT) ---
+    // Jika input pas 13 digit, langsung buka detail tanpa perlu klik list
+    if (q.length === 13) {
+        showDetail(q);
+        document.getElementById("searchInput").blur(); // Tutup keyboard HP
+        list.innerHTML = ""; // Bersihkan list agar tidak numpuk di belakang
+        return; 
+    }
     
-    // OPTIMASI: Hanya ambil kolom yang butuh ditampilkan di list
-    let query = _supabase.from('export').select('Barcode');
-    
-    // Filter barcode berdasarkan input
-    query = query.ilike('Barcode', `%${q}%`);
-    
-    // Limit dipasang agar tidak bocor egress
-    let { data } = await query.limit(1);
-    if(data) {
-        list.innerHTML = data.map(p => `
-            <div class="list-item" onclick="showDetail('${p.Barcode}')">
-                <div class="list-img-box" onclick="event.stopPropagation(); openLightbox('${p.Image || ''}')">
-                    <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/150x150?text=Miniso'" loading="lazy">
+    // --- PENCARIAN BIASA (DI BAWAH 13 DIGIT) ---
+    // Hanya cari ke database jika sudah mengetik minimal 8 digit (Hemat Egress)
+    if (q.length >= 8) {
+        let { data } = await _supabase
+            .from('export')
+            .select('Barcode, Name') 
+            .ilike('Barcode', `%${q}%`)
+            .limit(1);
+
+        if(data && data.length > 0) {
+            list.innerHTML = data.map(p => `
+                <div class="list-item" onclick="showDetail('${p.Barcode}')">
+                    <div class="list-info">
+                        <div class="list-cat">HASIL PENCARIAN</div>
+                        <div class="list-name">${p.Name}</div>
+                        <div class="list-bc">${p.Barcode}</div>
+                    </div>
                 </div>
-                <div class="list-info">
-                    <div class="list-cat">${p.Category || 'GENERAL'}</div>
-                    <div class="list-name">${p.Name}</div>
-                    <div class="list-bc">${p.Barcode}</div>
-                </div>
-            </div>
-        `).join('');
+            `).join('');
+        }
+    } else {
+        list.innerHTML = "";
     }
 }
 

@@ -299,7 +299,7 @@ function navigateTo(url) {
     }
     
     // OPTIMASI: Hanya ambil kolom yang butuh ditampilkan di list
-    let query = _supabase.from('export').select('Barcode, Name, Category, Image');
+    let query = _supabase.from('export').select('Barcode');
     
     // Filter barcode berdasarkan input
     query = query.ilike('Barcode', `%${q}%`);

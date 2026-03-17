@@ -3,7 +3,9 @@
   "short_name": "F11",
   "id": "v1",
   "start_url": "https://miniso-id.github.io/f11/index.html",
-  "display": "standalone",
+  "display": "minimal-ui",
+  "prefer_related_applications": false,
+  "scope": "/",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
   "icons": [

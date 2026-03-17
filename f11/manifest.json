@@ -1,6 +1,7 @@
 {
   "name": "F11 Miniso",
   "short_name": "F11",
+  "id": "v1",
   "start_url": "/f11/index.html",
   "display": "standalone",
   "background_color": "#ffffff",

@@ -4,13 +4,15 @@
     <meta charset="UTF-8">
     <link rel="manifest" href="manifest.json">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>MMS-X Scan</title>
+    <title>F11 Miniso</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <script>
-  if (typeof navigator.serviceWorker !== 'undefined') {
+    if (typeof navigator.serviceWorker !== 'undefined') {
     navigator.serviceWorker.register('sw.js')
-  }
+    }
     </script>
+    
     <style>
         :root { --primary: #2563eb; --danger: #dc2626; --bg: #f8fafc; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; cursor: pointer; }

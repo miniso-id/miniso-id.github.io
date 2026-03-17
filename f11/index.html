@@ -7,11 +7,15 @@
     <title>F11 Miniso</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <script>
-    if (typeof navigator.serviceWorker !== 'undefined') {
-    navigator.serviceWorker.register('./sw.js')
-    }
-    </script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('SW Registered!', reg))
+        .catch(err => console.log('SW Registration Failed!', err));
+    });
+  }
+</script>
     
     <style>
         :root { --primary: #2563eb; --danger: #dc2626; --bg: #f8fafc; }

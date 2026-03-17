@@ -1,5 +1,5 @@
 const CACHE_NAME = 'f11-v1.3.5'; // Pastikan versi ini sama dengan di HTML
-const OFFLINE_URL = './offline.html'; // Tentukan URL offline
+const OFFLINE_URL = 'https://miniso-id.github.io/f11/offline.html'; // Tentukan URL offline
 const ASSETS_TO_CACHE = [
   './',
   './manifest.json',

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - MMS-X</title>
+    <style>
+        body {
+            font-family: -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+            background-color: #ffffff;
+            color: #333;
+        }
+        .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        h1 { font-size: 24px; color: #e61523; margin-bottom: 10px; }
+        p { color: #666; margin-bottom: 30px; padding: 0 20px; }
+        .btn-retry {
+            background: #e61523;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-weight: bold;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="icon">📡</div>
+    <h1>Kamu Sedang Offline</h1>
+    <p>Maaf, aplikasi MMS-X membutuhkan koneksi internet untuk mengakses database. Silakan periksa koneksi WiFi atau data seluler kamu.</p>
+    <button class="btn-retry" onclick="window.location.reload()">COBA LAGI</button>
+</body>
+</html>

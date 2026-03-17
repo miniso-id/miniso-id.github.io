@@ -1,8 +1,18 @@
-[{
+[
+ {
       "relation": ["delegate_permission/common.handle_all_urls"],
       "target": {
         "namespace": "android_app",
         "package_name": "io.github.miniso_id.twa",
         "sha256_cert_fingerprints": ["FE:7A:0B:56:2B:50:75:C9:46:2F:65:B9:57:C4:96:26:F5:9B:A5:20:C3:A3:56:20:EE:2D:6C:E3:74:90:9E:1D"]
       }
-    }]
+ },
+ {
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.miniso.f11",
+    "sha256_cert_fingerprints": ["D9:91:D1:A8:E2:9F:83:77:E5:0F:E2:30:35:D3:FA:95:01:A8:3F:3C:78:62:AB:FA:DD:7F:4F:68:B6:8D:B6:36"]
+ }
+}
+]

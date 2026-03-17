@@ -1,7 +1,7 @@
 {
   "name": "F11 Miniso",
   "short_name": "F11",
-  "id": "https://miniso-id.github.io/f11",
+  "id": "https://miniso-id.github.io/f11/v1",
   "start_url": "/f11/index.html",
   "display": "standalone",
   "background_color": "#ffffff",

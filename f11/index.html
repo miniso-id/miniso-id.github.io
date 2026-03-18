@@ -100,19 +100,12 @@ let isSearching = false;
 async function search(q) {
     standbyDiv.style.opacity = "0.1";
     isSearching = true; 
-    
-    // Bersihkan spasi atau karakter tersembunyi dari input scanner
     const cleanQuery = q.trim();
 
     try {
+        // MENGGUNAKAN RPC UNTUK PEMANFAATAN CACHED EGRESS
         const { data, error } = await supabaseClient
-            .from('export')
-            // Coba gunakan select spesifik dulu. 
-            // JIKA MASIH ERROR: Hapus baris .select di bawah ini dan ganti menjadi .select('*')
-            .select('Name, Barcode, Category, "Detail Category", Image, "Regular Store Price", "Street Store Price", "Regular Store Promo", "Street Store Promo", "Extra Promo"')
-            // KEMBALIKAN ke .ilike agar kebal terhadap karakter aneh dari alat scanner fisik
-            .or(`Barcode.ilike.%${cleanQuery}%,Name.ilike.%${cleanQuery}%`) 
-            .limit(1);
+            .rpc('get_product_cached', { search_term: cleanQuery });
 
         if (error) throw error;
 
@@ -123,18 +116,13 @@ async function search(q) {
             throw new Error("Not Found");
         }
     } catch (err) {
-        // Tampilkan error di console browser agar mudah di-debug (Tekan F12 di Chrome)
         console.error("Detail Error Pencarian:", err); 
-
         beepErr.play().catch(e => console.log("Audio play blocked"));
         
-        // Cek apakah error karena nama kolom salah
         let pesanError = "Produk tidak ditemukan!";
-        if (err.message && err.message.includes("Could not find the column")) {
-            pesanError = "Error: Ada nama kolom yang salah ketik di kode .select()";
-        }
-
         resultDiv.innerHTML = `<div style="text-align:center; color:white; background:#dc2626; padding:15px; border-radius:10px;">${pesanError}</div>`;
+        
+        // Kembalikan ke layar standby setelah 3 detik jika error
         setTimeout(() => { if(!input.value) resetUI(); }, 3000);
     } finally {
         isSearching = false; 

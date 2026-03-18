@@ -4,49 +4,57 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
     <title>MMS-X v2.0</title>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
 </head>
-<body class="bg-gray-100 flex flex-col min-h-screen font-sans">
+<body class="bg-[#f4f4f5] flex flex-col min-h-screen relative overflow-x-hidden">
 
-    <div class="h-40 bg-[#e60012] w-full"></div>
+    <div class="absolute top-0 w-full h-72 bg-gradient-to-b from-[#e60012] to-[#c8000f] shadow-inner"></div>
 
-    <div class="flex-grow flex justify-center px-4 -mt-20">
-        <div class="bg-white rounded-3xl shadow-xl p-8 max-w-sm w-full h-fit text-center border border-gray-100">
+    <div class="relative z-10 flex-grow flex flex-col items-center justify-center px-4 pt-12 pb-8">
+        
+        <div class="bg-white rounded-[2rem] shadow-2xl p-8 sm:p-10 max-w-sm w-full border border-gray-100/50">
             
-            <div class="flex justify-center mb-6">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Miniso_logo.svg/1200px-Miniso_logo.svg.png" 
-                     alt="Miniso Logo" 
-                     class="h-20 w-20 object-contain rounded-2xl shadow-sm">
+            <div class="flex justify-center mb-6 drop-shadow-md hover:scale-105 transition-transform duration-300">
+                <svg viewBox="0 0 1024 1024" class="h-24 w-24" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="1024" height="1024" rx="280" fill="#e60012"/>
+                    <circle cx="360" cy="380" r="75" fill="#ffffff"/>
+                    <rect x="540" y="330" width="200" height="100" rx="50" fill="#ffffff"/>
+                    <path d="M 320 560 C 320 850, 720 820, 720 530" fill="none" stroke="#ffffff" stroke-width="120" stroke-linecap="round"/>
+                </svg>
             </div>
 
-            <h1 class="text-2xl font-bold text-gray-800 mb-8 tracking-tight">MMS-X v2.0</h1>
+            <h1 class="text-3xl font-extrabold text-gray-800 mb-8 text-center tracking-tight">MMS-X v2.0</h1>
 
             <div class="space-y-4">
-                <a href="#" class="flex items-center justify-start px-6 py-4 border-2 border-gray-200 rounded-2xl hover:bg-gray-50 transition-all group">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/d/d7/Android_robot.svg" class="h-8 w-8 mr-4 opacity-70 group-hover:opacity-100" alt="Android">
+                <a href="#" class="flex items-center justify-start px-5 py-4 bg-white border-2 border-gray-100 rounded-2xl hover:border-[#3DDC84] hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
+                    <svg class="h-10 w-10 mr-4 text-[#3DDC84] group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.523 15.3414C17.523 15.3414 17.522 15.3414 17.521 15.3414C16.941 15.3414 16.477 14.8774 16.477 14.2974C16.477 13.7174 16.941 13.2534 17.521 13.2534C18.101 13.2534 18.565 13.7174 18.565 14.2974C18.565 14.8774 18.101 15.3414 17.523 15.3414ZM6.477 15.3414C5.897 15.3414 5.433 14.8774 5.433 14.2974C5.433 13.7174 5.897 13.2534 6.477 13.2534C7.057 13.2534 7.521 13.7174 7.521 14.2974C7.521 14.8774 7.057 15.3414 6.477 15.3414ZM17.34 10.1984L18.966 7.3824C19.098 7.1544 19.019 6.8624 18.791 6.7304C18.562 6.5984 18.271 6.6774 18.139 6.9054L16.474 9.7894C15.148 9.1764 13.635 8.8194 12.001 8.8194C10.367 8.8194 8.854 9.1764 7.528 9.7894L5.863 6.9054C5.731 6.6774 5.439 6.5984 5.211 6.7304C4.983 6.8624 4.904 7.1544 5.036 7.3824L6.662 10.1984C3.899 11.7084 2 14.5424 2 17.8194H22C22 14.5424 20.103 11.7084 17.34 10.1984Z"/></svg>
                     <div class="text-left">
-                        <p class="text-[10px] text-gray-500 uppercase font-semibold">Download for</p>
-                        <p class="text-lg font-bold text-gray-800 leading-tight">Android (APK)</p>
+                        <p class="text-[11px] text-gray-500 uppercase tracking-wider font-bold mb-0.5 group-hover:text-gray-700 transition-colors">Download for</p>
+                        <p class="text-lg font-extrabold text-gray-800 leading-none">Android (APK)</p>
                     </div>
                 </a>
 
-                <a href="#" class="flex items-center justify-start px-6 py-4 border-2 border-gray-200 rounded-2xl hover:bg-gray-50 transition-all group">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" class="h-7 w-7 mr-5 opacity-70 group-hover:opacity-100" alt="Apple">
+                <a href="#" class="flex items-center justify-start px-5 py-4 bg-white border-2 border-gray-100 rounded-2xl hover:border-gray-900 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
+                    <svg class="h-10 w-10 mr-4 text-gray-900 group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
                     <div class="text-left">
-                        <p class="text-[10px] text-gray-500 uppercase font-semibold">Open for</p>
-                        <p class="text-lg font-bold text-gray-800 leading-tight">iOS / Web PWA</p>
+                        <p class="text-[11px] text-gray-500 uppercase tracking-wider font-bold mb-0.5 group-hover:text-gray-700 transition-colors">Open for</p>
+                        <p class="text-lg font-extrabold text-gray-800 leading-none">iOS / Web PWA</p>
                     </div>
                 </a>
             </div>
         </div>
+        
+        <footer class="mt-8 text-center z-10">
+            <p class="text-white/80 text-sm font-medium drop-shadow-sm mix-blend-difference">
+                &copy; 2026 Miniso Indonesia<br>
+                <span class="text-white/60 text-xs">Developed by Fahril Dwi Ilyas</span>
+            </p>
+        </footer>
     </div>
-
-    <footer class="pb-8 pt-4 text-center">
-        <p class="text-gray-400 text-xs font-medium">
-            &copy; 2026 Miniso Indonesia<br>
-            Developed by Fahril Dwi Ilyas
-        </p>
-    </footer>
 
 </body>
 </html>

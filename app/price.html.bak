@@ -292,33 +292,43 @@ function navigateTo(url) {
     const q = document.getElementById("searchInput").value.trim();
     const list = document.getElementById("listContainer");
     
-    // Jika input kosong, hapus tampilan list dan berhenti
     if (q === "") {
         list.innerHTML = "";
         return;
     }
+
+    // --- AUTO-DIRECT 13 DIGIT ---
+    if (q.length === 13) {
+        // Simpan barcode ke variabel sementara
+        const barcodeToSearch = q;
+        // Langsung buka detail
+        showDetail(barcodeToSearch);
+        // Reset input & tutup keyboard agar bersih untuk pencarian berikutnya
+        document.getElementById("searchInput").value = ""; 
+        document.getElementById("searchInput").blur();
+        list.innerHTML = "";
+        return; 
+    }
     
-    // OPTIMASI: Hanya ambil kolom yang butuh ditampilkan di list
-    let query = _supabase.from('export').select('Barcode, Name, Category, Image');
-    
-    // Filter barcode berdasarkan input
-    query = query.ilike('Barcode', `%${q}%`);
-    
-    // Limit dipasang agar tidak bocor egress
-    let { data } = await query.limit(1);
-    if(data) {
-        list.innerHTML = data.map(p => `
-            <div class="list-item" onclick="showDetail('${p.Barcode}')">
-                <div class="list-img-box" onclick="event.stopPropagation(); openLightbox('${p.Image || ''}')">
-                    <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/150x150?text=Miniso'" loading="lazy">
+    // --- PENCARIAN BIASA (Minimal 8 digit untuk hemat Egress) ---
+    if (q.length >= 8) {
+        let { data } = await _supabase
+            .from('export')
+            .select('Barcode') 
+            .ilike('Barcode', `%${q}%`)
+            .limit(1);
+
+        if(data && data.length > 0) {
+            list.innerHTML = data.map(p => `
+                <div class="list-item" onclick="showDetail('${p.Barcode}'); document.getElementById('searchInput').value=''">
+                    <div class="list-info">
+                        <div class="list-cat">PRODUK DITEMUKAN</div>
+                        <div class="list-name">${p.Name}</div>
+                        <div class="list-bc">${p.Barcode}</div>
+                    </div>
                 </div>
-                <div class="list-info">
-                    <div class="list-cat">${p.Category || 'GENERAL'}</div>
-                    <div class="list-name">${p.Name}</div>
-                    <div class="list-bc">${p.Barcode}</div>
-                </div>
-            </div>
-        `).join('');
+            `).join('');
+        }
     }
 }
 
@@ -385,10 +395,10 @@ async function startScan(deviceId = null) {
         if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
             advanced.focusMode = 'continuous';
         }
-        if (capabilities.zoom) {
-            const targetZoom = Math.min(capabilities.zoom.min + 0.5, capabilities.zoom.max);
-            advanced.zoom = targetZoom;
-        }
+        // if (capabilities.zoom) {
+        //    const targetZoom = Math.min(capabilities.zoom.min + 0.3, capabilities.zoom.max);
+        //    advanced.zoom = targetZoom;
+        // }
         if (capabilities.exposureMode && capabilities.exposureMode.includes('continuous')) {
             advanced.exposureMode = 'continuous';
         }
@@ -417,9 +427,9 @@ const checkOCR = async () => {
         
         // 1. Tentukan ukuran area potong (sesuai kotak merah Anda, sekitar 60% area tengah)
         const cropWidth = videoElement.videoWidth * 0.9;
-        const cropHeight = 220;
+        const cropHeight = 450;
         const startX = (videoElement.videoWidth - cropWidth) / 2;
-        const startY = ((videoElement.videoHeight - cropHeight) / 2) + 120;
+        const startY = (videoElement.videoHeight - cropHeight) / 2;
 
         // 2. Set ukuran canvas hanya sebesar kotak potong (Hemat Memori & Proses)
         canvas.width = cropWidth;
@@ -596,13 +606,21 @@ context.imageSmoothingQuality = 'high';
     }
 
     function back() {
-        document.getElementById("detailContainer").style.display = "none";
-        document.getElementById("ui-header").style.display = "block";
-        document.getElementById("listContainer").style.display = "grid";
-        document.getElementById("btnBackFloating").style.display = "none";
-        document.getElementById("scrollContainer").scrollTop = lastScroll;
-        startScan(lastSelectedDeviceId);
-    }
+    // Sembunyikan detail & tampilkan kembali header/list
+    document.getElementById("detailContainer").style.display = "none";
+    document.getElementById("ui-header").style.display = "block";
+    document.getElementById("listContainer").style.display = "grid";
+    document.getElementById("btnBackFloating").style.display = "none";
+    
+    // Reset input pencarian agar bersih
+    document.getElementById("searchInput").value = "";
+    
+    // Kembalikan ke posisi scroll sebelumnya
+    document.getElementById("scrollContainer").scrollTop = lastScroll;
+    
+    // Jalankan scan otomatis lagi
+    startScan(lastSelectedDeviceId);
+}
 
     // Jalankan scan otomatis saat startup
     startScan(lastSelectedDeviceId);

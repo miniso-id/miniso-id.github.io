@@ -1,136 +1,52 @@
 <!DOCTYPE html>
-<html amp lang="en">
+<html lang="id">
 <head>
-    <meta charset="utf-8">
-    <title>Download MMS-X - Miniso Indonesia</title>
-    <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">
-    <style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style><noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>
-    <script async src="https://cdn.ampproject.org/v0.js"></script>
-    
-    <style amp-custom>
-        :root {
-            --primary: #cc0000;
-            --bg: #f4f7f6;
-            --text: #333;
-            --white: #ffffff;
-        }
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .header {
-            width: 100%;
-            background: var(--primary);
-            color: var(--white);
-            padding: 20px 0;
-            text-align: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .container {
-            width: 100%;
-            max-width: 450px;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        .app-card {
-            background: var(--white);
-            border-radius: 16px;
-            padding: 30px 20px;
-            text-align: center;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-            margin-top: -40px;
-        }
-        .logo-container {
-            width: 100px;
-            height: 100px;
-            margin: 0 auto 15px;
-            border-radius: 22%;
-            overflow: hidden;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        h1 { font-size: 22px; margin: 10px 0; font-weight: 700; }
-        p { color: #666; font-size: 14px; margin-bottom: 25px; }
-
-        .download-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--white);
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 15px;
-            text-decoration: none;
-            color: var(--text);
-            transition: all 0.2s;
-        }
-        .download-btn:active {
-            transform: scale(0.98);
-            background: #f9f9f9;
-            border-color: var(--primary);
-        }
-        .btn-icon {
-            margin-right: 15px;
-            display: flex;
-            align-items: center;
-        }
-        .btn-text { text-align: left; }
-        .btn-text span { display: block; font-size: 11px; color: #888; }
-        .btn-text strong { font-size: 16px; }
-
-        .footer-info {
-            margin-top: 30px;
-            text-align: center;
-            font-size: 12px;
-            color: #aaa;
-        }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>MMS-X v2.0</title>
 </head>
-<body>
+<body class="bg-gray-100 flex flex-col min-h-screen font-sans">
 
-<div class="header">
-    <div style="height: 60px;"></div>
-</div>
+    <div class="h-40 bg-[#e60012] w-full"></div>
 
-<div class="container">
-    <div class="app-card">
-        <div class="logo-container">
-            <amp-img src="/wink-logo-360x360.jpg" width="100" height="100" layout="responsive" alt="MMS Logo"></amp-img>
+    <div class="flex-grow flex justify-center px-4 -mt-20">
+        <div class="bg-white rounded-3xl shadow-xl p-8 max-w-sm w-full h-fit text-center border border-gray-100">
+            
+            <div class="flex justify-center mb-6">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Miniso_logo.svg/1200px-Miniso_logo.svg.png" 
+                     alt="Miniso Logo" 
+                     class="h-20 w-20 object-contain rounded-2xl shadow-sm">
+            </div>
+
+            <h1 class="text-2xl font-bold text-gray-800 mb-8 tracking-tight">MMS-X v2.0</h1>
+
+            <div class="space-y-4">
+                <a href="#" class="flex items-center justify-start px-6 py-4 border-2 border-gray-200 rounded-2xl hover:bg-gray-50 transition-all group">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/d/d7/Android_robot.svg" class="h-8 w-8 mr-4 opacity-70 group-hover:opacity-100" alt="Android">
+                    <div class="text-left">
+                        <p class="text-[10px] text-gray-500 uppercase font-semibold">Download for</p>
+                        <p class="text-lg font-bold text-gray-800 leading-tight">Android (APK)</p>
+                    </div>
+                </a>
+
+                <a href="#" class="flex items-center justify-start px-6 py-4 border-2 border-gray-200 rounded-2xl hover:bg-gray-50 transition-all group">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" class="h-7 w-7 mr-5 opacity-70 group-hover:opacity-100" alt="Apple">
+                    <div class="text-left">
+                        <p class="text-[10px] text-gray-500 uppercase font-semibold">Open for</p>
+                        <p class="text-lg font-bold text-gray-800 leading-tight">iOS / Web PWA</p>
+                    </div>
+                </a>
+            </div>
         </div>
-        <h1>MMS-X v2.0</h1>
-        <p>Miniso Management System - Central Park (Store 12)</p>
-
-        <a href="https://miniso-id.github.io/app/MMS-X-v2.apk" class="download-btn">
-            <div class="btn-icon">
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="#A4C639"><path d="M17.523 15.3414C17.0425 15.3414 16.6524 14.9513 16.6524 14.4708C16.6524 13.9903 17.0425 13.6002 17.523 13.6002C18.0035 13.6002 18.3936 13.9903 18.3936 14.4708C18.3936 14.9513 18.0035 15.3414 17.523 15.3414ZM6.47699 15.3414C5.99649 15.3414 5.60638 14.9513 5.60638 14.4708C5.60638 13.9903 5.99649 13.6002 6.47699 13.6002C6.95749 13.6002 7.3476 13.9903 7.3476 14.4708C7.3476 14.9513 6.95749 15.3414 6.47699 15.3414ZM17.9152 11.2464L19.7824 8.0125C19.8824 7.8394 19.8229 7.618 19.6498 7.518C19.4767 7.418 19.2553 7.4775 19.1553 7.6506L17.2608 10.9318C15.8285 10.2796 14.1207 9.9472 12 9.9472C9.87928 9.9472 8.17148 10.2796 6.73922 10.9318L4.84474 7.6506C4.74474 7.4775 4.52334 7.418 4.35024 7.518C4.17714 7.618 4.11764 7.8394 4.21764 8.0125L6.08482 11.2464C3.12053 12.8398 1.10638 15.8454 1.10638 19.3408H22.8936C22.8936 15.8454 20.8795 12.8398 17.9152 11.2464Z"/></svg>
-            </div>
-            <div class="btn-text">
-                <span>Download for</span>
-                <strong>Android (APK)</strong>
-            </div>
-        </a>
-
-        <a href="https://miniso-id.github.io/ios/" class="download-btn">
-            <div class="btn-icon">
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="#555"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.1 2.48-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.36 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-            </div>
-            <div class="btn-text">
-                <span>Open for</span>
-                <strong>iOS / Web PWA</strong>
-            </div>
-        </a>
     </div>
 
-    <div class="footer-info">
-        &copy; 2026 Miniso Indonesia - CP Store 12<br>
-        Developed by Fahril Dwi Ilyas
-    </div>
-</div>
+    <footer class="pb-8 pt-4 text-center">
+        <p class="text-gray-400 text-xs font-medium">
+            &copy; 2026 Miniso Indonesia<br>
+            Developed by Fahril Dwi Ilyas
+        </p>
+    </footer>
 
 </body>
 </html>

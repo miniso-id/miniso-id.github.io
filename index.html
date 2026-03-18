@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MMS-X</title>
     <style>
+        /* Reset box-sizing agar padding tidak merusak lebar elemen */
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #f5f5f7;
@@ -12,40 +17,44 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            min-h-screen;
+            min-height: 100vh; /* Typo diperbaiki */
+            position: relative;
         }
 
         .header-banner {
             width: 100%;
-            height: 100px;
-            background-color: #d12e2e; /* Merah Miniso */
+            height: 160px;
+            background-color: #d12e2e;
             position: absolute;
             top: 0;
+            left: 0;
+            z-index: 0;
         }
 
         .container {
             background-color: #ffffff;
             border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-            width: 380px;
-            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            width: 90%; /* Lebar responsif untuk layar HP */
+            max-width: 380px; /* Batas maksimal agar tidak terlalu lebar di PC */
+            padding: 40px 25px; /* Padding samping disesuaikan agar tidak sesak di HP */
             text-align: center;
             z-index: 1;
-            margin-top: 140px; /* Menyesuaikan posisi di bawah banner */
+            margin-top: 80px; /* Jarak proporsional dari atas */
+            margin-bottom: 40px; /* Jarak aman sebelum footer */
         }
 
         .logo {
             width: 80px;
             height: 80px;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
 
         .title {
             font-size: 24px;
             font-weight: 700;
             color: #1d1d1f;
-            margin-bottom: 40px;
+            margin-bottom: 35px;
         }
 
         .button {
@@ -54,20 +63,22 @@
             background-color: #ffffff;
             border: 2px solid #e1e1e3;
             border-radius: 12px;
-            padding: 16px 20px;
+            padding: 14px 18px;
             margin-bottom: 16px;
             text-decoration: none;
-            transition: border-color 0.2s;
+            transition: all 0.2s ease;
         }
 
-        .button:hover {
-            border-color: #0071e3; /* Warna aksen saat hover */
+        .button:hover, .button:active {
+            border-color: #0071e3;
+            background-color: #fcfcfc;
         }
 
         .button-icon {
             width: 32px;
             height: 32px;
             margin-right: 16px;
+            flex-shrink: 0; /* Mencegah ikon mengecil otomatis di layar HP kecil */
         }
 
         .button-text-container {
@@ -84,18 +95,19 @@
         }
 
         .button-title {
-            font-size: 17px;
+            font-size: 16px;
             font-weight: 600;
             color: #1d1d1f;
         }
 
         .footer {
-            margin-top: 40px;
-            padding-bottom: 30px;
+            margin-top: auto; /* Mendorong footer agar selalu di paling bawah layar */
+            padding-bottom: 25px;
             font-size: 12px;
             color: #86868b;
             line-height: 1.5;
             text-align: center;
+            z-index: 1;
         }
     </style>
 </head>
@@ -108,7 +120,7 @@
         
         <div class="title">MMS-X v2.0</div>
 
-        <a href="https://miniso-id.github.io/MMS-X-v2.apk" class="button">
+        <a href="https://miniso-id.github.io/app/MMS-X-v2.apk" class="button">
             <img src="https://upload.wikimedia.org/wikipedia/commons/d/d7/Android_robot.svg" alt="Android Icon" class="button-icon">
             <div class="button-text-container">
                 <div class="button-label">DOWNLOAD FOR</div>

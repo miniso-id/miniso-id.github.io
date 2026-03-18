@@ -590,20 +590,25 @@ context.imageSmoothingQuality = 'high';
     }
 
     async function showDetail(fullBarcode) {
-        lastScroll = document.getElementById("scrollContainer").scrollTop;
+    lastScroll = document.getElementById("scrollContainer").scrollTop;
+    
+    // 1. Cek Local Cache dulu (Client Side)
+    let p = getLocalCache(fullBarcode);
+    
+    if (!p) {
+        // 2. Jika tidak ada di local, panggil RPC (Network Cache / Cached Egress)
+        const { data, error } = await _supabase.rpc('get_product_by_barcode', { 
+            target_barcode: fullBarcode 
+        });
+
+        if (error || !data || data.length === 0) return;
         
-        let p = getLocalCache(fullBarcode);
-        
-        // Hanya tarik API jika cache tidak ada
-        if (!p) {
-            const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();
-            if(!data) return;
-            p = data;
-            saveToLocalCache(fullBarcode, p);
-        }
-        
-        renderDetailView(p);
+        p = data[0];
+        saveToLocalCache(fullBarcode, p);
     }
+    
+    renderDetailView(p);
+}
 
     function back() {
     // Sembunyikan detail & tampilkan kembali header/list

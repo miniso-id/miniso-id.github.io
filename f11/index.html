@@ -3,154 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>F11 Miniso - Portrait 480x800</title>
+    <title>F11 PDA iData</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { 
-            --primary: #2563eb; 
-            --danger: #dc2626; 
-            --bg: #f1f5f9;
-        }
+        :root { --primary: #2563eb; --danger: #dc2626; --bg: #f8fafc; }
+        
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         body { 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: system-ui, -apple-system, sans-serif; 
             background: var(--bg); 
-            margin: 0; 
-            padding: 0;
-            width: 480px; 
-            height: 800px; 
+            margin: 0; padding: 0;
+            width: 480px; height: 800px; /* Lock PDA Resolution */
             overflow: hidden; 
-            display: flex;
-            flex-direction: column;
+            display: flex; flex-direction: column;
         }
 
-        /* Container Utama */
-        #result { 
-            flex: 1;
+        /* Container utama dibatasi tinggi agar tidak scroll */
+        #main-container {
+            height: 100%;
             display: flex;
             flex-direction: column;
-            padding: 15px;
-            box-sizing: border-box;
+            padding: 10px;
         }
 
         .card { 
             background: white; 
-            border-radius: 24px; 
-            overflow: hidden; 
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-            display: flex;
+            border-radius: 16px; 
+            display: flex; 
             flex-direction: column;
-            height: 100%; /* Mengisi ruang yang tersedia */
-            animation: slideUp 0.3s ease-out;
+            height: 100%;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
         }
 
-        /* Area Gambar (Max 40% dari layar) */
-        .card-header { 
-            width: 100%;
-            height: 320px; 
-            background: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        /* Gambar dibuat lebih kecil (maks 35% tinggi layar) */
+        .img-area { 
+            height: 280px; 
+            display: flex; align-items: center; justify-content: center;
+            background: #fff; padding: 10px;
             border-bottom: 1px solid #f1f5f9;
         }
-        .card-header img { 
-            max-width: 95%; 
-            max-height: 95%; 
-            object-fit: contain; 
+        .img-area img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+        .info-area { 
+            flex: 1; 
+            padding: 12px; 
+            display: flex; flex-direction: column; 
+            justify-content: space-between; /* Menjaga harga tetap di bawah */
         }
 
-        .card-body { 
-            padding: 20px;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .category { 
-            font-size: 0.85rem; 
-            font-weight: 800; 
-            color: var(--primary); 
-            text-transform: uppercase; 
-            margin-bottom: 8px;
-        }
-
+        .category { font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase; }
+        
         .product-name { 
-            font-size: 1.6rem; 
-            color: #1e293b; 
-            margin: 0 0 10px 0; 
-            line-height: 1.2;
-            font-weight: 700;
+            font-size: 1.35rem; color: #1e293b; margin: 4px 0; 
+            line-height: 1.2; font-weight: 700;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
 
-        .barcode-badge { 
-            display: inline-block;
-            font-family: 'Courier New', Courier, monospace;
-            background: #f8fafc; 
-            padding: 5px 12px; 
-            border-radius: 8px; 
-            color: #475569; 
-            font-size: 1.1rem;
-            border: 1px solid #e2e8f0;
-            margin-bottom: 20px;
+        .barcode { font-family: monospace; font-size: 0.9rem; color: #64748b; margin-bottom: 10px; }
+
+        /* Sektor Harga Dibuat Compact */
+        .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+        .p-box { padding: 10px; border-radius: 10px; background: #f8fafc; border: 1px solid #e2e8f0; }
+        .p-label { font-size: 0.65rem; color: #64748b; font-weight: 800; }
+        .p-val { font-size: 1.3rem; font-weight: 800; color: #1e293b; }
+        
+        .promo-extra {
+            background: #fff1f2; padding: 8px 12px; border-radius: 8px;
+            border-left: 4px solid var(--danger);
         }
+        .promo-extra span { color: var(--danger); font-weight: 800; font-size: 0.85rem; }
 
-        /* Harga Section */
-        .price-container {
-            margin-top: auto; /* Dorong harga ke bawah */
+        /* Layar Standby */
+        .standby { 
+            position: absolute; inset: 0; background: var(--bg); 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 100; text-align: center;
         }
+        .standby h1 { font-size: 3rem; color: #cbd5e1; margin: 0; }
 
-        .price-row {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .price-box { 
-            flex: 1;
-            padding: 15px; 
-            border-radius: 16px; 
-            background: #f8fafc; 
-            border: 1px solid #e2e8f0;
-        }
-
-        .price-label { font-size: 0.75rem; color: #64748b; font-weight: bold; margin-bottom: 5px; }
-        .price-value { font-size: 1.5rem; font-weight: 800; color: #1e293b; }
-        .promo-tag { color: var(--danger); font-size: 0.8rem; font-weight: bold; margin-top: 5px; }
-
-        /* Standby Overlay */
-        .standby-msg { 
-            position: absolute;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            background: var(--bg);
-            z-index: 10;
-        }
-        .standby-msg h1 { font-size: 3rem; color: #cbd5e1; margin: 0; }
-        .standby-msg p { font-size: 1.2rem; color: #94a3b8; }
-
-        .search-container { position: absolute; left: -9999px; }
-
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .hidden-input { position: absolute; opacity: 0; pointer-events: none; }
     </style>
 </head>
 <body>
 
-    <div class="standby-msg" id="standby">
+    <div id="standby-screen" class="standby">
         <h1>SCAN</h1>
-        <p>Silahkan scan barcode produk</p>
-        <div id="status-db" style="margin-top:20px; font-size:0.9rem;">Connecting...</div>
+        <p style="color:#94a3b8">Ready to scan barcode</p>
+        <div id="status-db" style="font-size:0.8rem; margin-top:20px;">Checking Database...</div>
     </div>
 
-    <div class="search-container">
-        <input id="searchInput" type="text" autocomplete="off" autofocus>
-    </div>
+    <input id="searchInput" class="hidden-input" type="text" autofocus>
 
-    <div id="result"></div>
+    <div id="main-container">
+        <div id="result-content" class="card" style="display:none">
+            </div>
+    </div>
 
     <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
     <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
@@ -161,95 +110,88 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const input = document.getElementById("searchInput");
-const resultDiv = document.getElementById("result");
-const standbyDiv = document.getElementById("standby");
+const resultContent = document.getElementById("result-content");
+const standbyScreen = document.getElementById("standby-screen");
 const statusDb = document.getElementById("status-db");
-const beepOk = document.getElementById("beepOk");
-const beepErr = document.getElementById("beepErr");
 
 let isSearching = false;
 
+// Cek Koneksi
 async function checkConn() {
     const { error } = await supabaseClient.from('export').select('count', { count: 'exact', head: true });
-    statusDb.innerText = error ? "OFFLINE" : "DATABASE ONLINE";
-    statusDb.style.color = error ? "#ef4444" : "#22c55e";
+    statusDb.innerText = error ? "OFFLINE" : "ONLINE - iData Ready";
+    statusDb.style.color = error ? "red" : "green";
 }
 checkConn();
 
 async function search(q) {
     if (isSearching) return;
     isSearching = true;
-    standbyDiv.style.opacity = "0.5";
 
     try {
         const { data, error } = await supabaseClient.rpc('get_product_cached', { search_term: q.trim() });
         if (error || !data || data.length === 0) throw new Error();
 
-        beepOk.play().catch(()=>{});
+        document.getElementById("beepOk").play().catch(()=>{});
         render(data[0]);
-        standbyDiv.style.display = "none";
+        standbyScreen.style.display = "none";
+        resultContent.style.display = "flex";
     } catch (err) {
-        beepErr.play().catch(()=>{});
-        resultDiv.innerHTML = `<div style="margin-top:100px; text-align:center; color:white; background:var(--danger); padding:30px; border-radius:20px; font-size:1.5rem; font-weight:bold;">TIDAK DITEMUKAN</div>`;
-        setTimeout(resetUI, 2000);
+        document.getElementById("beepErr").play().catch(()=>{});
+        alert("Produk Tidak Ditemukan!");
+        resetUI();
     } finally {
         isSearching = false;
-        standbyDiv.style.opacity = "1";
     }
 }
 
 function resetUI() {
-    resultDiv.innerHTML = "";
-    standbyDiv.style.display = "flex";
+    resultContent.style.display = "none";
+    standbyScreen.style.display = "flex";
     input.focus();
 }
 
 function render(p) {
     const clean = (val) => (!val || val === "NORMAL PRICE" || val === "NORMAL") ? "" : val;
-    const name = p.Name || p.name || "Produk";
-    const barcode = p.Barcode || p.barcode || "-";
-    const regPrice = p["Regular Store Price"] || p.regular_price || "0";
-    const strPrice = p["Street Store Price"] || p.street_price || "0";
-    const promoExtra = clean(p["Extra Promo"]);
-
-    resultDiv.innerHTML = `
-        <div class="card">
-            <div class="card-header">
-                <img src="${p.Image || p.image || 'https://placehold.co/400x400'}" onerror="this.src='https://placehold.co/400x400'">
-            </div>
-            <div class="card-body">
+    
+    resultContent.innerHTML = `
+        <div class="img-area">
+            <img src="${p.Image || p.image || 'https://placehold.co/300x300'}" onerror="this.src='https://placehold.co/300x300'">
+        </div>
+        <div class="info-area">
+            <div>
                 <div class="category">${p.Category || '-'}</div>
-                <h2 class="product-name">${name}</h2>
-                <div class="barcode-badge">${barcode}</div>
+                <h2 class="product-name">${p.Name || p.name || 'Produk'}</h2>
+                <div class="barcode">${p.Barcode || p.barcode || '-'}</div>
+            </div>
 
-                <div class="price-container">
-                    <div class="price-row">
-                        <div class="price-box">
-                            <div class="price-label">REGULAR STORE</div>
-                            <div class="price-value">${regPrice}</div>
-                            ${clean(p["Regular Store Promo"]) ? `<div class="promo-tag">${p["Regular Store Promo"]}</div>` : ""}
-                        </div>
-                        <div class="price-box" style="background:#f0f9ff; border-color:#bae6fd">
-                            <div class="price-label" style="color:#0369a1">STREET STORE</div>
-                            <div class="price-value" style="color:#0369a1">${strPrice}</div>
-                            ${clean(p["Street Store Promo"]) ? `<div class="promo-tag" style="color:#0369a1">${p["Street Store Promo"]}</div>` : ""}
-                        </div>
+            <div class="price-section">
+                <div class="price-grid">
+                    <div class="p-box">
+                        <div class="p-label">REGULAR</div>
+                        <div class="p-val">${p["Regular Store Price"] || '0'}</div>
+                        <div style="color:var(--danger); font-size:0.6rem; font-weight:bold">${clean(p["Regular Store Promo"])}</div>
                     </div>
-                    
-                    ${promoExtra ? `
-                    <div style="background:#fef2f2; padding:15px; border-radius:12px; border-left:6px solid var(--danger)">
-                        <div class="price-label" style="color:var(--danger)">PROMO SPESIAL</div>
-                        <div style="font-weight:bold; color:var(--danger); font-size:1.1rem;">${promoExtra}</div>
-                    </div>` : ""}
+                    <div class="p-box" style="border-color:#bae6fd; background:#f0f9ff">
+                        <div class="p-label" style="color:#0369a1">STREET</div>
+                        <div class="p-val" style="color:#0369a1">${p["Street Store Price"] || '0'}</div>
+                        <div style="color:#0369a1; font-size:0.6rem; font-weight:bold">${clean(p["Street Store Promo"])}</div>
+                    </div>
                 </div>
+                
+                ${clean(p["Extra Promo"]) ? `
+                <div class="promo-extra">
+                    <div class="p-label" style="color:var(--danger)">SPECIAL</div>
+                    <span>${p["Extra Promo"]}</span>
+                </div>` : '<div style="height:45px"></div>'}
             </div>
         </div>
     `;
 }
 
-// Global Click for Focus
+// PDA Scanner Focus
 document.addEventListener('click', () => input.focus());
-setInterval(() => { if(document.activeElement !== input) input.focus(); }, 1000);
+setInterval(() => { if(document.activeElement !== input) input.focus(); }, 800);
 
 input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {

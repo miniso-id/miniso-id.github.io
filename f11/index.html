@@ -143,34 +143,46 @@ checkConn();
 /* ================= SEARCH ================= */
 // [OPTIMASI] Tambahan flag untuk mencegah double scan beruntun dari alat fisik
 /* ================= SEARCH ================= */
+/* ================= SEARCH WITH LOCAL CACHE ================= */
 let isSearching = false; 
+const productCache = {}; // Tempat menyimpan hasil scan sementara
 
 async function search(q) {
+    const cleanQuery = q.trim();
+    if (!cleanQuery) return;
+
+    // 1. CEK CACHE LOKAL TERLEBIH DAHULU
+    if (productCache[cleanQuery]) {
+        console.log("Mengambil dari Cache Lokal (0 Egress)");
+        beepOk.play().catch(e => {});
+        render(productCache[cleanQuery]);
+        standbyDiv.style.opacity = "0.1";
+        return; // Keluar, tidak perlu panggil Supabase
+    }
+
+    // 2. JIKA TIDAK ADA DI CACHE, PANGGIL SUPABASE
     standbyDiv.style.opacity = "0.1";
     isSearching = true; 
-    const cleanQuery = q.trim();
 
     try {
-        // MENGGUNAKAN RPC UNTUK PEMANFAATAN CACHED EGRESS
         const { data, error } = await supabaseClient
             .rpc('get_product_cached', { search_term: cleanQuery });
 
         if (error) throw error;
 
         if (data && data.length > 0) {
-            beepOk.play().catch(e => console.log("Audio play blocked"));
+            // SIMPAN KE CACHE UNTUK PENGGUNAAN BERIKUTNYA
+            productCache[cleanQuery] = data[0]; 
+            
+            beepOk.play().catch(e => {});
             render(data[0]);
         } else {
             throw new Error("Not Found");
         }
     } catch (err) {
-        console.error("Detail Error Pencarian:", err); 
-        beepErr.play().catch(e => console.log("Audio play blocked"));
-        
-        let pesanError = "Produk tidak ditemukan!";
-        resultDiv.innerHTML = `<div style="text-align:center; color:white; background:#dc2626; padding:15px; border-radius:10px; width:100%;">${pesanError}</div>`;
-        
-        // Kembalikan ke layar standby setelah 3 detik jika error
+        // ... kode error Anda yang lama ...
+        beepErr.play().catch(e => {});
+        resultDiv.innerHTML = `<div style="text-align:center; color:white; background:#dc2626; padding:15px; border-radius:10px; width:100%;">Produk tidak ditemukan!</div>`;
         setTimeout(() => { if(!input.value) resetUI(); }, 3000);
     } finally {
         isSearching = false; 

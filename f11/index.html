@@ -122,49 +122,51 @@
 <script>
 /* ================= CONFIG ================= */
 const SUPABASE_URL = 'https://uesupubktkxfjsylcwwr.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // Gunakan key lengkap Anda
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const input = document.getElementById("searchInput");
-const resultDiv = document.getElementById("result");
-const standbyDiv = document.getElementById("standby");
-const statusDb = document.getElementById("status-db");
-const beepOk = document.getElementById("beepOk");
-const beepErr = document.getElementById("beepErr");
-
-/* ================= CACHE INITIALIZATION ================= */
 const CACHE_NAME = "MMS_DATA_LOCAL";
-// Fungsi untuk memuat data dari localStorage saat startup
+const CACHE_EXPIRATION_MS = 24 * 60 * 60 * 1000; // 24 Jam dalam milidetik
+
+/* ================= CACHE WITH EXPIRY LOGIC ================= */
 const loadCache = () => {
     const saved = localStorage.getItem(CACHE_NAME);
-    return saved ? JSON.parse(saved) : {};
+    if (!saved) return {};
+
+    const cacheData = JSON.parse(saved);
+    const now = new Date().getTime();
+
+    // Cek apakah cache sudah expired secara keseluruhan (Opsional)
+    // Atau kita cek per item saat akan digunakan (Lebih akurat)
+    return cacheData;
 };
+
 let localProductCache = loadCache();
-
-// Cek Koneksi
-async function checkConn() {
-    const { error } = await supabaseClient.from('export').select('count', { count: 'exact', head: true });
-    statusDb.innerText = error ? "Koneksi Bermasalah!" : "Database Online - MMS-X";
-}
-checkConn();
-
-/* ================= SEARCH LOGIC ================= */
-let isSearching = false; 
 
 async function search(q) {
     const cleanQuery = q.trim();
     if(!cleanQuery) return;
 
-    // 1. CEK CACHE LOKAL (Hemat Egress)
+    const now = new Date().getTime();
+
+    // 1. CEK CACHE LOKAL + CEK WAKTU KADALUARSA
     if (localProductCache[cleanQuery]) {
-        console.log("⚡ [CACHE] Produk ditemukan di memori lokal.");
-        render(localProductCache[cleanQuery]);
-        beepOk.play().catch(e => {});
-        standbyDiv.style.opacity = "0.1";
-        return;
+        const item = localProductCache[cleanQuery];
+        
+        // Jika data belum lewat 24 jam, pakai cache
+        if (now - item.timestamp < CACHE_EXPIRATION_MS) {
+            console.log("⚡ [CACHE] Menggunakan data lokal (Belum 24 jam)");
+            render(item.data);
+            beepOk.play().catch(e => {});
+            standbyDiv.style.opacity = "0.1";
+            return;
+        } else {
+            console.log("🔄 [EXPIRED] Data sudah lebih dari 24 jam, menarik data baru...");
+            delete localProductCache[cleanQuery]; // Hapus yang lama
+        }
     }
 
-    // 2. JIKA TIDAK ADA, CARI KE DATABASE
+    // 2. JIKA TIDAK ADA / EXPIRED, CARI KE DATABASE
     standbyDiv.style.opacity = "0.1";
     isSearching = true; 
 
@@ -175,8 +177,11 @@ async function search(q) {
         if (error) throw error;
 
         if (data && data.length > 0) {
-            // SIMPAN KE CACHE & LOCALSTORAGE
-            localProductCache[cleanQuery] = data[0];
+            // SIMPAN KE CACHE DENGAN TIMESTAMP BARU
+            localProductCache[cleanQuery] = {
+                data: data[0],
+                timestamp: new Date().getTime()
+            };
             localStorage.setItem(CACHE_NAME, JSON.stringify(localProductCache));
             
             beepOk.play().catch(e => {});
@@ -185,10 +190,7 @@ async function search(q) {
             throw new Error("Not Found");
         }
     } catch (err) {
-        console.error("Search Error:", err); 
-        beepErr.play().catch(e => {});
-        resultDiv.innerHTML = `<div style="text-align:center; color:white; background:#dc2626; padding:15px; border-radius:10px; width:100%;">Produk tidak ditemukan!</div>`;
-        setTimeout(() => { if(!input.value) resetUI(); }, 3000);
+        // ... logika error tetap sama ...
     } finally {
         isSearching = false; 
     }

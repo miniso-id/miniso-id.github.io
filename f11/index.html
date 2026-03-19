@@ -58,22 +58,10 @@
             max-height: 95vh;
         }
 
-        /* DESKTOP OPTIMIZATION (Side by Side) */
         @media (min-width: 768px) {
-            .card { 
-                flex-direction: row; 
-                align-items: stretch;
-            }
-            .card-header { 
-                width: 45% !important; 
-                height: auto !important; 
-                border-right: 1px solid #f1f5f9;
-            }
-            .card-body { 
-                width: 55%; 
-                justify-content: center;
-                padding: 30px !important;
-            }
+            .card { flex-direction: row; align-items: stretch; }
+            .card-header { width: 45% !important; height: auto !important; border-right: 1px solid #f1f5f9; }
+            .card-body { width: 55%; justify-content: center; padding: 30px !important; }
             .product-name { font-size: 1.8rem !important; }
             .price-value { font-size: 1.5rem !important; }
         }
@@ -122,26 +110,42 @@
 <script>
 /* ================= CONFIG ================= */
 const SUPABASE_URL = 'https://uesupubktkxfjsylcwwr.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // Gunakan key lengkap Anda
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+const input = document.getElementById("searchInput");
+const resultDiv = document.getElementById("result");
+const standbyDiv = document.getElementById("standby");
+const statusDb = document.getElementById("status-db");
+const beepOk = document.getElementById("beepOk");
+const beepErr = document.getElementById("beepErr");
+
 const CACHE_NAME = "MMS_DATA_LOCAL";
-const CACHE_EXPIRATION_MS = 24 * 60 * 60 * 1000; // 24 Jam dalam milidetik
+const CACHE_EXPIRATION_MS = 24 * 60 * 60 * 1000; // 24 Jam
 
-/* ================= CACHE WITH EXPIRY LOGIC ================= */
+/* ================= CACHE LOGIC ================= */
 const loadCache = () => {
-    const saved = localStorage.getItem(CACHE_NAME);
-    if (!saved) return {};
-
-    const cacheData = JSON.parse(saved);
-    const now = new Date().getTime();
-
-    // Cek apakah cache sudah expired secara keseluruhan (Opsional)
-    // Atau kita cek per item saat akan digunakan (Lebih akurat)
-    return cacheData;
+    try {
+        const saved = localStorage.getItem(CACHE_NAME);
+        return saved ? JSON.parse(saved) : {};
+    } catch (e) { return {}; }
 };
-
 let localProductCache = loadCache();
+
+/* ================= CHECK CONNECTION ================= */
+async function checkConn() {
+    try {
+        const { error } = await supabaseClient.from('export').select('count', { count: 'exact', head: true });
+        if (error) throw error;
+        statusDb.innerHTML = `<span style="color:#22c55e">●</span> Database Online - Ready`;
+    } catch (err) {
+        statusDb.innerHTML = `<span style="color:#ef4444">●</span> Koneksi Bermasalah`;
+    }
+}
+checkConn();
+
+/* ================= SEARCH LOGIC ================= */
+let isSearching = false; 
 
 async function search(q) {
     const cleanQuery = q.trim();
@@ -149,48 +153,38 @@ async function search(q) {
 
     const now = new Date().getTime();
 
-    // 1. CEK CACHE LOKAL + CEK WAKTU KADALUARSA
+    // 1. CEK CACHE LOKAL + WAKTU
     if (localProductCache[cleanQuery]) {
         const item = localProductCache[cleanQuery];
-        
-        // Jika data belum lewat 24 jam, pakai cache
         if (now - item.timestamp < CACHE_EXPIRATION_MS) {
-            console.log("⚡ [CACHE] Menggunakan data lokal (Belum 24 jam)");
             render(item.data);
             beepOk.play().catch(e => {});
             standbyDiv.style.opacity = "0.1";
             return;
-        } else {
-            console.log("🔄 [EXPIRED] Data sudah lebih dari 24 jam, menarik data baru...");
-            delete localProductCache[cleanQuery]; // Hapus yang lama
         }
     }
 
-    // 2. JIKA TIDAK ADA / EXPIRED, CARI KE DATABASE
+    // 2. JIKA TIDAK ADA / EXPIRED
     standbyDiv.style.opacity = "0.1";
     isSearching = true; 
 
     try {
-        const { data, error } = await supabaseClient
-            .rpc('get_product_cached', { search_term: cleanQuery });
+        const { data, error } = await supabaseClient.rpc('get_product_cached', { search_term: cleanQuery });
 
         if (error) throw error;
 
         if (data && data.length > 0) {
-            // SIMPAN KE CACHE DENGAN TIMESTAMP BARU
-            localProductCache[cleanQuery] = {
-                data: data[0],
-                timestamp: new Date().getTime()
-            };
+            localProductCache[cleanQuery] = { data: data[0], timestamp: now };
             localStorage.setItem(CACHE_NAME, JSON.stringify(localProductCache));
-            
-            beepOk.play().catch(e => {});
             render(data[0]);
+            beepOk.play().catch(e => {});
         } else {
             throw new Error("Not Found");
         }
     } catch (err) {
-        // ... logika error tetap sama ...
+        beepErr.play().catch(e => {});
+        resultDiv.innerHTML = `<div style="text-align:center; color:white; background:#dc2626; padding:15px; border-radius:10px; width:100%;">Produk tidak ditemukan!</div>`;
+        setTimeout(() => { if(!input.value) resetUI(); }, 3000);
     } finally {
         isSearching = false; 
     }
@@ -201,33 +195,26 @@ function resetUI() {
     standbyDiv.style.opacity = "1";
 }
 
-/* ================= RENDER UI ================= */
 function render(p) {
     const clean = (val) => (!val || val === "NORMAL PRICE" || val === "NORMAL") ? "" : val;
-
     const name = p.Name || p.name || "Produk Tanpa Nama";
     const barcode = p.Barcode || p.barcode || "N/A";
     const cat = p.Category || p.category || "-";
     const subCat = p["Detail Category"] || p.detail_category || "-";
     const img = p.Image || p.image || 'https://placehold.co/400x400?text=No+Image';
-    
     const regPrice = p["Regular Store Price"] || p.regular_price || "0";
     const strPrice = p["Street Store Price"] || p.street_price || "0";
-    
     const promoReg = clean(p["Regular Store Promo"]);
     const promoStr = clean(p["Street Store Promo"]);
     const extra = clean(p["Extra Promo"]);
 
     resultDiv.innerHTML = `
         <div class="card">
-            <div class="card-header">
-                <img src="${img}" onerror="this.src='https://placehold.co/400x400?text=Image+Not+Found'">
-            </div>
+            <div class="card-header"><img src="${img}" onerror="this.src='https://placehold.co/400x400?text=Image+Not+Found'"></div>
             <div class="card-body">
                 <div class="category">${cat} / ${subCat}</div>
                 <h2 class="product-name">${name}</h2>
                 <span class="barcode-text">${barcode}</span>
-
                 <div class="price-section">
                     <div class="price-box">
                         <div class="price-label">Regular Price</div>
@@ -240,27 +227,18 @@ function render(p) {
                         ${promoStr ? `<div class="promo-text" style="font-size:0.7rem; color:#0369a1;">${promoStr}</div>` : ""}
                     </div>
                 </div>
-
-                ${extra ? `
-                <div class="promo-banner">
-                    <div class="price-label" style="color:var(--danger)">Special Promo</div>
-                    <div class="promo-text">${extra}</div>
-                </div>
-                ` : ""}
+                ${extra ? `<div class="promo-banner"><div class="price-label" style="color:var(--danger)">Special Promo</div><div class="promo-text">${extra}</div></div>` : ""}
             </div>
         </div>
     `;
 }
 
-/* ================= FOCUS MANAGEMENT ================= */
+/* ================= FOCUS ================= */
 const forceFocus = () => { input.focus(); };
 window.onload = forceFocus;
 document.addEventListener('click', forceFocus);
 document.addEventListener('touchstart', forceFocus);
-
-setInterval(() => {
-    if (document.activeElement !== input) forceFocus();
-}, 1000);
+setInterval(() => { if (document.activeElement !== input) forceFocus(); }, 1000);
 
 input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {

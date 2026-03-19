@@ -2,204 +2,258 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>F11 PDA iData</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>F11 Miniso</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('SW Registered!', reg))
+        .catch(err => console.log('SW Registration Failed!', err));
+    });
+  }
+</script>
+    
     <style>
         :root { --primary: #2563eb; --danger: #dc2626; --bg: #f8fafc; }
         
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        /* [BARU] Mencegah padding menambah ukuran elemen */
+        * { box-sizing: border-box; }
 
+        /* [UPDATE] Mengunci body agar tidak bisa discroll */
         body { 
-            font-family: system-ui, -apple-system, sans-serif; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             background: var(--bg); 
-            margin: 0; padding: 0;
-            width: 480px; height: 800px; /* Lock PDA Resolution */
-            overflow: hidden; 
-            display: flex; flex-direction: column;
-        }
-
-        /* Container utama dibatasi tinggi agar tidak scroll */
-        #main-container {
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            padding: 10px;
-        }
-
-        .card { 
-            background: white; 
-            border-radius: 16px; 
+            margin: 0; 
             display: flex; 
-            flex-direction: column;
-            height: 100%;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            border: 1px solid #e2e8f0;
+            flex-direction: column; 
+            align-items: center; 
+            height: 100vh; /* Kunci 1 layar penuh */
+            height: 100dvh; /* Support untuk mobile browser modern */
+            overflow: hidden; /* Hilangkan scrollbar */
+            cursor: pointer; 
         }
-
-        /* Gambar dibuat lebih kecil (maks 35% tinggi layar) */
-        .img-area { 
-            height: 280px; 
-            display: flex; align-items: center; justify-content: center;
-            background: #fff; padding: 10px;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        .img-area img { max-width: 100%; max-height: 100%; object-fit: contain; }
-
-        .info-area { 
-            flex: 1; 
-            padding: 12px; 
-            display: flex; flex-direction: column; 
-            justify-content: space-between; /* Menjaga harga tetap di bawah */
-        }
-
-        .category { font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase; }
         
+        /* State Standby */
+        .standby-msg { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #cbd5e1; z-index: -1; width: 100%; }
+        .standby-msg h1 { font-size: 3rem; margin: 0; letter-spacing: -1px; }
+        .standby-msg p { font-size: 1.2rem; margin: 5px 0; }
+
+        .search-container { position: fixed; top: -5000px; left: 0; }
+
+        /* [UPDATE] Result Display dibuat menyesuaikan sisa layar */
+        #result { width: 100%; max-width: 500px; padding: 10px 15px; height: 100%; display: flex; flex-direction: column; justify-content: center; }
+        
+        .card { 
+            background: white; border-radius: 16px; overflow: hidden; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            animation: slideUp 0.3s ease-out; 
+            display: flex; flex-direction: column;
+            max-height: 100%; /* Jaga agar card tidak tembus batas bawah */
+        }
+        
+        /* [UPDATE] Tinggi gambar dikecilkan dari 250px ke 190px */
+        .card-header { position: relative; width: 100%; height: 190px; background: #ffffff; flex-shrink: 0; }
+        .card-header img { width: 100%; height: 100%; object-fit: contain; padding: 10px; }
+        
+        /* [UPDATE] Padding dikecilkan agar hemat ruang */
+        .card-body { padding: 15px; display: flex; flex-direction: column; overflow: hidden; }
+        
+        .category { font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: var(--primary); margin-bottom: 3px; letter-spacing: 1px; }
+        
+        /* [UPDATE] Batasi nama max 2 baris agar layout tidak rusak jika nama kepanjangan */
         .product-name { 
-            font-size: 1.35rem; color: #1e293b; margin: 4px 0; 
-            line-height: 1.2; font-weight: 700;
+            font-size: 1.3rem; color: #1e293b; margin: 0 0 8px 0; line-height: 1.2; 
             display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
-
-        .barcode { font-family: monospace; font-size: 0.9rem; color: #64748b; margin-bottom: 10px; }
-
-        /* Sektor Harga Dibuat Compact */
-        .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
-        .p-box { padding: 10px; border-radius: 10px; background: #f8fafc; border: 1px solid #e2e8f0; }
-        .p-label { font-size: 0.65rem; color: #64748b; font-weight: 800; }
-        .p-val { font-size: 1.3rem; font-weight: 800; color: #1e293b; }
         
-        .promo-extra {
-            background: #fff1f2; padding: 8px 12px; border-radius: 8px;
-            border-left: 4px solid var(--danger);
-        }
-        .promo-extra span { color: var(--danger); font-weight: 800; font-size: 0.85rem; }
+        .barcode-text { font-family: monospace; background: #f1f5f9; padding: 2px 8px; border-radius: 4px; color: #64748b; font-size: 0.9rem; display: inline-block; align-self: flex-start; }
 
-        /* Layar Standby */
-        .standby { 
-            position: absolute; inset: 0; background: var(--bg); 
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 100; text-align: center;
-        }
-        .standby h1 { font-size: 3rem; color: #cbd5e1; margin: 0; }
+        /* [UPDATE] Margin dan Padding harga di-compact */
+        .price-section { margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .price-box { padding: 10px; border-radius: 10px; background: #f8fafc; border: 1px solid #e2e8f0; }
+        .price-label { font-size: 0.7rem; color: #64748b; margin-bottom: 2px; text-transform: uppercase; }
+        .price-value { font-size: 1.15rem; font-weight: 800; color: #1e293b; }
+        
+        /* [UPDATE] Margin Promo di-compact */
+        .promo-banner { margin-top: 10px; padding: 8px 12px; background: #fef2f2; border-left: 4px solid var(--danger); border-radius: 4px; }
+        .promo-text { color: var(--danger); font-weight: bold; font-size: 0.85rem; margin-top: 2px; }
 
-        .hidden-input { position: absolute; opacity: 0; pointer-events: none; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <div id="standby-screen" class="standby">
-        <h1>SCAN</h1>
-        <p style="color:#94a3b8">Ready to scan barcode</p>
-        <div id="status-db" style="font-size:0.8rem; margin-top:20px;">Checking Database...</div>
+    <div class="standby-msg" id="standby">
+        <h1>READY TO SCAN</h1>
+        <p>Arahkan scanner ke barcode produk</p>
+        <div id="status-db" style="font-size: 0.8rem; color: #94a3b8; margin-top: 20px;">Menghubungkan ke Database...</div>
     </div>
 
-    <input id="searchInput" class="hidden-input" type="text" autofocus>
-
-    <div id="main-container">
-        <div id="result-content" class="card" style="display:none">
-            </div>
+    <div class="search-container">
+        <input id="searchInput" type="text" autocomplete="off" autofocus>
     </div>
+
+    <div id="result"></div>
 
     <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
     <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
 <script>
+/* ================= CONFIG ================= */
 const SUPABASE_URL = 'https://uesupubktkxfjsylcwwr.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const input = document.getElementById("searchInput");
-const resultContent = document.getElementById("result-content");
-const standbyScreen = document.getElementById("standby-screen");
+const resultDiv = document.getElementById("result");
+const standbyDiv = document.getElementById("standby");
 const statusDb = document.getElementById("status-db");
-
-let isSearching = false;
+const beepOk = document.getElementById("beepOk");
+const beepErr = document.getElementById("beepErr");
 
 // Cek Koneksi
 async function checkConn() {
     const { error } = await supabaseClient.from('export').select('count', { count: 'exact', head: true });
-    statusDb.innerText = error ? "OFFLINE" : "ONLINE - iData Ready";
-    statusDb.style.color = error ? "red" : "green";
+    statusDb.innerText = error ? "Koneksi Bermasalah!" : "Database Online - MMS-X";
 }
 checkConn();
 
+/* ================= SEARCH ================= */
+// [OPTIMASI] Tambahan flag untuk mencegah double scan beruntun dari alat fisik
+/* ================= SEARCH ================= */
+let isSearching = false; 
+
 async function search(q) {
-    if (isSearching) return;
-    isSearching = true;
+    standbyDiv.style.opacity = "0.1";
+    isSearching = true; 
+    const cleanQuery = q.trim();
 
     try {
-        const { data, error } = await supabaseClient.rpc('get_product_cached', { search_term: q.trim() });
-        if (error || !data || data.length === 0) throw new Error();
+        // MENGGUNAKAN RPC UNTUK PEMANFAATAN CACHED EGRESS
+        const { data, error } = await supabaseClient
+            .rpc('get_product_cached', { search_term: cleanQuery });
 
-        document.getElementById("beepOk").play().catch(()=>{});
-        render(data[0]);
-        standbyScreen.style.display = "none";
-        resultContent.style.display = "flex";
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+            beepOk.play().catch(e => console.log("Audio play blocked"));
+            render(data[0]);
+        } else {
+            throw new Error("Not Found");
+        }
     } catch (err) {
-        document.getElementById("beepErr").play().catch(()=>{});
-        alert("Produk Tidak Ditemukan!");
-        resetUI();
+        console.error("Detail Error Pencarian:", err); 
+        beepErr.play().catch(e => console.log("Audio play blocked"));
+        
+        let pesanError = "Produk tidak ditemukan!";
+        resultDiv.innerHTML = `<div style="text-align:center; color:white; background:#dc2626; padding:15px; border-radius:10px; width:100%;">${pesanError}</div>`;
+        
+        // Kembalikan ke layar standby setelah 3 detik jika error
+        setTimeout(() => { if(!input.value) resetUI(); }, 3000);
     } finally {
-        isSearching = false;
+        isSearching = false; 
     }
 }
 
 function resetUI() {
-    resultContent.style.display = "none";
-    standbyScreen.style.display = "flex";
-    input.focus();
+    resultDiv.innerHTML = "";
+    standbyDiv.style.opacity = "1";
 }
 
+/* ================= RENDER ================= */
 function render(p) {
     const clean = (val) => (!val || val === "NORMAL PRICE" || val === "NORMAL") ? "" : val;
-    
-    resultContent.innerHTML = `
-        <div class="img-area">
-            <img src="${p.Image || p.image || 'https://placehold.co/300x300'}" onerror="this.src='https://placehold.co/300x300'">
-        </div>
-        <div class="info-area">
-            <div>
-                <div class="category">${p.Category || '-'}</div>
-                <h2 class="product-name">${p.Name || p.name || 'Produk'}</h2>
-                <div class="barcode">${p.Barcode || p.barcode || '-'}</div>
-            </div>
 
-            <div class="price-section">
-                <div class="price-grid">
-                    <div class="p-box">
-                        <div class="p-label">REGULAR</div>
-                        <div class="p-val">${p["Regular Store Price"] || '0'}</div>
-                        <div style="color:var(--danger); font-size:0.6rem; font-weight:bold">${clean(p["Regular Store Promo"])}</div>
+    const name = p.Name || p.name || "Produk Tanpa Nama";
+    const barcode = p.Barcode || p.barcode || "N/A";
+    const cat = p.Category || p.category || "-";
+    const subCat = p["Detail Category"] || p.detail_category || "-";
+    const img = p.Image || p.image || 'https://placehold.co/400x400?text=No+Image';
+    
+    const regPrice = p["Regular Store Price"] || p.regular_price || "0";
+    const strPrice = p["Street Store Price"] || p.street_price || "0";
+    
+    const promoReg = clean(p["Regular Store Promo"]);
+    const promoStr = clean(p["Street Store Promo"]);
+    const extra = clean(p["Extra Promo"]);
+
+    resultDiv.innerHTML = `
+        <div class="card">
+            <div class="card-header">
+                <img src="${img}" onerror="this.src='https://placehold.co/400x400?text=Image+Not+Found'">
+            </div>
+            <div class="card-body">
+                <div class="category">${cat} / ${subCat}</div>
+                <h2 class="product-name">${name}</h2>
+                <span class="barcode-text">${barcode}</span>
+
+                <div class="price-section">
+                    <div class="price-box">
+                        <div class="price-label">Regular Price</div>
+                        <div class="price-value">${regPrice}</div>
+                        ${promoReg ? `<div class="promo-text" style="font-size:0.7rem;">${promoReg}</div>` : ""}
                     </div>
-                    <div class="p-box" style="border-color:#bae6fd; background:#f0f9ff">
-                        <div class="p-label" style="color:#0369a1">STREET</div>
-                        <div class="p-val" style="color:#0369a1">${p["Street Store Price"] || '0'}</div>
-                        <div style="color:#0369a1; font-size:0.6rem; font-weight:bold">${clean(p["Street Store Promo"])}</div>
+                    <div class="price-box" style="border-color: #bae6fd; background: #f0f9ff;">
+                        <div class="price-label" style="color:#0369a1;">Street Price</div>
+                        <div class="price-value" style="color:#0369a1;">${strPrice}</div>
+                        ${promoStr ? `<div class="promo-text" style="font-size:0.7rem; color:#0369a1;">${promoStr}</div>` : ""}
                     </div>
                 </div>
-                
-                ${clean(p["Extra Promo"]) ? `
-                <div class="promo-extra">
-                    <div class="p-label" style="color:var(--danger)">SPECIAL</div>
-                    <span>${p["Extra Promo"]}</span>
-                </div>` : '<div style="height:45px"></div>'}
+
+                ${extra ? `
+                <div class="promo-banner">
+                    <div class="price-label" style="color:var(--danger)">Special Promo</div>
+                    <div class="promo-text">${extra}</div>
+                </div>
+                ` : ""}
             </div>
         </div>
     `;
 }
 
-// PDA Scanner Focus
-document.addEventListener('click', () => input.focus());
-setInterval(() => { if(document.activeElement !== input) input.focus(); }, 800);
+/* ================= AGGRESSIVE FOCUS LOGIC ================= */
 
+// Fungsi untuk memaksa fokus
+const forceFocus = () => {
+    input.focus();
+};
+
+// 1. Fokus saat halaman load
+window.onload = forceFocus;
+
+// 2. Klik DIMANAPUN di halaman akan melempar fokus ke input
+// Ini mengatasi masalah jika scanner ter-unfocus
+document.addEventListener('click', forceFocus);
+document.addEventListener('touchstart', forceFocus);
+
+// 3. Interval "Pencuri Fokus"
+// Cek setiap 1 detik, kalau fokus hilang, rebut kembali
+setInterval(() => {
+    if (document.activeElement !== input) {
+        console.log("Re-focusing scanner input...");
+        forceFocus();
+    }
+}, 1000);
+
+// 4. Input Handler
 input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
-        if(input.value) search(input.value);
+        // [OPTIMASI] Jika masih proses fetch dari database, hiraukan pencetan Enter berikutnya
+        if (isSearching) return; 
+
+        const val = input.value.trim();
+        if(val) search(val);
         input.value = "";
+        
+        // Jaga-jaga, paksa fokus lagi setelah enter
+        setTimeout(forceFocus, 10);
     }
 });
-window.onload = () => input.focus();
+
 </script>
 </body>
 </html>

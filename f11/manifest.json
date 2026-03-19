@@ -2,7 +2,7 @@
   "name": "F11 Miniso",
   "short_name": "F11",
   "id": "v1",
-  "start_url": "https://miniso-id.github.io/f11",
+  "start_url": "./index.html",
   "display": "standalone",
   "prefer_related_applications": false,
   "scope": "/",

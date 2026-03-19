@@ -1,5 +1,5 @@
 {
-  "name": "F11 Miniso",
+  "name": "Miniso F11",
   "short_name": "F11",
   "id": "v1",
   "start_url": "./index.html",
@@ -25,5 +25,5 @@
   "dir": "auto",
   "lang": "en",
   "orientation": "portrait",
-  "description": "F11 Miniso Price Checker"
+  "description": "Miniso Price Checker"
 }

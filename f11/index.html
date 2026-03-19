@@ -2,55 +2,138 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <link rel="manifest" href="./manifest.json">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>F11 Miniso</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>F11 Miniso - Portrait 480x800</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js')
-        .then(reg => console.log('SW Registered!', reg))
-        .catch(err => console.log('SW Registration Failed!', err));
-    });
-  }
-</script>
-    
     <style>
-        :root { --primary: #2563eb; --danger: #dc2626; --bg: #f8fafc; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; cursor: pointer; }
-        
-        /* State Standby */
-        .standby-msg { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #cbd5e1; z-index: -1; }
-        .standby-msg h1 { font-size: 3rem; margin: 0; letter-spacing: -1px; }
-        .standby-msg p { font-size: 1.2rem; margin: 5px 0; }
-
-        .search-container { 
-            position: fixed; 
-            top: -5000px; 
-            left: 0; 
+        :root { 
+            --primary: #2563eb; 
+            --danger: #dc2626; 
+            --bg: #f1f5f9;
         }
 
-        /* Result Display */
-        #result { width: 100%; max-width: 500px; padding: 20px; box-sizing: border-box; }
-        .card { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1); animation: slideUp 0.3s ease-out; }
-        
-        .card-header { position: relative; width: 100%; height: 250px; background: #ffffff; }
-        .card-header img { width: 100%; height: 100%; object-fit: contain; }
-        
-        .card-body { padding: 20px; }
-        .category { font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: var(--primary); margin-bottom: 5px; letter-spacing: 1px; }
-        .product-name { font-size: 1.4rem; color: #1e293b; margin: 0 0 10px 0; line-height: 1.2; }
-        .barcode-text { font-family: monospace; background: #f1f5f9; padding: 2px 8px; border-radius: 4px; color: #64748b; font-size: 0.9rem; }
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg); 
+            margin: 0; 
+            padding: 0;
+            width: 480px; 
+            height: 800px; 
+            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+        }
 
-        .price-section { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .price-box { padding: 12px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; }
-        .price-label { font-size: 0.7rem; color: #64748b; margin-bottom: 4px; text-transform: uppercase; }
-        .price-value { font-size: 1.1rem; font-weight: 800; color: #1e293b; }
-        
-        .promo-banner { margin-top: 15px; padding: 12px; background: #fef2f2; border-left: 4px solid var(--danger); border-radius: 4px; }
-        .promo-text { color: var(--danger); font-weight: bold; font-size: 0.9rem; }
+        /* Container Utama */
+        #result { 
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+
+        .card { 
+            background: white; 
+            border-radius: 24px; 
+            overflow: hidden; 
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            height: 100%; /* Mengisi ruang yang tersedia */
+            animation: slideUp 0.3s ease-out;
+        }
+
+        /* Area Gambar (Max 40% dari layar) */
+        .card-header { 
+            width: 100%;
+            height: 320px; 
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .card-header img { 
+            max-width: 95%; 
+            max-height: 95%; 
+            object-fit: contain; 
+        }
+
+        .card-body { 
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .category { 
+            font-size: 0.85rem; 
+            font-weight: 800; 
+            color: var(--primary); 
+            text-transform: uppercase; 
+            margin-bottom: 8px;
+        }
+
+        .product-name { 
+            font-size: 1.6rem; 
+            color: #1e293b; 
+            margin: 0 0 10px 0; 
+            line-height: 1.2;
+            font-weight: 700;
+        }
+
+        .barcode-badge { 
+            display: inline-block;
+            font-family: 'Courier New', Courier, monospace;
+            background: #f8fafc; 
+            padding: 5px 12px; 
+            border-radius: 8px; 
+            color: #475569; 
+            font-size: 1.1rem;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+        }
+
+        /* Harga Section */
+        .price-container {
+            margin-top: auto; /* Dorong harga ke bawah */
+        }
+
+        .price-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .price-box { 
+            flex: 1;
+            padding: 15px; 
+            border-radius: 16px; 
+            background: #f8fafc; 
+            border: 1px solid #e2e8f0;
+        }
+
+        .price-label { font-size: 0.75rem; color: #64748b; font-weight: bold; margin-bottom: 5px; }
+        .price-value { font-size: 1.5rem; font-weight: 800; color: #1e293b; }
+        .promo-tag { color: var(--danger); font-size: 0.8rem; font-weight: bold; margin-top: 5px; }
+
+        /* Standby Overlay */
+        .standby-msg { 
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: var(--bg);
+            z-index: 10;
+        }
+        .standby-msg h1 { font-size: 3rem; color: #cbd5e1; margin: 0; }
+        .standby-msg p { font-size: 1.2rem; color: #94a3b8; }
+
+        .search-container { position: absolute; left: -9999px; }
 
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -58,9 +141,9 @@
 <body>
 
     <div class="standby-msg" id="standby">
-        <h1>READY TO SCAN</h1>
-        <p>Arahkan scanner ke barcode produk</p>
-        <div id="status-db" style="font-size: 0.8rem; color: #94a3b8; margin-top: 20px;">Menghubungkan ke Database...</div>
+        <h1>SCAN</h1>
+        <p>Silahkan scan barcode produk</p>
+        <div id="status-db" style="margin-top:20px; font-size:0.9rem;">Connecting...</div>
     </div>
 
     <div class="search-container">
@@ -73,7 +156,6 @@
     <audio id="beepErr" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
 <script>
-/* ================= CONFIG ================= */
 const SUPABASE_URL = 'https://uesupubktkxfjsylcwwr.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -85,145 +167,97 @@ const statusDb = document.getElementById("status-db");
 const beepOk = document.getElementById("beepOk");
 const beepErr = document.getElementById("beepErr");
 
-// Cek Koneksi
+let isSearching = false;
+
 async function checkConn() {
     const { error } = await supabaseClient.from('export').select('count', { count: 'exact', head: true });
-    statusDb.innerText = error ? "Koneksi Bermasalah!" : "Database Online - MMS-X";
+    statusDb.innerText = error ? "OFFLINE" : "DATABASE ONLINE";
+    statusDb.style.color = error ? "#ef4444" : "#22c55e";
 }
 checkConn();
 
-/* ================= SEARCH ================= */
-// [OPTIMASI] Tambahan flag untuk mencegah double scan beruntun dari alat fisik
-/* ================= SEARCH ================= */
-let isSearching = false; 
-
 async function search(q) {
-    standbyDiv.style.opacity = "0.1";
-    isSearching = true; 
-    const cleanQuery = q.trim();
+    if (isSearching) return;
+    isSearching = true;
+    standbyDiv.style.opacity = "0.5";
 
     try {
-        // MENGGUNAKAN RPC UNTUK PEMANFAATAN CACHED EGRESS
-        const { data, error } = await supabaseClient
-            .rpc('get_product_cached', { search_term: cleanQuery });
+        const { data, error } = await supabaseClient.rpc('get_product_cached', { search_term: q.trim() });
+        if (error || !data || data.length === 0) throw new Error();
 
-        if (error) throw error;
-
-        if (data && data.length > 0) {
-            beepOk.play().catch(e => console.log("Audio play blocked"));
-            render(data[0]);
-        } else {
-            throw new Error("Not Found");
-        }
+        beepOk.play().catch(()=>{});
+        render(data[0]);
+        standbyDiv.style.display = "none";
     } catch (err) {
-        console.error("Detail Error Pencarian:", err); 
-        beepErr.play().catch(e => console.log("Audio play blocked"));
-        
-        let pesanError = "Produk tidak ditemukan!";
-        resultDiv.innerHTML = `<div style="text-align:center; color:white; background:#dc2626; padding:15px; border-radius:10px;">${pesanError}</div>`;
-        
-        // Kembalikan ke layar standby setelah 3 detik jika error
-        setTimeout(() => { if(!input.value) resetUI(); }, 3000);
+        beepErr.play().catch(()=>{});
+        resultDiv.innerHTML = `<div style="margin-top:100px; text-align:center; color:white; background:var(--danger); padding:30px; border-radius:20px; font-size:1.5rem; font-weight:bold;">TIDAK DITEMUKAN</div>`;
+        setTimeout(resetUI, 2000);
     } finally {
-        isSearching = false; 
+        isSearching = false;
+        standbyDiv.style.opacity = "1";
     }
 }
 
 function resetUI() {
     resultDiv.innerHTML = "";
-    standbyDiv.style.opacity = "1";
+    standbyDiv.style.display = "flex";
+    input.focus();
 }
 
-/* ================= RENDER ================= */
 function render(p) {
     const clean = (val) => (!val || val === "NORMAL PRICE" || val === "NORMAL") ? "" : val;
-
-    const name = p.Name || p.name || "Produk Tanpa Nama";
-    const barcode = p.Barcode || p.barcode || "N/A";
-    const cat = p.Category || p.category || "-";
-    const subCat = p["Detail Category"] || p.detail_category || "-";
-    const img = p.Image || p.image || 'https://placehold.co/400x400?text=No+Image';
-    
+    const name = p.Name || p.name || "Produk";
+    const barcode = p.Barcode || p.barcode || "-";
     const regPrice = p["Regular Store Price"] || p.regular_price || "0";
     const strPrice = p["Street Store Price"] || p.street_price || "0";
-    
-    const promoReg = clean(p["Regular Store Promo"]);
-    const promoStr = clean(p["Street Store Promo"]);
-    const extra = clean(p["Extra Promo"]);
+    const promoExtra = clean(p["Extra Promo"]);
 
     resultDiv.innerHTML = `
         <div class="card">
             <div class="card-header">
-                <img src="${img}" onerror="this.src='https://placehold.co/400x400?text=Image+Not+Found'">
+                <img src="${p.Image || p.image || 'https://placehold.co/400x400'}" onerror="this.src='https://placehold.co/400x400'">
             </div>
             <div class="card-body">
-                <div class="category">${cat} / ${subCat}</div>
+                <div class="category">${p.Category || '-'}</div>
                 <h2 class="product-name">${name}</h2>
-                <span class="barcode-text">${barcode}</span>
+                <div class="barcode-badge">${barcode}</div>
 
-                <div class="price-section">
-                    <div class="price-box">
-                        <div class="price-label">Regular Price</div>
-                        <div class="price-value">${regPrice}</div>
-                        ${promoReg ? `<div class="promo-text" style="font-size:0.7rem;">${promoReg}</div>` : ""}
+                <div class="price-container">
+                    <div class="price-row">
+                        <div class="price-box">
+                            <div class="price-label">REGULAR STORE</div>
+                            <div class="price-value">${regPrice}</div>
+                            ${clean(p["Regular Store Promo"]) ? `<div class="promo-tag">${p["Regular Store Promo"]}</div>` : ""}
+                        </div>
+                        <div class="price-box" style="background:#f0f9ff; border-color:#bae6fd">
+                            <div class="price-label" style="color:#0369a1">STREET STORE</div>
+                            <div class="price-value" style="color:#0369a1">${strPrice}</div>
+                            ${clean(p["Street Store Promo"]) ? `<div class="promo-tag" style="color:#0369a1">${p["Street Store Promo"]}</div>` : ""}
+                        </div>
                     </div>
-                    <div class="price-box" style="border-color: #bae6fd; background: #f0f9ff;">
-                        <div class="price-label" style="color:#0369a1;">Street Price</div>
-                        <div class="price-value" style="color:#0369a1;">${strPrice}</div>
-                        ${promoStr ? `<div class="promo-text" style="font-size:0.7rem; color:#0369a1;">${promoStr}</div>` : ""}
-                    </div>
+                    
+                    ${promoExtra ? `
+                    <div style="background:#fef2f2; padding:15px; border-radius:12px; border-left:6px solid var(--danger)">
+                        <div class="price-label" style="color:var(--danger)">PROMO SPESIAL</div>
+                        <div style="font-weight:bold; color:var(--danger); font-size:1.1rem;">${promoExtra}</div>
+                    </div>` : ""}
                 </div>
-
-                ${extra ? `
-                <div class="promo-banner">
-                    <div class="price-label" style="color:var(--danger)">Special Promo</div>
-                    <div class="promo-text">${extra}</div>
-                </div>
-                ` : ""}
             </div>
         </div>
     `;
 }
 
-/* ================= AGGRESSIVE FOCUS LOGIC ================= */
+// Global Click for Focus
+document.addEventListener('click', () => input.focus());
+setInterval(() => { if(document.activeElement !== input) input.focus(); }, 1000);
 
-// Fungsi untuk memaksa fokus
-const forceFocus = () => {
-    input.focus();
-};
-
-// 1. Fokus saat halaman load
-window.onload = forceFocus;
-
-// 2. Klik DIMANAPUN di halaman akan melempar fokus ke input
-// Ini mengatasi masalah jika scanner ter-unfocus
-document.addEventListener('click', forceFocus);
-document.addEventListener('touchstart', forceFocus);
-
-// 3. Interval "Pencuri Fokus"
-// Cek setiap 1 detik, kalau fokus hilang, rebut kembali
-setInterval(() => {
-    if (document.activeElement !== input) {
-        console.log("Re-focusing scanner input...");
-        forceFocus();
-    }
-}, 1000);
-
-// 4. Input Handler
 input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
-        // [OPTIMASI] Jika masih proses fetch dari database, hiraukan pencetan Enter berikutnya
-        if (isSearching) return; 
-
-        const val = input.value.trim();
-        if(val) search(val);
+        if(input.value) search(input.value);
         input.value = "";
-        
-        // Jaga-jaga, paksa fokus lagi setelah enter
-        setTimeout(forceFocus, 10);
     }
 });
-
+window.onload = () => input.focus();
 </script>
 </body>
 </html>

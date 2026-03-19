@@ -1,7 +1,7 @@
 {
   "name": "Miniso Management System",
   "short_name": "MMS-X",
-  "start_url": "/app/index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#e61523",

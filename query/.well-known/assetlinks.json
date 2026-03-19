@@ -1,8 +1,0 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "mms.miniso.f11",
-        "sha256_cert_fingerprints": ["B5:66:7F:F2:AE:F9:7C:E6:54:85:2E:05:1F:19:8A:94:A6:09:8A:DC:1A:9B:F2:F9:84:6E:2C:9C:CC:1E:8E:5E"]
-      }
-    }]

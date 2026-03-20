@@ -260,37 +260,36 @@ body.fade-in {
 </head>
 <body>
 
-    <script>
+<script>
 (function() {
     /**
-     * MMS-X Migration Protocol
-     * Target: io.github.miniso_id.twa
-     * Destination: com.miniso.mmsx
+     * MMS-X Migration Protocol - Hard Block
+     * Source: io.github.miniso_id.twa
+     * Target: com.miniso.mmsx (MMS-X v2.0)
      */
     
     const OLD_PACKAGE = "io.github.miniso_id.twa";
+    const LOGO_URL = "https://miniso-id.github.io/app/user512.png";
     const NEW_APP_LINK = "https://mega.nz/file/pJAQBJ4a#PBD23_5uitmTSDVSO7UUKgsECLzNuwxv2wNrnO0vDKg";
     
-    // Cek apakah user menggunakan aplikasi lama
     const userAgent = navigator.userAgent.toLowerCase();
-    const isOldApp = userAgent.includes(OLD_PACKAGE);
 
-    if (isOldApp) {
-        // Jalankan pemblokiran setelah DOM siap
+    // Jalankan blokir jika terdeteksi dari package lama
+    if (userAgent.includes(OLD_PACKAGE)) {
         window.addEventListener('DOMContentLoaded', () => {
             renderMigrationBlock();
         });
     }
 
     function renderMigrationBlock() {
-        // 1. Hapus semua konten asli aplikasi agar user tidak bisa berinteraksi
+        // 1. Membersihkan total seluruh elemen di body
         document.body.innerHTML = '';
         document.body.style.margin = '0';
         document.body.style.padding = '0';
-        document.body.style.backgroundColor = '#f8f9fa';
+        document.body.style.backgroundColor = '#f4f4f4';
         document.body.style.overflow = 'hidden';
 
-        // 2. Buat elemen UI Migrasi bergaya MMS-X
+        // 2. Membuat Container Utama
         const container = document.createElement('div');
         container.style = `
             display: flex; flex-direction: column; align-items: center; 
@@ -300,30 +299,29 @@ body.fade-in {
         `;
 
         container.innerHTML = `
-            <div style="background: white; padding: 40px 24px; border-radius: 20px; 
-                        box-shadow: 0 15px 35px rgba(0,0,0,0.1); max-width: 360px; width: 100%;">
+            <div style="background: white; padding: 40px 24px; border-radius: 24px; 
+                        box-shadow: 0 10px 40px rgba(0,0,0,0.08); max-width: 360px; width: 100%;">
                 
-                <div style="width: 72px; height: 72px; background: #ff0000; border-radius: 18px; 
-                            margin: 0 auto 24px; display: flex; align-items: center; justify-content: center;">
-                    <span style="color: white; font-weight: bold; font-size: 32px; letter-spacing: -2px;">M</span>
-                </div>
+                <img src="${LOGO_URL}" alt="MMS-X Logo" 
+                     style="width: 85px; height: 85px; border-radius: 20px; margin-bottom: 25px;
+                            box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
 
-                <h2 style="color: #1a1a1a; margin: 0 0 12px; font-weight: 700; font-size: 22px;">Upgrade Required</h2>
-                <p style="color: #666; font-size: 15px; line-height: 1.6; margin-bottom: 32px;">
-                    This version of <b>MMS-X</b> is outdated.<br>
-                    Please download the new <b>v2.0</b> build to continue using MMS-X.
+                <h2 style="color: #1a1a1a; margin: 0 0 10px; font-weight: 700; font-size: 24px;">Upgrade Required</h2>
+                <p style="color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 30px;">
+                    This version of <b>MMS-X</b> is no longer supported.<br>
+                    Please download the latest official build to continue using it.
                 </p>
 
                 <a href="${NEW_APP_LINK}" 
-                   style="display: block; background: #ff0000; color: white; 
+                   style="display: block; background: #ed1c24; color: white; 
                           text-decoration: none; padding: 16px; border-radius: 12px; 
-                          font-weight: 600; font-size: 16px; transition: 0.2s active;">
-                    GET NEW VERSION
+                          font-weight: 600; font-size: 16px; transition: background 0.2s;">
+                    DOWNLOAD MMS-X v2.0
                 </a>
 
-                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-                    <p style="color: #999; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;">
-                        MMS-X • Cloud Based App
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #f0f0f0;">
+                    <p style="color: #bbb; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; font-weight: 600;">
+                        MMS-X Project Support
                     </p>
                 </div>
             </div>
@@ -331,7 +329,7 @@ body.fade-in {
 
         document.body.appendChild(container);
         
-        // Mencegah user scroll jika konten sebelumnya sangat panjang
+        // Kunci scrolling pada level dokumen
         document.documentElement.style.overflow = 'hidden';
     }
 })();
@@ -414,7 +412,7 @@ body.fade-in {
                 <div class="banner-left">
                     <img src="https://miniso-id.github.io/app/user512.png" class="banner-logo-img">
                     <div class="banner-text">
-                        <h2>MMS-X<span class="app-version">v2.0.2 • Cloud</span></h2>
+                        <h2>MMS-X<span class="app-version">v2.0.3 • Cloud</span></h2>
                         <p>User: <span id="displayUsername">Guest</span></p>
                     </div>
                 </div>

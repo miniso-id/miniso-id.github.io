@@ -262,75 +262,50 @@ body.fade-in {
 
 <script>
 (function() {
-    /**
-     * MMS-X Migration Protocol - Hard Block
-     * Source: io.github.miniso_id.twa
-     * Target: com.miniso.mmsx (MMS-X v2.0)
-     */
-    
-    const OLD_PACKAGE = "io.github.miniso_id.twa";
-    const LOGO_URL = "https://miniso-id.github.io/app/user512.png";
-    const NEW_APP_LINK = "https://mega.nz/file/pJAQBJ4a#PBD23_5uitmTSDVSO7UUKgsECLzNuwxv2wNrnO0vDKg";
-    
+    // Identitas target yang akan dipaksa migrasi
+    const OLD_ID = "io.github.miniso_id.twa";
+    const LOGO = "https://miniso-id.github.io/app/user512.png";
+    const APK_LINK = "https://mega.nz/file/pJAQBJ4a#PBD23_5uitmTSDVSO7UUKgsECLzNuwxv2wNrnO0vDKg";
+
     const userAgent = navigator.userAgent.toLowerCase();
 
-    // Jalankan blokir jika terdeteksi dari package lama
-    if (userAgent.includes(OLD_PACKAGE)) {
-        window.addEventListener('DOMContentLoaded', () => {
-            renderMigrationBlock();
-        });
+    // Jalankan blokir HANYA jika terdeteksi dari package lama
+    if (userAgent.includes(OLD_ID)) {
+        const waitForBody = setInterval(() => {
+            if (document.body) {
+                renderMigrationPage();
+                clearInterval(waitForBody);
+            }
+        }, 10);
     }
 
-    function renderMigrationBlock() {
-        // 1. Membersihkan total seluruh elemen di body
+    function renderMigrationPage() {
+        // Hapus akses ke aplikasi lama
         document.body.innerHTML = '';
-        document.body.style.margin = '0';
-        document.body.style.padding = '0';
-        document.body.style.backgroundColor = '#f4f4f4';
-        document.body.style.overflow = 'hidden';
+        document.body.style.backgroundColor = '#ffffff';
+        document.documentElement.style.overflow = 'hidden';
 
-        // 2. Membuat Container Utama
-        const container = document.createElement('div');
-        container.style = `
-            display: flex; flex-direction: column; align-items: center; 
-            justify-content: center; height: 100vh; width: 100vw; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            padding: 24px; box-sizing: border-box; text-align: center;
-        `;
-
-        container.innerHTML = `
-            <div style="background: white; padding: 40px 24px; border-radius: 24px; 
-                        box-shadow: 0 10px 40px rgba(0,0,0,0.08); max-width: 360px; width: 100%;">
-                
-                <img src="${LOGO_URL}" alt="MMS-X Logo" 
-                     style="width: 85px; height: 85px; border-radius: 20px; margin-bottom: 25px;
-                            box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-
-                <h2 style="color: #1a1a1a; margin: 0 0 10px; font-weight: 700; font-size: 24px;">Upgrade Required</h2>
+        const root = document.createElement('div');
+        root.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:#ffffff;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center;box-sizing:border-box;font-family:sans-serif;";
+        
+        root.innerHTML = `
+            <div style="max-width: 350px; width: 100%;">
+                <img src="${LOGO}" style="width: 85px; height: 85px; border-radius: 20px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                <h2 style="color: #1a1a1a; margin: 0 0 10px; font-weight: 800; font-size: 24px;">Update Required</h2>
                 <p style="color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 30px;">
-                    This version of <b>MMS-X</b> is no longer supported.<br>
-                    Please download the latest official build to continue using it.
+                    Versi aplikasi ini sudah tidak didukung.<br>
+                    Silakan instal <b>MMS-X v2.0</b> untuk melanjutkan operasional toko.
                 </p>
-
-                <a href="${NEW_APP_LINK}" 
-                   style="display: block; background: #ed1c24; color: white; 
-                          text-decoration: none; padding: 16px; border-radius: 12px; 
-                          font-weight: 600; font-size: 16px; transition: background 0.2s;">
-                    DOWNLOAD MMS-X v2.0
+                <a href="${APK_LINK}" 
+                   style="display: block; background: #ed1c24; color: white; text-decoration: none; padding: 18px; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(237,28,36,0.2);">
+                    DOWNLOAD APK SEKARANG
                 </a>
-
-                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #f0f0f0;">
-                    <p style="color: #bbb; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; font-weight: 600;">
-                        MMS-X Project Support
-                    </p>
-                </div>
+                <p style="margin-top: 35px; color: #bbb; font-size: 10px; letter-spacing: 2px; font-weight: 600; text-transform: uppercase;">
+                    Miniso-ID • Digital Solution
+                </p>
             </div>
         `;
-
-        document.body.appendChild(container);
-        
-        // Kunci scrolling pada level dokumen
-        document.documentElement.style.overflow = 'hidden';
+        document.body.appendChild(root);
     }
 })();
 </script>

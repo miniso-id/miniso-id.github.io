@@ -262,50 +262,61 @@ body.fade-in {
 
 <script>
 (function() {
-    // Identitas target yang akan dipaksa migrasi
-    const OLD_ID = "io.github.miniso_id.twa";
+    /**
+     * MMS-X SMART LOCKDOWN (Final Version)
+     * Target: Android Users on Chrome or Old TWA
+     * Bypass: iOS Users & New Android App (with ?app=mmsx)
+     */
+    
     const LOGO = "https://miniso-id.github.io/app/user512.png";
     const APK_LINK = "https://mega.nz/file/pJAQBJ4a#PBD23_5uitmTSDVSO7UUKgsECLzNuwxv2wNrnO0vDKg";
 
-    const userAgent = navigator.userAgent.toLowerCase();
+    const ua = navigator.userAgent.toLowerCase();
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // 1. Cek Identitas
+    const isIOS = /iphone|ipad|ipod/.test(ua);
+    const isOldTwa = ua.includes("io.github.miniso_id.twa");
+    const isAuthorized = urlParams.get('app') === 'mmsx';
 
-    // Jalankan blokir HANYA jika terdeteksi dari package lama
-    if (userAgent.includes(OLD_ID)) {
-        const waitForBody = setInterval(() => {
+    // 2. Logika Pemblokiran
+    // JANGAN blokir jika dia iOS.
+    // BLOKIR jika dia (Android TWA Lama) ATAU (Bukan aplikasi baru/Chrome Android).
+    if (!isIOS && (isOldTwa || !isAuthorized)) {
+        const lock = setInterval(() => {
             if (document.body) {
-                renderMigrationPage();
-                clearInterval(waitForBody);
+                renderBlockPage();
+                clearInterval(lock);
             }
-        }, 10);
+        }, 5);
     }
 
-    function renderMigrationPage() {
-        // Hapus akses ke aplikasi lama
+    function renderBlockPage() {
         document.body.innerHTML = '';
         document.body.style.backgroundColor = '#ffffff';
         document.documentElement.style.overflow = 'hidden';
 
-        const root = document.createElement('div');
-        root.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:#ffffff;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center;box-sizing:border-box;font-family:sans-serif;";
+        const ui = document.createElement('div');
+        ui.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:#ffffff;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center;box-sizing:border-box;font-family:sans-serif;";
         
-        root.innerHTML = `
+        ui.innerHTML = `
             <div style="max-width: 350px; width: 100%;">
-                <img src="${LOGO}" style="width: 85px; height: 85px; border-radius: 20px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                <h2 style="color: #1a1a1a; margin: 0 0 10px; font-weight: 800; font-size: 24px;">Update Required</h2>
+                <img src="${LOGO}" style="width: 80px; height: 80px; border-radius: 20px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                <h2 style="color: #1a1a1a; margin: 0 0 10px; font-weight: 800; font-size: 22px;">Update Required</h2>
                 <p style="color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 30px;">
-                    Versi aplikasi ini sudah tidak didukung.<br>
-                    Silakan instal <b>MMS-X v2.0</b> untuk melanjutkan operasional toko.
+                    Sistem mendeteksi Anda menggunakan browser atau versi aplikasi lama.<br><br>
+                    Khusus pengguna <b>Android</b>, silakan instal versi terbaru untuk melanjutkan.
                 </p>
                 <a href="${APK_LINK}" 
-                   style="display: block; background: #ed1c24; color: white; text-decoration: none; padding: 18px; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(237,28,36,0.2);">
-                    DOWNLOAD APK SEKARANG
+                   style="display: block; background: #ed1c24; color: white; text-decoration: none; padding: 18px; border-radius: 12px; font-weight: 600; font-size: 16px;">
+                    DOWNLOAD MMS-X v2.0
                 </a>
-                <p style="margin-top: 35px; color: #bbb; font-size: 10px; letter-spacing: 2px; font-weight: 600; text-transform: uppercase;">
-                    Miniso-ID • Digital Solution
+                <p style="margin-top: 35px; color: #bbb; font-size: 10px; letter-spacing: 2px; font-weight: 600;">
+                    INTERNAL RETAIL SYSTEM
                 </p>
             </div>
         `;
-        document.body.appendChild(root);
+        document.body.appendChild(ui);
     }
 })();
 </script>

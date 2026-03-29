@@ -344,7 +344,7 @@ document.getElementById('aiSearchBtn').onclick = async () => {
 };
 
 async function captureAi() {
-    showAiLoading("AI Sedang Melihat...");
+    showAiLoading("AI Sedang Menganalisis Gambar...");
     const video = document.getElementById('aiVideo');
     const canvas = document.getElementById('aiCanvas');
     canvas.width = video.videoWidth;
@@ -353,39 +353,39 @@ async function captureAi() {
     const base64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
 
     try {
-        // TAHAP 1: Foto -> Deskripsi (Groq Vision)
-        const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model: "llama-3.2-90b-vision-preview",
-                messages: [{ role: "user", content: [
-                    { type: "text", text: "Sebutkan nama barang, warna, dan jenis produk ini dalam 1 kalimat pendek." },
-                    { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64}` } }
-                ]}]
-            })
+        // 1. Panggil Edge Function untuk dapat deskripsi dari foto
+        const { data: aiResponse, error: aiError } = await _supabase.functions.invoke('ai-vision', {
+            body: { image: base64 }
         });
-        const groqData = await groqRes.json();
-        const desc = groqData.choices[0].message.content;
 
-        // TAHAP 2: Deskripsi -> Vektor (Lokal Transformers.js)
-        showAiLoading("Mencari di Database...");
-        const vector = await window.getVector(desc);
+        if (aiError) throw aiError;
+        const textDescription = aiResponse.description;
+        console.log("AI Mendeteksi:", textDescription);
 
-        // TAHAP 3: Vektor -> Hasil (Supabase)
-        const { data } = await _supabase.rpc('match_products', {
+        // 2. Ubah deskripsi teks menjadi vektor (Lokal di Browser)
+        showAiLoading("Mencari Kecocokan di Database...");
+        const vector = await window.getVector(textDescription);
+
+        // 3. Cari di tabel Supabase Anda (Gunakan RPC yang sudah dibuat di SQL Editor)
+        const { data: products, error: dbError } = await _supabase.rpc('match_products', {
             query_embedding: vector,
-            match_threshold: 0.3,
+            match_threshold: 0.3, // Sesuaikan sensitivitas
             match_count: 1
         });
 
-        if (data && data.length > 0) {
+        if (dbError) throw dbError;
+
+        if (products && products.length > 0) {
             closeAi();
-            showDetail(data[0].sku);
+            showDetail(products[0].sku); // Langsung buka detail barang
         } else {
-            alert("Barang tidak ditemukan.");
+            alert("Maaf, barang tidak ditemukan di database.");
         }
-    } catch (e) { alert("Error: " + e.message); }
+
+    } catch (e) {
+        console.error(e);
+        alert("Gagal memproses gambar: " + e.message);
+    }
     hideAiLoading();
 }
 

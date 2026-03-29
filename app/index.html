@@ -553,10 +553,58 @@ document.addEventListener('DOMContentLoaded', updateOnlineStatus);
     }
 
     function forceHardReload() {
-        // Menambahkan timestamp unik agar browser bypass cache HTML
-        const cleanUrl = window.location.href.split(/[?#]/)[0];
-        window.location.replace(cleanUrl + '?v=' + new Date().getTime());
+    const ua = navigator.userAgent.toLowerCase();
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Identifikasi status perangkat & aplikasi
+    const isIOS = /iphone|ipad|ipod/.test(ua);
+    const isOldTwa = ua.includes("io.github.miniso_id.twa");
+    const isAuthorized = urlParams.get('app') === 'mmsx';
+
+    // SKENARIO A: Pengguna yang sudah BENAR (App Baru atau iOS)
+    if (isIOS || isAuthorized) {
+        // Tampilkan loading sebentar agar user tahu ada proses "Update"
+        const btn = document.querySelector('.menu-card[onclick="forceHardReload()"]');
+        if(btn) btn.style.opacity = "0.5";
+        
+        // Membersihkan cache dan reload halaman secara bersih
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                for (let registration of registrations) {
+                    registration.update();
+                }
+            });
+        }
+        
+        // Reload halaman
+        setTimeout(() => {
+            window.location.reload(true);
+        }, 500);
+        return;
     }
+
+    // SKENARIO B: Pengguna yang SALAH (Chrome Android / TWA Lama)
+    if (isOldTwa || !isAuthorized) {
+        // Tampilkan layar blokir migrasi
+        document.body.innerHTML = `
+            <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:#ffffff;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center;box-sizing:border-box;font-family:sans-serif;">
+                <div style="max-width: 340px; width: 100%;">
+                    <img src="https://miniso-id.github.io/app/user512.png" style="width: 80px; height: 80px; border-radius: 20px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <h2 style="color: #1a1a1a; margin: 0 0 10px; font-weight: 800; font-size: 22px;">Upgrade Required</h2>
+                    <p style="color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 30px;">
+                        Versi aplikasi ini sudah tidak didukung.<br><br>
+                        Silakan instal <b>MMS-X v2.0</b> untuk operasional yang lebih stabil.
+                    </p>
+                    <a href="https://mega.nz/file/pJAQBJ4a#PBD23_5uitmTSDVSO7UUKgsECLzNuwxv2wNrnO0vDKg" 
+                       style="display: block; background: #ed1c24; color: white; text-decoration: none; padding: 18px; border-radius: 12px; font-weight: 600; font-size: 16px;">
+                        DOWNLOAD APK SEKARANG
+                    </a>
+                </div>
+            </div>
+        `;
+        document.documentElement.style.overflow = 'hidden';
+    }
+}
 
     // --- LOGIKA DATABASE & LOGIN ---
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";

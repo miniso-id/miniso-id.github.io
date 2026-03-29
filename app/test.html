@@ -313,35 +313,30 @@ document.getElementById('aiSearchBtn').onclick = async () => {
 
 // 3. Fungsi Capture AI (Diperbarui untuk langsung tembak ke Edge Function)
 async function captureAi() {
-    showAiLoading("AI Sedang Memeriksa Barang...");
-    const video = document.getElementById('aiVideo');
-    const canvas = document.getElementById('aiCanvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
+    // ... kode canvas sebelumnya ...
     
-    // Kualitas dikurangi jadi 0.5 agar tidak error non-2xx status code di server
-    const base64 = canvas.toDataURL('image/jpeg', 0.5).split(',')[1];
+    // 1. Tingkatkan kualitas ke 0.8 agar gambar lebih tajam untuk AI
+    const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
 
     try {
-        const { data, error } = await _supabase.functions.invoke('ai-vision', {
+        const { data, error: aiError } = await _supabase.functions.invoke('ai-vision', {
             body: { image: base64 }
         });
 
-        if (error) throw new Error(error.message);
+        if (aiError) throw aiError;
 
-        // Jika barang ditemukan dari database Supabase
-        if (data && data.product) {
+        // 2. Tambahkan log ini untuk debug di Console (F12)
+        console.log("AI Mendeteksi:", data.description);
+
+        if (data.product) {
             closeAi();
             showDetail(data.product.sku); 
         } else {
-            // Jika AI mendeteksi foto tapi tidak ada di database
-            alert("Barang tidak ada di rak. (AI mendeteksi: " + (data.description || "Tidak jelas") + ")");
+            // Berikan informasi apa yang sebenarnya dilihat AI jika tidak ketemu di DB
+            alert("Barang tidak cocok di rak. AI melihat: " + (data.description || "Tidak terdeteksi"));
         }
-
     } catch (e) {
-        console.error(e);
-        alert("Gagal memproses gambar. Detail: " + e.message);
+        alert("Gagal: " + e.message);
     }
     hideAiLoading();
 }

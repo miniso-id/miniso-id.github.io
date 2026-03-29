@@ -313,9 +313,14 @@ document.getElementById('aiSearchBtn').onclick = async () => {
 
 // 3. Fungsi Capture AI (Diperbarui untuk langsung tembak ke Edge Function)
 async function captureAi() {
-    // ... kode canvas sebelumnya ...
+    showAiLoading("AI Sedang Memeriksa Barang...");
+    const video = document.getElementById('aiVideo');
+    const canvas = document.getElementById('aiCanvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
     
-    // 1. Tingkatkan kualitas ke 0.8 agar gambar lebih tajam untuk AI
+    // Kualitas dikurangi jadi 0.5 agar tidak error non-2xx status code di server
     const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
 
     try {

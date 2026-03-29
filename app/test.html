@@ -347,12 +347,14 @@ async function captureAi() {
         const data = await response.json();
         console.log("AI Mendeteksi:", data.description);
 
-        if (data.product) {
-            closeAi();
-            showDetail(data.product.Barcode); 
-        } else {
-            alert("Barang tidak cocok. AI melihat: " + (data.description || "Tidak jelas"));
-        }
+        // Di dalam file test (10).html, cari bagian ini:
+if (products && products.length > 0) {
+    closeAi();
+    // Gunakan .sku karena di tabel product_vector kolomnya bernama 'sku'
+    showDetail(products[0].sku); 
+} else {
+    alert("Produk tidak ditemukan di rak. AI melihat: " + textDescription);
+}
 
     } catch (e) {
         console.error("Detail Error:", e);

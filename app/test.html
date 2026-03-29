@@ -9,6 +9,25 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+	
+<script type="module">
+    import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers';
+
+    let extractor;
+    // Fungsi inisialisasi model (tanpa token API)
+    async function initModel() {
+        if (!extractor) {
+            extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+        }
+    }
+
+    // Fungsi global agar bisa dipanggil script biasa
+    window.getVector = async (text) => {
+        await initModel();
+        const output = await extractor(text, { pooling: 'mean', normalize: true });
+        return Array.from(output.data);
+    };
+</script>
     
     <style>
         :root {
@@ -246,10 +265,12 @@ body.fade-in {
             </button>
             <div class="search-container">
     <input id="searchInput" placeholder="Cari nama / barcode..." autocomplete="off">
+    
     <button id="scanBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
     </button>
-    <button id="cameraSearchBtn" style="position: absolute; right: 50px; top: 6px; width: 38px; height: 34px; background: #4b5563; color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+
+    <button id="aiSearchBtn" style="position: absolute; right: 50px; top: 6px; width: 38px; height: 34px; background: #4b5563; color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
     </button>
 </div>
@@ -272,109 +293,115 @@ body.fade-in {
 </div>
 
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
-<div id="aiCameraOverlay" style="display:none; position:fixed; inset:0; background:black; z-index:25000; flex-direction:column;">
-    <div style="position:absolute; top:20px; width:100%; text-align:center; color:white; font-weight:bold; z-index:10;">FOTO PRODUK UNTUK CARI</div>
+
+<div id="aiOverlay" style="display:none; position:fixed; inset:0; background:black; z-index:40000; flex-direction:column;">
+    <div style="position:absolute; top:40px; width:100%; text-align:center; color:white; font-weight:bold; z-index:10;">MMS-X AI VISION</div>
     <video id="aiVideo" style="width:100%; height:100%; object-fit:cover;" autoplay playsinline></video>
     <canvas id="aiCanvas" style="display:none;"></canvas>
     
-    <div style="position:absolute; bottom:40px; width:100%; display:flex; justify-content:center; gap:20px; align-items:center;">
-        <button onclick="closeAiCamera()" style="background:rgba(255,255,255,0.2); border:none; color:white; padding:15px; border-radius:50%; width:60px; height:60px;">X</button>
-        <div onclick="captureAiImage()" style="width:80px; height:80px; border-radius:50%; border:5px solid white; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+    <div style="position:absolute; bottom:50px; width:100%; display:flex; justify-content:center; gap:30px; align-items:center;">
+        <button onclick="closeAi()" style="background:rgba(255,255,255,0.2); border:none; color:white; width:60px; height:60px; border-radius:50%;">✕</button>
+        <div onclick="captureAi()" style="width:80px; height:80px; border-radius:50%; border:5px solid white; display:flex; align-items:center; justify-content:center;">
             <div style="width:60px; height:60px; background:white; border-radius:50%;"></div>
         </div>
-        <div style="width:60px;"></div> </div>
+        <div style="width:60px;"></div>
+    </div>
 
-    <div id="aiLoading" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.7); flex-direction:column; align-items:center; justify-content:center; color:white; z-index:20;">
-        <div style="border:4px solid #f3f3f3; border-top:4px solid var(--miniso-red); border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite;"></div>
-        <p style="margin-top:15px; font-weight:bold;">AI Mengenali Barang...</p>
+    <div id="aiLoading" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.85); flex-direction:column; align-items:center; justify-content:center; color:white; z-index:50;">
+        <div class="spinner" style="border:4px solid #f3f3f3; border-top:4px solid #e61523; border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite;"></div>
+        <p id="aiStatus" style="margin-top:15px; font-weight:bold;">Menyiapkan AI...</p>
     </div>
 </div>
 
 <script>
 
-// --- FITUR PENCARIAN FOTO AI ---
-const cameraSearchBtn = document.getElementById('cameraSearchBtn');
-const aiCameraOverlay = document.getElementById('aiCameraOverlay');
-const aiVideo = document.getElementById('aiVideo');
-const aiCanvas = document.getElementById('aiCanvas');
+const GROQ_KEY = "MASUKKAN_KEY_GROQ_ANDA"; // Untuk Vision (Foto -> Teks)
 
-// Ganti dengan API Key milikmu
-const GROQ_KEY = "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"; 
-const HF_TOKEN = "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";
+// 1. Fungsi Cari Pakai Teks (Vektor)
+async function searchByAiText() {
+    const query = document.getElementById('searchInput').value;
+    if (query.length < 3) return;
 
-cameraSearchBtn.onclick = async () => {
-    aiCameraOverlay.style.display = 'flex';
+    showAiLoading("Menganalisis Kata...");
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        aiVideo.srcObject = stream;
-    } catch (err) {
-        alert("Kamera gagal diakses: " + err.message);
-        closeAiCamera();
-    }
-};
-
-function closeAiCamera() {
-    if (aiVideo.srcObject) aiVideo.srcObject.getTracks().forEach(t => t.stop());
-    aiCameraOverlay.style.display = 'none';
+        const vector = await window.getVector(query);
+        const { data, error } = await _supabase.rpc('match_products', {
+            query_embedding: vector,
+            match_threshold: 0.3,
+            match_count: 5
+        });
+        
+        if (data) renderProducts(data); // Fungsi render bawaan MMS-X
+    } catch (e) { console.error(e); }
+    hideAiLoading();
 }
 
-async function captureAiImage() {
-    document.getElementById('aiLoading').style.display = 'flex';
-    
-    // Ambil gambar
-    aiCanvas.width = aiVideo.videoWidth;
-    aiCanvas.height = aiVideo.videoHeight;
-    aiCanvas.getContext('2d').drawImage(aiVideo, 0, 0);
-    const base64Image = aiCanvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+// 2. Fungsi Kamera AI
+document.getElementById('aiSearchBtn').onclick = async () => {
+    document.getElementById('aiOverlay').style.display = 'flex';
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    document.getElementById('aiVideo').srcObject = stream;
+};
+
+async function captureAi() {
+    showAiLoading("AI Sedang Melihat...");
+    const video = document.getElementById('aiVideo');
+    const canvas = document.getElementById('aiCanvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    const base64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
 
     try {
-        // 1. Groq Vision (Identifikasi Barang)
-        // Gunakan Llama-3.2-90b-vision-preview karena 11b sudah decommissioned (berdasarkan error di log)
+        // TAHAP 1: Foto -> Deskripsi (Groq Vision)
         const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
             headers: { "Authorization": `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-                model: "meta-llama/llama-4-scout-17b-16e-instruct",
-                messages: [{
-                    role: "user",
-                    content: [
-                        { type: "text", text: "Sebutkan nama barang, warna, dan jenis produk ini dalam 1 kalimat pendek." },
-                        { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
-                    ]
-                }]
+                model: "llama-3.2-90b-vision-preview",
+                messages: [{ role: "user", content: [
+                    { type: "text", text: "Sebutkan nama barang, warna, dan jenis produk ini dalam 1 kalimat pendek." },
+                    { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64}` } }
+                ]}]
             })
         });
         const groqData = await groqRes.json();
-        const description = groqData.choices[0].message.content;
-        console.log("AI Deskripsi:", description);
+        const desc = groqData.choices[0].message.content;
 
-        // 2. Hugging Face (Vektorisasi)
-        const hfRes = await fetch("https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2", {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${HF_TOKEN}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ inputs: description })
-        });
-        const queryVector = await hfRes.json();
+        // TAHAP 2: Deskripsi -> Vektor (Lokal Transformers.js)
+        showAiLoading("Mencari di Database...");
+        const vector = await window.getVector(desc);
 
-        // 3. Supabase RPC (Cari Kemiripan)
-        const { data: results, error } = await _supabase.rpc('match_products', {
-            query_embedding: queryVector,
+        // TAHAP 3: Vektor -> Hasil (Supabase)
+        const { data } = await _supabase.rpc('match_products', {
+            query_embedding: vector,
             match_threshold: 0.3,
             match_count: 1
         });
 
-        if (results && results.length > 0) {
-            document.getElementById("beepOk").play();
-            closeAiCamera();
-            showDetail(results[0].sku); // Langsung buka detail produk
+        if (data && data.length > 0) {
+            closeAi();
+            showDetail(data[0].sku);
         } else {
-            alert("Barang tidak ditemukan di database.");
+            alert("Barang tidak ditemukan.");
         }
-    } catch (err) {
-        alert("Error AI: " + err.message);
-    } finally {
-        document.getElementById('aiLoading').style.display = 'none';
-    }
+    } catch (e) { alert("Error: " + e.message); }
+    hideAiLoading();
+}
+
+function showAiLoading(msg) {
+    document.getElementById('aiStatus').innerText = msg;
+    document.getElementById('aiLoading').style.display = 'flex';
+}
+
+function hideAiLoading() {
+    document.getElementById('aiLoading').style.display = 'none';
+}
+
+function closeAi() {
+    const video = document.getElementById('aiVideo');
+    if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+    document.getElementById('aiOverlay').style.display = 'none';
 }
 
 // --- KODE BARU: OPTIMASI CACHE EGRESS ---

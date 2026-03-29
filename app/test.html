@@ -317,52 +317,58 @@ async function captureAi() {
     const video = document.getElementById('aiVideo');
     const canvas = document.getElementById('aiCanvas');
     
-    // KECILKAN RESOLUSI: Agar tidak "Failed to send" karena gambar keberatan
-    const scale = 0.5; 
-    canvas.width = video.videoWidth * scale;
-    canvas.height = video.videoHeight * scale;
+    // RESOLUSI ASLI: Menggunakan ukuran penuh dari kamera tanpa scale 0.5
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
     
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     
-    // Gunakan kualitas 0.7 agar teks tetap terbaca tapi file ringan
-    const base64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+    // KUALITAS MAKSIMAL: Menggunakan 1.0 agar tidak ada kompresi jpeg
+    const base64 = canvas.toDataURL('image/jpeg', 1.0).split(',')[1];
 
     try {
-        // Ganti URL dengan URL Supabase Project Anda
         const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-vision`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${SUPABASE_KEY}` // PENTING: Gunakan Anon Key Anda
+                'Authorization': `Bearer ${SUPABASE_KEY}`
             },
             body: JSON.stringify({ image: base64 })
         });
 
         if (!response.ok) {
-            const errorText = await response.text();
             throw new Error(`Server Error: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log("AI Mendeteksi:", data.description);
+        const textDescription = data.description; // Simpan deskripsi dari AI
+        console.log("AI Mendeteksi:", textDescription);
 
-        // Di dalam file test (10).html, cari bagian ini:
-if (products && products.length > 0) {
-    closeAi();
-    // Gunakan .sku karena di tabel product_vector kolomnya bernama 'sku'
-    showDetail(products[0].sku); 
-} else {
-    alert("Produk tidak ditemukan di rak. AI melihat: " + textDescription);
-}
+        // PROSES VEKTOR: Mencari kecocokan di tabel product_vector
+        showAiLoading("Mencari di Database...");
+        const vector = await window.getVector(textDescription);
+
+        const { data: products, error: dbError } = await _supabase.rpc('match_products', {
+            query_embedding: vector,
+            match_threshold: 0.1, // Threshold rendah agar lebih fleksibel
+            match_count: 1
+        });
+
+        if (products && products.length > 0) {
+            closeAi();
+            // Menggunakan .sku sesuai struktur tabel product_vector
+            showDetail(products[0].sku); 
+        } else {
+            alert("Produk tidak ditemukan di rak. AI melihat: " + textDescription);
+        }
 
     } catch (e) {
         console.error("Detail Error:", e);
-        alert("Koneksi Gagal: Coba gunakan koneksi internet lain atau kecilkan resolusi kamera.");
+        alert("Gagal memproses gambar. Pastikan ukuran file tidak melebihi limit Edge Function.");
     }
     hideAiLoading();
 }
-
 function showAiLoading(msg) {
     document.getElementById('aiStatus').innerText = msg;
     document.getElementById('aiLoading').style.display = 'flex';

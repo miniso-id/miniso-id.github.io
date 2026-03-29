@@ -316,32 +316,47 @@ async function captureAi() {
     showAiLoading("AI Sedang Memeriksa Barang...");
     const video = document.getElementById('aiVideo');
     const canvas = document.getElementById('aiCanvas');
-    canvas.width = video.videoWidth / 2;
-    canvas.height = video.videoHeight / 2;
-    canvas.getContext('2d').drawImage(video, 0, 0);
     
-    // Kualitas dikurangi jadi 0.5 agar tidak error non-2xx status code di server
-    const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+    // KECILKAN RESOLUSI: Agar tidak "Failed to send" karena gambar keberatan
+    const scale = 0.5; 
+    canvas.width = video.videoWidth * scale;
+    canvas.height = video.videoHeight * scale;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Gunakan kualitas 0.7 agar teks tetap terbaca tapi file ringan
+    const base64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
 
     try {
-        const { data, error: aiError } = await _supabase.functions.invoke('ai-vision', {
-            body: { image: base64 }
+        // Ganti URL dengan URL Supabase Project Anda
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-vision`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${SUPABASE_KEY}` // PENTING: Gunakan Anon Key Anda
+            },
+            body: JSON.stringify({ image: base64 })
         });
 
-        if (aiError) throw aiError;
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server Error: ${response.status}`);
+        }
 
-        // 2. Tambahkan log ini untuk debug di Console (F12)
+        const data = await response.json();
         console.log("AI Mendeteksi:", data.description);
 
         if (data.product) {
             closeAi();
-            showDetail(data.product.sku); 
+            showDetail(data.product.Barcode); 
         } else {
-            // Berikan informasi apa yang sebenarnya dilihat AI jika tidak ketemu di DB
-            alert("Barang tidak cocok di rak. AI melihat: " + (data.description || "Tidak terdeteksi"));
+            alert("Barang tidak cocok. AI melihat: " + (data.description || "Tidak jelas"));
         }
+
     } catch (e) {
-        alert("Gagal: " + e.message);
+        console.error("Detail Error:", e);
+        alert("Koneksi Gagal: Coba gunakan koneksi internet lain atau kecilkan resolusi kamera.");
     }
     hideAiLoading();
 }

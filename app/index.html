@@ -430,6 +430,17 @@ body.fade-in {
                 <h3>Gallery</h3>
                 <p>Katalog Produk</p>
             </div>
+            <div class="menu-card" id="menuAI" onclick="navigateTo('https://miniso-id.github.io/app/ai.html')" style="display:none;">
+            <div class="icon-box" style="background:#f0f7ff; color:#0070f3;">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M12 7v2m0 6v2m5-5h-2m-6 0H7"></path>
+            </svg>
+            </div>
+            <h3>AI Vision</h3>
+            <p>Beta Intelligence</p>
+            </div>
             <div class="menu-card" onclick="window.location.href='https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=f7dmac9c-8aa0-4f7a-9927-102d6c2b1461'">
                 <div class="icon-box" style="background:#e8f3ff; color:var(--feishu-blue);"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>
                 <h3>Feishu Group</h3>
@@ -612,14 +623,27 @@ document.addEventListener('DOMContentLoaded', updateOnlineStatus);
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     function checkPermissions() {
-        const role = localStorage.getItem('mms_role');
-        const menuSO = document.getElementById('menuSO');
-        const menuGallery = document.getElementById('menuGallery');
-        if (role === 'Administrator') { menuSO.style.display = 'flex'; } 
-        else { menuSO.style.display = 'none'; }
-        if (role === 'Staff') { menuGallery.style.display = 'none'; } 
-        else { menuGallery.style.display = 'flex'; }
+    const role = localStorage.getItem('mms_role');
+    const menuSO = document.getElementById('menuSO');
+    const menuGallery = document.getElementById('menuGallery');
+    const menuAI = document.getElementById('menuAI'); // Ambil element AI
+
+    // Logika Role Administrator
+    if (role === 'Administrator') { 
+        menuSO.style.display = 'flex'; 
+        if(menuAI) menuAI.style.display = 'flex'; // Tampilkan AI hanya untuk Admin
+    } else { 
+        menuSO.style.display = 'none'; 
+        if(menuAI) menuAI.style.display = 'none'; // Sembunyikan untuk role lain
     }
+
+    // Logika Role Staff
+    if (role === 'Staff') { 
+        menuGallery.style.display = 'none'; 
+    } else { 
+        menuGallery.style.display = 'flex'; 
+    }
+}
 
     async function attemptLogin() {
     const role = document.getElementById('loginAs').value;

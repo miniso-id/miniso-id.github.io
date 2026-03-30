@@ -324,16 +324,17 @@ body.fade-in {
     };
 
     async function captureAi() {
-    if (!isAiReady) { alert("Sabar, sistem AI sedang bersiap..."); return; }
-
-    showAiLoading("AI Sedang Menganalisis Visual...");
+    // HAPUS pengecekan isAiReady agar bisa langsung jalan
+    showAiLoading("AI Sedang Memeriksa Barang...");
+    
     const video = document.getElementById('aiVideo');
     const canvas = document.getElementById('aiCanvas');
     
-    // Kompresi Gambar untuk mencegah error 413
+    // Resolusi diperkecil agar pengiriman ke Edge Function cepat
     const scale = 0.5; 
     canvas.width = video.videoWidth * scale;
     canvas.height = video.videoHeight * scale;
+    
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     
@@ -352,28 +353,23 @@ body.fade-in {
         if (!response.ok) throw new Error(`Server Error: ${response.status}`);
 
         const data = await response.json();
-        const textDescription = data.description; // Hasil teks dari AI
-        console.log("AI Deskripsi:", textDescription);
+        const textDescription = data.description; 
+        console.log("AI Mendeteksi:", textDescription);
 
-        // --- PROSES OTOMATIS KE PENCARIAN ---
-        
-        // 1. Masukkan hasil deskripsi AI ke input pencarian
+        // --- SOLUSI: LANGSUNG MASUK KE PENCARIAN ---
         const searchInput = document.getElementById("searchInput");
-        searchInput.value = textDescription;
+        searchInput.value = textDescription; // Isi kolom cari dengan hasil AI
 
-        // 2. Jalankan fungsi search() milikmu untuk memfilter produk
-        search();
-
-        // 3. Tutup overlay kamera AI agar user bisa melihat hasilnya
-        closeAi();
-
+        closeAi(); // Tutup kamera
+        search();  // Jalankan fungsi pencarian otomatis
+        
     } catch (e) {
-        console.error("Error AI Vision:", e);
-        alert("Gagal menganalisis: Periksa koneksi internet.");
+        console.error("Detail Error:", e);
+        alert("Gagal menganalisis gambar. Pastikan koneksi internet stabil.");
     }
     hideAiLoading();
 }
-
+    
     function showAiLoading(msg) {
         document.getElementById('aiStatus').innerText = msg;
         document.getElementById('aiLoading').style.display = 'flex';

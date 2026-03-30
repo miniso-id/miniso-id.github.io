@@ -398,7 +398,7 @@ body.fade-in {
                 <div class="banner-left">
                     <img src="https://miniso-id.github.io/app/user512.png" class="banner-logo-img">
                     <div class="banner-text">
-                        <h2>MMS-X<span class="app-version">v2.2.1 • Cloud</span></h2>
+                        <h2>MMS-X<span class="app-version">v2.2.3 • Cloud</span></h2>
                         <p>User: <span id="displayUsername">Guest</span></p>
                     </div>
                 </div>
@@ -769,6 +769,8 @@ const translations = {
         offTitle: "Koneksi Terputus",
         offDesc: "MMS-X memerlukan internet. Menu telah dinonaktifkan hingga kamu terhubung kembali.",
         helpBtn: "BANTUAN LOGIN (GRUP FEISHU)", // Tambahan
+        aiTitle: "AI Vision",
+        aiDesc: "Kecerdasan Beta",
         verBtn: "PERBARUI"
     },
     en: {
@@ -798,6 +800,8 @@ const translations = {
         offTitle: "Connection Lost",
         offDesc: "MMS-X requires internet. Menu has been disabled until you are reconnected.",
         helpBtn: "LOGIN HELP (FEISHU GROUP)", // Tambahan
+        aiTitle: "AI Vision",
+        aiDesc: "Beta Intelligence",
         verBtn: "UPDATE NOW"
     },
     cn: {
@@ -827,6 +831,8 @@ const translations = {
         offTitle: "连接已断开",
         offDesc: "MMS-X 需要互联网连接。菜单已禁用，直到您重新连接。",
         helpBtn: "登录帮助 (飞书群)", // Tambahan
+        aiTitle: "AI 视觉",
+        aiDesc: "测试版智能",
         verBtn: "立即更新"
     }
 };
@@ -835,6 +841,12 @@ const translations = {
 function applyLanguage(lang) {
     const t = translations[lang];
     localStorage.setItem('mms_lang', lang);
+    // Di dalam fungsi applyLanguage(lang)
+const menuAI = document.getElementById('menuAI');
+if(menuAI) {
+    menuAI.querySelector('h3').innerText = t.aiTitle;
+    menuAI.querySelector('p').innerText = t.aiDesc;
+}
 
     // Update Bagian Login
     document.querySelector('.login-title').innerText = t.loginTitle;

@@ -192,6 +192,10 @@ body.fade-in {
 
         .floating-back { position: fixed; top: calc(25px + env(safe-area-inset-top)); left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 9999; cursor: pointer; border: 1px solid #eee; }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
     </style>
 </head>
 <body>
@@ -245,11 +249,21 @@ body.fade-in {
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             <div class="search-container">
-                <input id="searchInput" placeholder="Cari nama / barcode..." autocomplete="off">
-                <button id="scanBtn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                </button>
-            </div>
+    <input id="searchInput" placeholder="Cari nama / barcode..." autocomplete="off">
+    
+    <button id="scanBtn">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+    </button>
+
+    <button id="aiSearchBtn" style="position: absolute; right: 50px; top: 4px; width: 42px; height: 38px; background: #4b5563; color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+        <text x="50%" y="18" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="13px" letter-spacing="-0.5">AI</text>
+        
+        <path d="M21 6l-1.2 1.2l-1.2-1.2l1.2-1.2z" />
+        <path d="M18 3l-.8.8l-.8-.8l.8-.8z" />
+    </svg>
+</button>
+</div>
         </div>
         <div id="catFilterContainer">
             <div class="cat-chip active" onclick="filterCat('All', this)">All</div>
@@ -269,6 +283,25 @@ body.fade-in {
 </div>
 
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
+
+<div id="aiOverlay" style="display:none; position:fixed; inset:0; background:black; z-index:40000; flex-direction:column;">
+    <div style="position:absolute; top:40px; width:100%; text-align:center; color:white; font-weight:bold; z-index:10;">MMS-X AI VISION</div>
+    <video id="aiVideo" style="width:100%; height:100%; object-fit:cover;" autoplay playsinline></video>
+    <canvas id="aiCanvas" style="display:none;"></canvas>
+    
+    <div style="position:absolute; bottom:50px; width:100%; display:flex; justify-content:center; gap:30px; align-items:center;">
+        <button onclick="closeAi()" style="background:rgba(255,255,255,0.2); border:none; color:white; width:60px; height:60px; border-radius:50%;">✕</button>
+        <div onclick="captureAi()" style="width:80px; height:80px; border-radius:50%; border:5px solid white; display:flex; align-items:center; justify-content:center; cursor: pointer;">
+            <div style="width:60px; height:60px; background:white; border-radius:50%;"></div>
+        </div>
+        <div style="width:60px;"></div>
+    </div>
+
+    <div id="aiLoading" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.85); flex-direction:column; align-items:center; justify-content:center; color:white; z-index:50;">
+        <div class="spinner" style="border:4px solid #f3f3f3; border-top:4px solid var(--miniso-red); border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite;"></div>
+        <p id="aiStatus" style="margin-top:15px; font-weight:bold;">Menyiapkan AI...</p>
+    </div>
+</div>
 
 <script>
 
@@ -707,6 +740,83 @@ async function showDetail(fullBarcode) {
         document.getElementById("listContainer").style.display = "grid";
         document.getElementById("btnBackFloating").style.display = "none";
         document.getElementById("scrollContainer").scrollTop = lastScroll;
+    }
+
+// --- FUNGSI AI VISION (Direct to Edge Function) ---
+
+// Buka Kamera AI
+document.getElementById('aiSearchBtn').onclick = async () => {
+    document.getElementById('aiOverlay').style.display = 'flex';
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        document.getElementById('aiVideo').srcObject = stream;
+    } catch (err) {
+        alert("Gagal mengakses kamera: " + err.message);
+        closeAi();
+    }
+};
+
+// Ambil Gambar dan Kirim ke Edge Function
+async function captureAi() {
+    // HAPUS pengecekan isAiReady agar bisa langsung jalan
+    showAiLoading("AI Sedang Memeriksa Barang...");
+    
+    const video = document.getElementById('aiVideo');
+    const canvas = document.getElementById('aiCanvas');
+    
+    // Resolusi diperkecil agar pengiriman ke Edge Function cepat
+    const scale = 0.5; 
+    canvas.width = video.videoWidth * scale;
+    canvas.height = video.videoHeight * scale;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    const base64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+
+    try {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-vision`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${SUPABASE_KEY}`
+            },
+            body: JSON.stringify({ image: base64 })
+        });
+
+        if (!response.ok) throw new Error(`Server Error: ${response.status}`);
+
+        const data = await response.json();
+        const textDescription = data.description; 
+        console.log("AI Mendeteksi:", textDescription);
+
+        // --- SOLUSI: LANGSUNG MASUK KE PENCARIAN ---
+        const searchInput = document.getElementById("searchInput");
+        searchInput.value = textDescription; // Isi kolom cari dengan hasil AI
+
+        closeAi(); // Tutup kamera
+        search();  // Jalankan fungsi pencarian otomatis
+        
+    } catch (e) {
+        console.error("Detail Error:", e);
+        alert("Gagal menganalisis gambar. Pastikan koneksi internet stabil.");
+    }
+    hideAiLoading();
+}
+    
+    function showAiLoading(msg) {
+        document.getElementById('aiStatus').innerText = msg;
+        document.getElementById('aiLoading').style.display = 'flex';
+    }
+
+    function hideAiLoading() {
+        document.getElementById('aiLoading').style.display = 'none';
+    }
+
+    function closeAi() {
+        const video = document.getElementById('aiVideo');
+        if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+        document.getElementById('aiOverlay').style.display = 'none';
     }
 </script>
 

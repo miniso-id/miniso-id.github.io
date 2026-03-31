@@ -248,24 +248,21 @@ body.fade-in {
             <button onclick="toggleSidebar()" style="background:none; border:none; padding:10px 5px; cursor:pointer;">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
- <div class="search-container" style="position: relative; display: flex; align-items: center;">
+            <div class="search-container">
     <input id="searchInput" placeholder="Cari nama / barcode..." autocomplete="off">
     
-    <button id="aiSearchBtn" style="position: absolute; right: 48px; top: 50%; transform: translateY(-50%); width: 38px; height: 34px; background: #4b5563; color: white; border: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
-            <text x="45%" y="17" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="12px" letter-spacing="-0.5">AI</text>
-            <path d="M21 7l-1.2 1.2l-1.2-1.2l1.2-1.2z" />
-            <path d="M18 4l-.7.7l-.7-.7l.7-.7z" />
-        </svg>
+    <button id="scanBtn">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
     </button>
 
-    <button id="scanBtn" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path>
-            <line x1="8" y1="12" x2="16" y2="12"></line>
-        </svg>
-    </button>
-</div>
+    <button id="aiSearchBtn" style="position: absolute; right: 50px; top: 4px; width: 42px; height: 38px; background: #4b5563; color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+        <text x="50%" y="18" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="13px" letter-spacing="-0.5">AI</text>
+        
+        <path d="M21 6l-1.2 1.2l-1.2-1.2l1.2-1.2z" />
+        <path d="M18 3l-.8.8l-.8-.8l.8-.8z" />
+    </svg>
+</button>
 </div>
         </div>
         <div id="catFilterContainer">

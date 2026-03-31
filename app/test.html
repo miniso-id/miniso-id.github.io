@@ -737,32 +737,12 @@ async function showDetail(fullBarcode) {
         document.getElementById("scrollContainer").scrollTop = lastScroll;
     }
 
-// --- FUNGSI AI VISION ---
-let isAiReady = false;
-let getVector = null;
-
-// Inisialisasi Model AI (Transformers)
-async function initAiModel() {
-    try {
-        const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');
-        const extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-        getVector = async (text) => {
-            const output = await extractor(text, { pooling: 'mean', normalize: true });
-            return Array.from(output.data);
-        };
-        isAiReady = true;
-        console.log("Model AI Berhasil Dimuat");
-    } catch (e) { 
-        console.error("Gagal inisialisasi model AI:", e); 
-    }
-}
-initAiModel();
+// --- FUNGSI AI VISION (Direct to Edge Function) ---
 
 // Buka Kamera AI
 document.getElementById('aiSearchBtn').onclick = async () => {
     document.getElementById('aiOverlay').style.display = 'flex';
     try {
-        // Menggunakan kamera belakang (environment)
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
         document.getElementById('aiVideo').srcObject = stream;
     } catch (err) {
@@ -778,7 +758,7 @@ async function captureAi() {
     const video = document.getElementById('aiVideo');
     const canvas = document.getElementById('aiCanvas');
     
-    // Resolusi diperkecil agar pengiriman ke Edge Function cepat
+    // Resolusi diperkecil agar pengiriman base64 ke Edge Function lebih cepat
     const scale = 0.5; 
     canvas.width = video.videoWidth * scale;
     canvas.height = video.videoHeight * scale;
@@ -789,11 +769,12 @@ async function captureAi() {
     const base64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
 
     try {
+        // Langsung tembak ke Edge Function
         const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-vision`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${SUPABASE_KEY}` // Menggunakan kunci yang sudah ada
+                'Authorization': `Bearer ${SUPABASE_KEY}` 
             },
             body: JSON.stringify({ image: base64 })
         });
@@ -804,7 +785,7 @@ async function captureAi() {
         const textDescription = data.description; 
         console.log("AI Mendeteksi:", textDescription);
 
-        // Isi kolom pencarian dengan hasil AI dan jalankan search
+        // Isi input pencarian dan otomatis jalankan pencarian
         const searchInput = document.getElementById("searchInput");
         searchInput.value = textDescription; 
 

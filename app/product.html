@@ -196,6 +196,8 @@ body.fade-in {
 </head>
 <body>
 
+<canvas id="aiCanvas" style="display:none;"></canvas>
+
 <div id="page-loader" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:30000; align-items:center; justify-content:center; backdrop-filter:blur(2px);">
     <div class="spinner" style="border-top-color: var(--miniso-red); width: 40px; height: 40px; border-width: 4px;"></div>
 </div>
@@ -257,7 +259,12 @@ body.fade-in {
         <div id="reader">
     <video id="videoElement"></video>
     <div class="focus-guide"></div>
-    <div class="scan-line"></div> <div class="tap-hint">ARAHKAN BARCODE KE TENGAH KOTAK</div>
+    <div class="scan-line"></div> 
+    <div class="tap-hint">ARAHKAN BARCODE KE TENGAH KOTAK</div>
+    
+    <button id="aiIdentifyBtn" style="position:absolute; bottom:40px; left:50%; transform:translateX(-50%); background:white; color:var(--miniso-red); border:none; padding:10px 20px; border-radius:20px; font-weight:800; font-size:12px; z-index:10; box-shadow:0 4px 10px rgba(0,0,0,0.3);">
+        IDENTIFIKASI AI
+    </button>
 </div>
         <div id="cameraControl"><select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select></div>
     </header>
@@ -438,6 +445,60 @@ if(localStorage.getItem('mms_auth') === 'true') {
     }
 
     document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 400); };
+
+    // Fungsi untuk menangkap gambar dan identifikasi
+async function captureAndIdentify() {
+    const video = document.getElementById('videoElement');
+    const canvas = document.getElementById('aiCanvas');
+    const btn = document.getElementById('aiIdentifyBtn');
+    
+    if (!video.srcObject) return;
+
+    // 1. Ambil frame dari video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    
+    // 2. Convert ke Base64 (tanpa prefix untuk Gemini/Groq)
+    const imageData = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+    
+    const originalText = btn.innerText;
+    btn.innerText = "MENGIDENTIFIKASI...";
+    btn.disabled = true;
+
+    try {
+        // Ganti URL ini dengan URL Edge Function Anda (Groq/Gemini/OpenAI)
+        const response = await fetch("https://[YOUR_PROJECT_REF].supabase.co/functions/v1/identify-product", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image: imageData })
+        });
+
+        const result = await response.json();
+        const productName = result.description || "Unknown Product";
+
+        if (productName !== "Unknown Product") {
+            // 3. Integrasi ke fitur pencarian MMS-X yang sudah ada
+            stopScan(); 
+            document.getElementById("searchInput").value = productName;
+            search(); // Memanggil fungsi search() asli di product.html
+        } else {
+            alert("Produk tidak dikenali");
+        }
+    } catch (err) {
+        console.error("AI Error:", err);
+        alert("Gagal mengidentifikasi produk");
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
+}
+
+// Pasang event listener
+document.getElementById('aiIdentifyBtn').onclick = (e) => {
+    e.stopPropagation(); // Agar tidak memicu fokus manual
+    captureAndIdentify();
+};
 
     async function search() {
         const q = document.getElementById("searchInput").value.trim();

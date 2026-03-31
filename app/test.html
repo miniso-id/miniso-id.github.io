@@ -753,12 +753,13 @@ document.getElementById('aiSearchBtn').onclick = async () => {
 
 // Ambil Gambar dan Kirim ke Edge Function
 async function captureAi() {
+    // HAPUS pengecekan isAiReady agar bisa langsung jalan
     showAiLoading("AI Sedang Memeriksa Barang...");
     
     const video = document.getElementById('aiVideo');
     const canvas = document.getElementById('aiCanvas');
     
-    // Resolusi diperkecil agar pengiriman base64 ke Edge Function lebih cepat
+    // Resolusi diperkecil agar pengiriman ke Edge Function cepat
     const scale = 0.5; 
     canvas.width = video.videoWidth * scale;
     canvas.height = video.videoHeight * scale;
@@ -769,12 +770,11 @@ async function captureAi() {
     const base64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
 
     try {
-        // Langsung tembak ke Edge Function
         const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-vision`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${SUPABASE_KEY}` 
+                'Authorization': `Bearer ${SUPABASE_KEY}`
             },
             body: JSON.stringify({ image: base64 })
         });
@@ -785,12 +785,12 @@ async function captureAi() {
         const textDescription = data.description; 
         console.log("AI Mendeteksi:", textDescription);
 
-        // Isi input pencarian dan otomatis jalankan pencarian
+        // --- SOLUSI: LANGSUNG MASUK KE PENCARIAN ---
         const searchInput = document.getElementById("searchInput");
-        searchInput.value = textDescription; 
+        searchInput.value = textDescription; // Isi kolom cari dengan hasil AI
 
-        closeAi(); 
-        search();  
+        closeAi(); // Tutup kamera
+        search();  // Jalankan fungsi pencarian otomatis
         
     } catch (e) {
         console.error("Detail Error:", e);
@@ -799,22 +799,20 @@ async function captureAi() {
     hideAiLoading();
 }
     
-function showAiLoading(msg) {
-    document.getElementById('aiStatus').innerText = msg;
-    document.getElementById('aiLoading').style.display = 'flex';
-}
-
-function hideAiLoading() {
-    document.getElementById('aiLoading').style.display = 'none';
-}
-
-function closeAi() {
-    const video = document.getElementById('aiVideo');
-    if (video.srcObject) {
-        video.srcObject.getTracks().forEach(t => t.stop());
+    function showAiLoading(msg) {
+        document.getElementById('aiStatus').innerText = msg;
+        document.getElementById('aiLoading').style.display = 'flex';
     }
-    document.getElementById('aiOverlay').style.display = 'none';
-}
+
+    function hideAiLoading() {
+        document.getElementById('aiLoading').style.display = 'none';
+    }
+
+    function closeAi() {
+        const video = document.getElementById('aiVideo');
+        if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+        document.getElementById('aiOverlay').style.display = 'none';
+    }
 </script>
 
 <script>

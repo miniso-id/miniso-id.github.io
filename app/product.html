@@ -126,7 +126,29 @@ body.fade-in {
         }
         .top-bar { display: flex; gap: 10px; align-items: center; max-width: 1200px; margin-inline: auto; width: 100%; }
         .search-container { position: relative; flex: 1; }
-        #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
+        /* Update di bagian <style> */
+#searchInput {
+    padding-right: 95px !important; /* Memberi ruang untuk 2 tombol di kanan */
+}
+
+#aiBtn {
+    position: absolute;
+    right: 52px; /* Di sebelah kiri tombol scan */
+    top: 50%;
+    transform: translateY(-50%);
+    width: 38px;
+    height: 34px;
+    border: none;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 5;
+}
+
+#aiBtn:active { transform: translateY(-50%) scale(0.9); }
         #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
         #catFilterContainer { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 4px 0; scrollbar-width: none; width: 100%; }
@@ -196,8 +218,6 @@ body.fade-in {
 </head>
 <body>
 
-<canvas id="aiCanvas" style="display:none;"></canvas>
-
 <div id="page-loader" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:30000; align-items:center; justify-content:center; backdrop-filter:blur(2px);">
     <div class="spinner" style="border-top-color: var(--miniso-red); width: 40px; height: 40px; border-width: 4px;"></div>
 </div>
@@ -247,24 +267,25 @@ body.fade-in {
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             <div class="search-container">
-                <input id="searchInput" placeholder="Cari nama / barcode..." autocomplete="off">
-                <button id="scanBtn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                </button>
-            </div>
-        </div>
+    <input id="searchInput" placeholder="Cari nama / barcode..." autocomplete="off">
+    
+    <button id="aiBtn" title="Identifikasi AI" style="right: 50px; background: #4a90e2; color: white;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+    
+    <button id="scanBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+    </button>
+</div>
+
+<canvas id="aiCanvas" style="display:none;"></canvas>
         <div id="catFilterContainer">
             <div class="cat-chip active" onclick="filterCat('All', this)">All</div>
         </div>
         <div id="reader">
     <video id="videoElement"></video>
     <div class="focus-guide"></div>
-    <div class="scan-line"></div> 
-    <div class="tap-hint">ARAHKAN BARCODE KE TENGAH KOTAK</div>
-    
-    <button id="aiIdentifyBtn" style="position:absolute; bottom:40px; left:50%; transform:translateX(-50%); background:white; color:var(--miniso-red); border:none; padding:10px 20px; border-radius:20px; font-weight:800; font-size:12px; z-index:10; box-shadow:0 4px 10px rgba(0,0,0,0.3);">
-        IDENTIFIKASI AI
-    </button>
+    <div class="scan-line"></div> <div class="tap-hint">ARAHKAN BARCODE KE TENGAH KOTAK</div>
 </div>
         <div id="cameraControl"><select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select></div>
     </header>
@@ -445,60 +466,6 @@ if(localStorage.getItem('mms_auth') === 'true') {
     }
 
     document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 400); };
-
-    // Fungsi untuk menangkap gambar dan identifikasi
-async function captureAndIdentify() {
-    const video = document.getElementById('videoElement');
-    const canvas = document.getElementById('aiCanvas');
-    const btn = document.getElementById('aiIdentifyBtn');
-    
-    if (!video.srcObject) return;
-
-    // 1. Ambil frame dari video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
-    
-    // 2. Convert ke Base64 (tanpa prefix untuk Gemini/Groq)
-    const imageData = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
-    
-    const originalText = btn.innerText;
-    btn.innerText = "MENGIDENTIFIKASI...";
-    btn.disabled = true;
-
-    try {
-        // Ganti URL ini dengan URL Edge Function Anda (Groq/Gemini/OpenAI)
-        const response = await fetch("https://[YOUR_PROJECT_REF].supabase.co/functions/v1/identify-product", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ image: imageData })
-        });
-
-        const result = await response.json();
-        const productName = result.description || "Unknown Product";
-
-        if (productName !== "Unknown Product") {
-            // 3. Integrasi ke fitur pencarian MMS-X yang sudah ada
-            stopScan(); 
-            document.getElementById("searchInput").value = productName;
-            search(); // Memanggil fungsi search() asli di product.html
-        } else {
-            alert("Produk tidak dikenali");
-        }
-    } catch (err) {
-        console.error("AI Error:", err);
-        alert("Gagal mengidentifikasi produk");
-    } finally {
-        btn.innerText = originalText;
-        btn.disabled = false;
-    }
-}
-
-// Pasang event listener
-document.getElementById('aiIdentifyBtn').onclick = (e) => {
-    e.stopPropagation(); // Agar tidak memicu fokus manual
-    captureAndIdentify();
-};
 
     async function search() {
         const q = document.getElementById("searchInput").value.trim();
@@ -769,6 +736,60 @@ async function showDetail(fullBarcode) {
         document.getElementById("btnBackFloating").style.display = "none";
         document.getElementById("scrollContainer").scrollTop = lastScroll;
     }
+
+document.getElementById('aiBtn').addEventListener('click', async () => {
+    const video = document.getElementById('videoElement');
+    const canvas = document.getElementById('aiCanvas');
+    const btn = document.getElementById('aiBtn');
+    
+    // Validasi: AI hanya bekerja jika kamera scanner sedang aktif
+    if (!scanning) {
+        alert("Aktifkan kamera (klik tombol scan merah) terlebih dahulu.");
+        return;
+    }
+
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = `<span style="font-size:10px;">...</span>`;
+    btn.disabled = true;
+
+    try {
+        // 1. Ambil gambar dari stream video yang sedang berjalan
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        
+        // 2. Convert ke Base64 (tanpa header metadata)
+        const imageData = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+
+        // 3. Kirim ke Edge Function Supabase (Sesuai ai.html)
+        const response = await fetch("https://uesupubktkxfjsylcwwr.supabase.co/functions/v1/identify-product", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image: imageData })
+        });
+
+        const result = await response.json();
+        const productName = result.description || "Unknown Product";
+
+        if (productName !== "Unknown Product") {
+            // Masukkan hasil ke kolom pencarian dan jalankan fungsi search() asli MMS-X
+            document.getElementById("searchInput").value = productName;
+            search(); 
+            
+            // Opsional: Tutup scanner setelah identifikasi berhasil
+            // stopScan();
+        } else {
+            alert("Produk tidak dikenali.");
+        }
+    } catch (err) {
+        console.error("AI Error:", err);
+        alert("Gagal koneksi ke AI.");
+    } finally {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+    }
+});
+    
 </script>
 
 <script>

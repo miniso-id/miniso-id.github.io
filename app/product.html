@@ -483,7 +483,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
         }
 
         // OPTIMASI EGRESS: Pilih kolom yang dibutuhkan saja dan limit lebih kecil (10)
-        let query = _supabase.from('export').select('Barcode, Name, Category, Detail Category, Image');
+        let query = _supabase.from('export').select('Barcode, Name, Category, "Detail Category", Image');
         
         if (currentCategory !== 'All') query = query.eq('Category', currentCategory);
         

@@ -156,6 +156,24 @@ body.fade-in {
     background: var(--miniso-red);
     transform: scale(0.95);
 }
+
+/* Pastikan tombol floating muncul di atas scanner fullscreen */
+#reader .btnBackFloating {
+    position: absolute;
+    top: 25px;
+    left: 20px;
+    z-index: 10005; /* Harus lebih tinggi dari z-index #reader */
+    background: #ffffff;
+    display: flex !important; /* Memastikan ikon di tengah */
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* Pastikan warna ikon di dalamnya merah */
+#reader .btnBackFloating i {
+    color: var(--miniso-red) !important;
+}
 .focus-guide::before { top: -3px; left: -3px; border-right: 0; border-bottom: 0; border-top-left-radius: 12px; }
 .focus-guide::after { bottom: -3px; right: -3px; border-left: 0; border-top: 0; border-bottom-right-radius: 12px; }
 .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; }
@@ -235,13 +253,14 @@ body.fade-in {
                 </button>
             </div>
         </div>
-        <div id="reader">
-	<button class="back-scanner-btn" onclick="stopScan()">
+<div id="reader">
+    <div class="btnBackFloating" onclick="stopScan()" style="display: flex !important;">
         <i class="fas fa-arrow-left"></i>
-    </button>
+    </div>
+    
     <video id="videoElement"></video>
     <div class="focus-guide"></div>
-<div class="tap-hint">ARAHKAN BARCODE KE TENGAH KOTAK</div>
+    <div class="tap-hint">ARAHKAN BARCODE KE TENGAH KOTAK</div>
 </div>
         <div id="cameraControl"><select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select></div>
     </header>

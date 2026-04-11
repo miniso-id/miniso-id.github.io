@@ -39,23 +39,19 @@ body.fade-in {
 
 /* Kotak Fokus yang Lebih Responsif */
 .focus-guide {
-    position: fixed; /* Wajib fixed untuk fullscreen */
+    position: fixed !important;
     top: 50% !important;
     left: 50% !important;
-    transform: translate(-50%, -50%) !important; /* Menarik elemen ke tengah dirinya sendiri */
-    width: 280px; /* Atur lebar kotak sesuai kebutuhan */
-    height: 180px; /* Atur tinggi kotak sesuai kebutuhan */
-    border: 3px solid var(--miniso-red);
-    border-radius: 15px;
-    z-index: 10001; 
-    pointer-events: none;
-    
-    /* Hapus bayangan luar jika mengganggu, atau gunakan ini untuk efek gelap */
-    box-shadow: 0 0 0 1000vmax rgba(0, 0, 0, 0.5); 
-    
-    /* Hapus properti di bawah ini jika masih ada di kode lama Anda */
-    inset: unset !important; 
-    margin: 0 !important;
+    width: 260px !important; /* Sesuaikan lebar */
+    height: 160px !important; /* Sesuaikan tinggi */
+    margin-left: -130px !important; /* Setengah dari width (negatif) */
+    margin-top: -80px !important;  /* Setengah dari height (negatif) */
+    border: 3px solid var(--miniso-red) !important;
+    border-radius: 15px !important;
+    z-index: 10001 !important;
+    pointer-events: none !important;
+    box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.5) !important;
+    inset: auto !important; /* Mematikan setelan inset lama */
 }
 
 /* Sudut kotak yang lebih tebal */

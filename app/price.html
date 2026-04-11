@@ -77,7 +77,7 @@ body.fade-in {
     object-fit: cover; 
     
     /* TAMBAHKAN KODE BARU DI SINI */
-    filter: grayscale(1); 
+    filter: grayscale(0); 
     image-rendering: -webkit-optimize-contrast;
 }
 
@@ -125,6 +125,30 @@ body.fade-in {
 /* Sudut kotak yang tebal */
 .focus-guide::before, .focus-guide::after {
     content: ""; position: absolute; width: 25px; height: 25px; border: 5px solid var(--miniso-red);
+}
+
+.back-scanner-btn {
+    position: absolute;
+    top: env(safe-area-inset-top, 20px); /* Menyesuaikan poni layar/status bar */
+    left: 20px;
+    z-index: 10005; /* Harus sangat tinggi agar di atas video & focus guide */
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 10px 18px;
+    border-radius: 50px;
+    font-size: 14px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    backdrop-filter: blur(5px);
+    cursor: pointer;
+}
+
+.back-scanner-btn:active {
+    background: var(--miniso-red);
+    transform: scale(0.95);
 }
 .focus-guide::before { top: -3px; left: -3px; border-right: 0; border-bottom: 0; border-top-left-radius: 12px; }
 .focus-guide::after { bottom: -3px; right: -3px; border-left: 0; border-top: 0; border-bottom-right-radius: 12px; }
@@ -206,6 +230,9 @@ body.fade-in {
             </div>
         </div>
         <div id="reader">
+		<button class="back-scanner-btn" onclick="stopScan()">
+        <i class="fas fa-arrow-left"></i> Kembali
+    </button>
     <video id="videoElement"></video>
     <div class="focus-guide"></div>
 <div class="tap-hint">ARAHKAN BARCODE KE TENGAH KOTAK</div>

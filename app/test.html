@@ -748,7 +748,14 @@ async function showDetail(fullBarcode) {
 document.getElementById('aiSearchBtn').onclick = async () => {
     document.getElementById('aiOverlay').style.display = 'flex';
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                facingMode: "environment",
+                focusMode: { ideal: "continuous" },
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            } 
+        });
         document.getElementById('aiVideo').srcObject = stream;
     } catch (err) {
         alert("Gagal mengakses kamera: " + err.message);

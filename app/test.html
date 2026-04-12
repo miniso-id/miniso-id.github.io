@@ -434,6 +434,7 @@ const checkOCR = async () => {
         ctx.scale(scale, scale);
         
         // Efek "Biner": Hitam Putih Pekat (Paling disukai Tesseract)
+        ctx.imageSmoothingEnabled = false;
         ctx.filter = 'threshold(150) grayscale(1)'; 
         ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 

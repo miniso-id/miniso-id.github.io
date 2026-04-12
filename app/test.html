@@ -134,22 +134,40 @@ body.fade-in {
         .cat-chip { padding: 8px 16px; background: #f0f0f0; border-radius: 20px; font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; border: 1px solid transparent; transition: 0.2s; flex-shrink: 0; text-transform: uppercase; }
         .cat-chip.active { background: var(--miniso-red); color: white; }
 
-        #reader { 
-            display:none; width:100%; max-width:340px; aspect-ratio:1/1; 
-            margin:15px auto; background:#000; border-radius:20px; 
-            overflow:hidden; position:relative; border: 4px solid white; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
-        }
-        #reader video { 
+        /* --- SCANNER FULLSCREEN MODE --- */
+#reader { 
+    display: none; 
+    position: fixed; /* Menjadikan posisi menempel pada layar */
+    top: 0; 
+    left: 0; 
+    width: 100vw; 
+    height: 100vh; 
+    background: #000; 
+    z-index: 15000; /* Di atas header dan elemen lainnya */
+    overflow: hidden; 
+}
+
+#reader video { 
     width: 100%; 
     height: 100%; 
-    object-fit: cover; 
-    
-    /* TAMBAHKAN KODE BARU DI SINI */
-    filter: contrast(1.4) brightness(1.2) saturate(0); 
-    image-rendering: crisp-edges;
+    object-fit: cover; /* Video akan memenuhi layar tanpa distorsi */
+    filter: contrast(1.2) brightness(1.1); /* Sedikit tweak untuk akurasi */
 }
-        .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
+
+/* Penyesuaian Focus Guide agar tetap di tengah saat fullscreen */
+.focus-guide { 
+    position: absolute; 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(-50%, -50%); /* Menjaga kotak tepat di tengah */
+    width: 80%; 
+    max-width: 400px; 
+    height: 250px; 
+    border: 2px solid rgba(255, 255, 255, 0.5); 
+    border-radius: 20px; 
+    z-index: 2; 
+    box-shadow: 0 0 0 1000px rgba(0,0,0,0.6); /* Efek lubang di tengah */
+}
         .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; }
         #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
 
@@ -268,10 +286,13 @@ body.fade-in {
         <div id="catFilterContainer">
             <div class="cat-chip active" onclick="filterCat('All', this)">All</div>
         </div>
-        <div id="reader">
+<div id="reader">
     <video id="videoElement"></video>
     <div class="focus-guide"></div>
-    <div class="scan-line"></div> <div class="tap-hint">ARAHKAN BARCODE KE TENGAH KOTAK</div>
+    <div class="scan-line"></div> 
+    <div class="tap-hint">ARAHKAN BARCODE KE TENGAH KOTAK</div>
+    
+    <button onclick="stopScan()" style="position: absolute; top: 40px; right: 20px; background: rgba(0,0,0,0.5); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; font-size: 20px; z-index: 10;">✕</button>
 </div>
         <div id="cameraControl"><select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select></div>
     </header>
@@ -514,6 +535,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
     async function startScan(deviceId = null) {
         scanning = true; 
         document.getElementById("reader").style.display = "block";
+        document.body.style.overflow = "hidden";
         
         const hints = new Map();
         const formats = [
@@ -631,7 +653,8 @@ if(localStorage.getItem('mms_auth') === 'true') {
         codeReader.reset(); 
         scanning = false; 
         document.getElementById("reader").style.display = "none"; 
-        document.getElementById("cameraControl").style.display = "none"; 
+        document.getElementById("cameraControl").style.display = "none";
+        document.body.style.overflow = "auto";
     }
 
     async function onDetected(code) {
@@ -767,7 +790,7 @@ const capabilities = track.getCapabilities();
 // Jika HP mendukung zoom, kita set ke 2x (agar barcode kecil terlihat besar)
 if (capabilities.zoom) {
     track.applyConstraints({
-        advanced: [{ zoom: 2.0 }] 
+        advanced: [{ zoom: 1.0 }] 
     });
 }
         
@@ -798,7 +821,7 @@ async function captureAi() {
     const base64 = canvas.toDataURL('image/jpeg', 1.0).split(',')[1];
 
     try {
-        const response = await fetch(`${SUPABASE_URL}/functions/v1/OCR-Vision`, {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-vision`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

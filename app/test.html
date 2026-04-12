@@ -389,55 +389,56 @@ async function startScan(deviceId = null) {
         // ==========================================
         // TAMBAHAN LOGIKA HYBRID OCR (TIDAK MERUBAH ATAS)
         // ==========================================
-        if (!ocrWorker) {
+if (!ocrWorker) {
     ocrWorker = await Tesseract.createWorker('eng');
-    // Tambahkan ini:
     await ocrWorker.setParameters({
-        tessedit_char_whitelist: '0123456789',
-        tessedit_pageseg_mode: '7', // Mode '7' artinya menganggap gambar sebagai satu baris teks tunggal (Sangat Cepat)
+        tessedit_char_whitelist: '0123456789', // Hanya angka
+        tessedit_pageseg_mode: '7',           // Anggap cuma 1 baris (Sangat Cepat)
+        tessjs_create_hocr: '0',              // Matikan fitur tambahan biar enteng
+        tessjs_create_tsv: '0',
     });
 }
-
-        const canvas = document.createElement('canvas');
-let frameCounter = 0;
+        
+const canvas = document.createElement('canvas');
 let isProcessingOCR = false;
 
 const checkOCR = async () => {
-    // Kunci agar tidak terjadi tumpukan proses (Memory Leak)
+    // Kunci proses: Jangan terima frame baru kalau yang lama belum selesai ditebak
     if (!scanning || isProcessingOCR) return;
     
     frameCounter++;
-    // Interval 25 frame (~1.5 detik) adalah titik paling stabil untuk HP retail
-    if (frameCounter % 25 === 0 && ocrWorker && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
+    // Naikkan interval ke 30 frame agar HP tidak cepat panas
+    if (frameCounter % 30 === 0 && ocrWorker && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
         
         isProcessingOCR = true;
         
         const vW = videoElement.videoWidth;
         const vH = videoElement.videoHeight;
         
-        // AREA SUPER FOKUS: Hanya ambil baris angka
-        const cropWidth = vW * 0.7; // Dipersempit agar lebih ringan
-        const cropHeight = 100;    // Diperpendek karena angka cuma satu baris
+        // Area SUPER SEMPIT (Hanya baris angka)
+        const cropWidth = vW * 0.6; // Perkecil lebar
+        const cropHeight = 80;     // Perkecil tinggi (cukup buat 1 baris angka)
         const startX = (vW - cropWidth) / 2;
-        const startY = ((vH - cropHeight) / 2) + 110; // Posisi angka di bawah barcode
+        const startY = ((vH - cropHeight) / 2) + 115; // Pas di bawah barcode
 
-        const scale = 1.2; // Turunkan scale ke 1.2x (Cukup untuk Tesseract asal kontras tinggi)
+        // Scale cukup 1.2x saja biar gak berat
+        const scale = 1.2;
         canvas.width = cropWidth * scale;
         canvas.height = cropHeight * scale;
 
         const ctx = canvas.getContext('2d', { alpha: false });
         ctx.scale(scale, scale);
         
-        // Pre-processing minimalis tapi galak
-        ctx.filter = 'threshold(150) grayscale(1)'; 
+        // Efek "Biner": Hitam Putih Pekat (Paling disukai Tesseract)
+        ctx.filter = 'threshold(140) grayscale(1)'; 
         ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
         try {
-            // Cukup satu kali recognize per siklus
+            // Coba baca normal
             let result = await ocrWorker.recognize(canvas);
             let code = result.data.text.replace(/\D/g, '').trim();
 
-            // Jika gagal normal, baru coba balik (Silent Flip)
+            // Jika gagal (angka kurang), baru coba rotate 180 (Silent Flip)
             if (code.length < 8) {
                 ctx.save();
                 ctx.translate(cropWidth / 2, cropHeight / 2);
@@ -455,14 +456,14 @@ const checkOCR = async () => {
                 }
             }
 
-            // Langsung eksekusi jika digit pas
+            // Eksekusi jika digit pas (Miniso biasanya 8-13 digit)
             if (code.length >= 8 && code.length <= 13) {
                 onDetected(code);
             }
         } catch (e) {
             console.error(e);
         } finally {
-            isProcessingOCR = false;
+            isProcessingOCR = false; // Buka kunci proses
         }
     }
     requestAnimationFrame(checkOCR);

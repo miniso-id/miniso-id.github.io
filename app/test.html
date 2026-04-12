@@ -756,6 +756,21 @@ document.getElementById('aiSearchBtn').onclick = async () => {
                 height: { ideal: 1080 }
             } 
         });
+
+        // --- BAGIAN TAMBAHAN ZOOM MULAI DI SINI ---
+const video = document.getElementById('aiVideo');
+video.srcObject = stream;
+
+const track = stream.getVideoTracks()[0];
+const capabilities = track.getCapabilities();
+
+// Jika HP mendukung zoom, kita set ke 2x (agar barcode kecil terlihat besar)
+if (capabilities.zoom) {
+    track.applyConstraints({
+        advanced: [{ zoom: 2.0 }] 
+    });
+}
+        
         document.getElementById('aiVideo').srcObject = stream;
     } catch (err) {
         alert("Gagal mengakses kamera: " + err.message);

@@ -777,7 +777,7 @@ async function captureHybridAi() {
         
         const base64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
 
-        const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-vision`, {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/OCR-Vision`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

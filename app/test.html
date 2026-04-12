@@ -452,10 +452,10 @@ async function startScan(deviceId = null) {
         if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
             advanced.focusMode = 'continuous';
         }
-        if (capabilities.zoom) {
-            const targetZoom = Math.min(capabilities.zoom.min + 1.0, capabilities.zoom.max);
-            advanced.zoom = targetZoom;
-        }
+        //if (capabilities.zoom) {
+        //    const targetZoom = Math.min(capabilities.zoom.min + 1.0, capabilities.zoom.max);
+        //    advanced.zoom = targetZoom;
+        //}
         if (Object.keys(advanced).length > 0) {
             await videoTrack.applyConstraints({ advanced: [advanced] });
         }

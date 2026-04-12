@@ -418,20 +418,19 @@ const checkOCR = async () => {
         
         const vW = videoElement.videoWidth;
         const vH = videoElement.videoHeight;
+
+        const cropWidth = 450; 
+        const cropHeight = 100;
         
         // Area SUPER SEMPIT (Hanya baris angka)
-        const cropWidth = vW * 0.6; // Perkecil lebar
-        const cropHeight = 80;     // Perkecil tinggi (cukup buat 1 baris angka)
         const startX = (vW - cropWidth) / 2;
         const startY = ((vH - cropHeight) / 2) + 115; // Pas di bawah barcode
 
         // Scale cukup 1.2x saja biar gak berat
-        const scale = 1.2;
-        canvas.width = cropWidth * scale;
-        canvas.height = cropHeight * scale;
+        canvas.width = cropWidth;
+        canvas.height = cropHeight;
 
         const ctx = canvas.getContext('2d', { alpha: false });
-        ctx.scale(scale, scale);
         
         // Efek "Biner": Hitam Putih Pekat (Paling disukai Tesseract)
         ctx.imageSmoothingEnabled = false;

@@ -765,12 +765,12 @@ async function captureAi() {
     const canvas = document.getElementById('aiCanvas');
     
     // Resolusi diperkecil agar pengiriman ke Edge Function cepat
-    const scale = 1.0; 
-    canvas.width = video.videoWidth * scale;
-    canvas.height = video.videoHeight * scale;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
     
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
+    ctx.webkitImageSmoothingEnabled = false;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     
     const base64 = canvas.toDataURL('image/jpeg', 1.0).split(',')[1];

@@ -270,9 +270,21 @@ body.fade-in {
 <div id="reader">
     <video id="videoElement"></video>
     <div class="focus-guide"></div>
-    <div class="tap-hint">ARAHKAN BARCODE KE TENGAH KOTAK</div>
+    <div class="scan-line"></div> 
+    <div class="tap-hint">ARAHKAN BARCODE ATAU TEKAN TOMBOL AI</div>
     
-    <button onclick="stopScan()" style="position: absolute; top: 40px; right: 20px; background: rgba(0,0,0,0.5); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; font-size: 20px; z-index: 10;">✕</button>
+    <button onclick="stopScan()" style="position: absolute; top: 40px; right: 20px; background: rgba(0,0,0,0.5); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; z-index: 10;">✕</button>
+
+    <div style="position: absolute; bottom: 50px; width: 100%; display: flex; justify-content: center; align-items: center; gap: 20px;">
+        <button id="captureAiBtn" onclick="captureHybridAi()" style="width: 70px; height: 70px; border-radius: 50%; border: 4px solid white; background: rgba(230, 21, 35, 0.8); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+            <span style="color: white; font-weight: 900; font-size: 14px;">AI</span>
+        </button>
+    </div>
+
+    <div id="hybridAiLoading" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.7); flex-direction:column; align-items:center; justify-content:center; color:white; z-index:20;">
+        <div class="spinner" style="border:4px solid #f3f3f3; border-top:4px solid var(--miniso-red); border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite;"></div>
+        <p style="margin-top:15px; font-weight:bold;">AI Sedang Mengenali Produk...</p>
+    </div>
 </div>
         <div id="cameraControl"><select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select></div>
     </header>
@@ -782,25 +794,28 @@ if (capabilities.zoom) {
 };
 
 // Ambil Gambar dan Kirim ke Edge Function
-async function captureAi() {
-    // HAPUS pengecekan isAiReady agar bisa langsung jalan
-    showAiLoading("AI Sedang Memeriksa Barang...");
-    
-    const video = document.getElementById('aiVideo');
+async function captureHybridAi() {
+    // 1. Ambil elemen video dari scanner ZXing (bukan aiVideo lagi)
+    const video = document.getElementById('videoElement');
     const canvas = document.getElementById('aiCanvas');
     
-    // Resolusi diperkecil agar pengiriman ke Edge Function cepat
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    const ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = false;
-    ctx.webkitImageSmoothingEnabled = false;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    const base64 = canvas.toDataURL('image/jpeg', 1.0).split(',')[1];
+    // Tampilkan loading overlay yang sudah ada di dalam scanner
+    showAiLoading("AI Sedang Mengenali Produk...");
 
     try {
+        // 2. Samakan resolusi canvas dengan video stream yang sedang aktif
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        const ctx = canvas.getContext('2d');
+        // Setting untuk menjaga ketajaman gambar produk Miniso
+        ctx.imageSmoothingEnabled = true; 
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // 3. Konversi ke Base64 (Kualitas 0.8 sudah cukup untuk AI dan lebih ringan di kuota)
+        const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+
+        // 4. Kirim ke Supabase Edge Function
         const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-vision`, {
             method: 'POST',
             headers: {
@@ -814,20 +829,24 @@ async function captureAi() {
 
         const data = await response.json();
         const textDescription = data.description; 
-        console.log("AI Mendeteksi:", textDescription);
+        
+        console.log("AI Mendeteksi di Store:", textDescription);
 
-        // --- SOLUSI: LANGSUNG MASUK KE PENCARIAN ---
-        const searchInput = document.getElementById("searchInput");
-        searchInput.value = textDescription; // Isi kolom cari dengan hasil AI
+        if (textDescription) {
+            // 5. Eksekusi Hasil: Masukkan ke input dan tutup scanner
+            const searchInput = document.getElementById("searchInput");
+            searchInput.value = textDescription;
 
-        closeAi(); // Tutup kamera
-        search();  // Jalankan fungsi pencarian otomatis
+            stopScan(); // Fungsi bawaan scanner kamu untuk reset kamera
+            search();   // Fungsi bawaan kamu untuk filter list produk
+        }
         
     } catch (e) {
-        console.error("Detail Error:", e);
+        console.error("Detail Error Vision:", e);
         alert("Gagal menganalisis gambar. Pastikan koneksi internet stabil.");
+    } finally {
+        hideAiLoading();
     }
-    hideAiLoading();
 }
     
     function showAiLoading(msg) {

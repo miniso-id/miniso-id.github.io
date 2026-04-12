@@ -557,12 +557,12 @@ if (!aiAutoTimer) {
                 }, 2000); // Cek setiap 7 detik
             }
         } catch (err) {
-            console.error("Gagal optimasi kamera:", err);
-            if(deviceId) { 
-                codeReader.reset(); 
-                startScan(null); 
-            }
+        console.error("Gagal start scan:", err);
+        // Jika error, coba restart dalam 1 detik selama status masih 'scanning'
+        if (scanning) {
+            setTimeout(() => startScan(lastSelectedDeviceId), 1000);
         }
+    }
     }
 
     function updateCameraList(devices, currentId) {

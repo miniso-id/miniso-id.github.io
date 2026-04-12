@@ -431,6 +431,7 @@ async function manualOCR() {
     }
 }
 
+
 async function startScan(deviceId = null) {
     scanning = true; 
     document.getElementById("reader").style.display = "block";
@@ -461,9 +462,7 @@ async function startScan(deviceId = null) {
             height: { min: 720, ideal: 1080, max: 1440 },
             frameRate: { ideal: 30, max: 60 },
             facingMode: "environment",
-            aspectRatio: { ideal: 1.7777777778 },
-            focusMode: { ideal: "continuous" },
-            whiteBalanceMode: { ideal: "continuous" }
+            aspectRatio: { ideal: 1.7777777778 }
         }
     };
 
@@ -475,46 +474,67 @@ async function startScan(deviceId = null) {
         updateCameraList(backCameras, selectedId);
         codeReader.hints = hints;
 
-        // --- 3. Dekode Constraints (STRUKTUR ASLI ANDA) ---
-        await codeReader.decodeFromConstraints(constraints, 'videoElement', (result, err) => {
-            if (result) {
-                lastZxingSuccessAt = performance.now();
-                onDetected(result.text);
-            }
-        });
-
-        // --- 4. Maksimalkan Hardware (STRUKTUR ASLI ANDA) ---
+        // --- 3. Inisialisasi Stream Manual ---
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
         const videoElement = document.getElementById('videoElement');
-        const videoTrack = videoElement.srcObject.getVideoTracks()[0];
+        videoElement.srcObject = stream;
+        videoElement.setAttribute("playsinline", true);
+        await videoElement.play();
+
+        // --- 4. FIX: Dekode dengan Digital Padding (Quiet Zone Buatan) ---
+        // Menggunakan loop canvas agar kita bisa menambah border putih di sekitar gambar 
+        // untuk mengatasi barcode yang terpotong desain ungu di label.
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const PADDING = 60; // Padding putih ekstra untuk memancing deteksi ZXing
+
+        const zxingLoop = async () => {
+            if (!scanning) return;
+
+            if (videoElement.videoWidth > 0) {
+                canvas.width = videoElement.videoWidth + (PADDING * 2);
+                canvas.height = videoElement.videoHeight + (PADDING * 2);
+                
+                // Isi background putih
+                ctx.fillStyle = "#FFFFFF";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                // Gambar video di tengah
+                ctx.drawImage(videoElement, PADDING, PADDING);
+
+                try {
+                    const result = await codeReader.decodeFromCanvas(canvas);
+                    if (result) {
+                        lastZxingSuccessAt = performance.now();
+                        onDetected(result.text);
+                        return; // Berhenti jika sukses
+                    }
+                } catch (e) {
+                    // Lanjut jika frame ini tidak terbaca
+                }
+            }
+            requestAnimationFrame(zxingLoop);
+        };
+        zxingLoop();
+
+        // --- 5. Maksimalkan Hardware (STRUKTUR ASLI ANDA) ---
+        const videoTrack = stream.getVideoTracks()[0];
         const capabilities = videoTrack.getCapabilities();
         const advanced = {};
-        
         if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
             advanced.focusMode = 'continuous';
         }
-        //if (capabilities.zoom) {
-        //    const targetZoom = Math.min(capabilities.zoom.min + 1.0, capabilities.zoom.max);
-        //    advanced.zoom = targetZoom;
-        //}
         if (Object.keys(advanced).length > 0) {
             await videoTrack.applyConstraints({ advanced: [advanced] });
         }
 
-        // ==========================================
-        // TAMBAHAN LOGIKA HYBRID OCR (TIDAK MERUBAH ATAS)
-        // ==========================================
-        if (!ocrWorker) {
-            await initOcrWorker();
-        }
+        // --- 6. Hybrid OCR (STRUKTUR ASLI ANDA) ---
+        if (!ocrWorker) await initOcrWorker();
         
         const checkOCR = async () => {
             if (!scanning) return;
-
             requestAnimationFrame(checkOCR);
 
-            // OCR baru jalan kalau ZXing belum sukses dalam beberapa saat
             if (performance.now() - lastZxingSuccessAt < ZXING_GRACE_MS) return;
-
             if (isProcessingOCR) return;
 
             frameCounter++;
@@ -522,7 +542,6 @@ async function startScan(deviceId = null) {
 
             if (now - lastOcrTime < OCR_INTERVAL_MS) return;
             if (frameCounter % 15 !== 0) return;
-            if (!videoElement || videoElement.readyState < videoElement.HAVE_ENOUGH_DATA) return;
 
             isProcessingOCR = true;
             lastOcrTime = now;
@@ -530,10 +549,8 @@ async function startScan(deviceId = null) {
             try {
                 const captured = captureFrame(videoElement);
                 const code = await scanDigitsFromImage(captured);
-
                 if (code.length >= 8 && code.length <= 13) {
                     if (code === lastDetectedCode && (Date.now() - lastDetectedAt) < 2000) return;
-
                     lastDetectedCode = code;
                     lastDetectedAt = Date.now();
                     onDetected(code);
@@ -544,9 +561,7 @@ async function startScan(deviceId = null) {
                 isProcessingOCR = false;
             }
         };
-        
         checkOCR();
-        // ==========================================
 
     } catch (err) {
         console.error("Gagal optimasi kamera:", err);
@@ -556,6 +571,7 @@ async function startScan(deviceId = null) {
         }
     }
 }
+
 
 function updateCameraList(devices, currentId) {
     const source = document.getElementById("videoSource");

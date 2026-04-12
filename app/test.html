@@ -390,12 +390,16 @@ async function startScan(deviceId = null) {
         // TAMBAHAN LOGIKA HYBRID OCR (TIDAK MERUBAH ATAS)
         // ==========================================
 if (!ocrWorker) {
-    ocrWorker = await Tesseract.createWorker('eng');
+    // Kita arahkan worker untuk mengambil data dari repositori 'tessdata_fast'
+    ocrWorker = await Tesseract.createWorker('eng', 1, {
+        workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
+        langPath: 'https://tessdata.projectnaptha.com/4.0.0_fast', // KUNCINYA DI SINI
+        corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core.wasm.js',
+    });
+
     await ocrWorker.setParameters({
-        tessedit_char_whitelist: '0123456789', // Hanya angka
-        tessedit_pageseg_mode: '7',           // Anggap cuma 1 baris (Sangat Cepat)
-        tessjs_create_hocr: '0',              // Matikan fitur tambahan biar enteng
-        tessjs_create_tsv: '0',
+        tessedit_char_whitelist: '0123456789',
+        tessedit_pageseg_mode: '7',
     });
 }
         

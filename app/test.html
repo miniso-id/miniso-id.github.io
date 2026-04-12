@@ -595,21 +595,21 @@ if(localStorage.getItem('mms_auth') === 'true') {
             if (Object.keys(advanced).length > 0) {
                 await videoTrack.applyConstraints({ advanced: [advanced] });
             }
-
+if (!aiAutoTimer) {
+                aiAutoTimer = setInterval(() => {
+                    const loading = document.getElementById('hybridAiLoading');
+                    // Jalankan AI otomatis jika sedang scan dan AI tidak sedang loading
+                    if (scanning && (!loading || loading.style.display !== 'flex')) {
+                        captureHybridAi(); 
+                    }
+                }, 7000); // Cek setiap 7 detik
+            }
         } catch (err) {
             console.error("Gagal optimasi kamera:", err);
             if(deviceId) { 
                 codeReader.reset(); 
                 startScan(null); 
             }
-            if (!aiAutoTimer) {
-        aiAutoTimer = setInterval(() => {
-            // Hanya jalankan AI jika sedang scanning dan tidak sedang loading AI sebelumnya
-            const loading = document.getElementById('hybridAiLoading');
-            if (scanning && loading.style.display !== 'flex') {
-                captureHybridAi(); 
-            }
-        }, 7000); // 7000ms = 7 detik
         }
     }
 

@@ -253,9 +253,7 @@ body.fade-in {
     <button id="scanBtn">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
     </button>
-
-    <button id="aiSearchBtn" style="position: absolute; right: 50px; top: 4px; width: 42px; height: 38px; background: #4b5563; color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;">
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
         <text x="50%" y="18" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="13px" letter-spacing="-0.5">AI</text>
         
         <path d="M21 6l-1.2 1.2l-1.2-1.2l1.2-1.2z" />
@@ -274,13 +272,6 @@ body.fade-in {
     <div class="tap-hint">ARAHKAN BARCODE ATAU TEKAN TOMBOL AI</div>
     
     <button onclick="stopScan()" style="position: absolute; top: 40px; right: 20px; background: rgba(0,0,0,0.5); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; z-index: 10;">✕</button>
-
-    <div style="position: absolute; bottom: 50px; width: 100%; display: flex; justify-content: center; align-items: center; gap: 20px;">
-        <button id="captureAiBtn" onclick="captureHybridAi()" style="width: 70px; height: 70px; border-radius: 50%; border: 4px solid white; background: rgba(230, 21, 35, 0.8); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-            <span style="color: white; font-weight: 900; font-size: 14px;">AI</span>
-        </button>
-    </div>
-
     <div id="hybridAiLoading" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.7); flex-direction:column; align-items:center; justify-content:center; color:white; z-index:20;">
         <div class="spinner" style="border:4px solid #f3f3f3; border-top:4px solid var(--miniso-red); border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite;"></div>
         <p style="margin-top:15px; font-weight:bold;">AI Sedang Mengenali Produk...</p>
@@ -584,7 +575,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
             }
 
             if (capabilities.zoom) {
-                const targetZoom = Math.min(capabilities.zoom.min + 1.0, capabilities.zoom.max);
+                const targetZoom = Math.min(capabilities.zoom.min + 0.5, capabilities.zoom.max);
                 advanced.zoom = targetZoom;
             }
 
@@ -798,7 +789,7 @@ const capabilities = track.getCapabilities();
 // Jika HP mendukung zoom, kita set ke 2x (agar barcode kecil terlihat besar)
 if (capabilities.zoom) {
     track.applyConstraints({
-        advanced: [{ zoom: 1.0 }] 
+        advanced: [{ zoom: 0.5 }] 
     });
 }
         

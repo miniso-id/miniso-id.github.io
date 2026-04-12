@@ -276,11 +276,8 @@ function navigateTo(url) {
 
     // --- AUTO-DIRECT 13 DIGIT ---
     if (q.length === 13) {
-        // Simpan barcode ke variabel sementara
         const barcodeToSearch = q;
-        // Langsung buka detail
         showDetail(barcodeToSearch);
-        // Reset input & tutup keyboard agar bersih untuk pencarian berikutnya
         document.getElementById("searchInput").value = ""; 
         document.getElementById("searchInput").blur();
         list.innerHTML = "";
@@ -318,6 +315,10 @@ function navigateTo(url) {
     let lastOcrTime = 0;
     let lastDetectedCode = "";
     let lastDetectedAt = 0;
+    let lastZxingSuccessAt = 0;
+
+    const ZXING_GRACE_MS = 1200;
+    const OCR_INTERVAL_MS = 650;
 
     async function initOcrWorker() {
         if (ocrWorker) return ocrWorker;
@@ -368,6 +369,8 @@ function navigateTo(url) {
     async function scanDigitsFromFrame(videoElement) {
         const vW = videoElement.videoWidth;
         const vH = videoElement.videoHeight;
+
+        if (!vW || !vH) return "";
 
         const cropWidth = Math.min(vW * 0.95, vW);
         const cropHeight = Math.max(90, Math.round(vH * 0.16));
@@ -436,6 +439,7 @@ async function startScan(deviceId = null) {
         // --- 3. Dekode Constraints (STRUKTUR ASLI ANDA) ---
         await codeReader.decodeFromConstraints(constraints, 'videoElement', (result, err) => {
             if (result) {
+                lastZxingSuccessAt = performance.now();
                 onDetected(result.text);
             }
         });
@@ -450,12 +454,9 @@ async function startScan(deviceId = null) {
             advanced.focusMode = 'continuous';
         }
         if (capabilities.zoom) {
-        const targetZoom = Math.min(capabilities.zoom.min + 1.0, capabilities.zoom.max);
-        advanced.zoom = targetZoom;
+            const targetZoom = Math.min(capabilities.zoom.min + 1.0, capabilities.zoom.max);
+            advanced.zoom = targetZoom;
         }
-        // if (capabilities.exposureMode && capabilities.exposureMode.includes('continuous')) {
-        //    advanced.exposureMode = 'continuous';
-        // }
         if (Object.keys(advanced).length > 0) {
             await videoTrack.applyConstraints({ advanced: [advanced] });
         }
@@ -466,20 +467,22 @@ async function startScan(deviceId = null) {
         if (!ocrWorker) {
             await initOcrWorker();
         }
-        
+
         const checkOCR = async () => {
             if (!scanning) return;
 
             requestAnimationFrame(checkOCR);
+
+            // OCR baru jalan kalau ZXing belum sukses dalam beberapa saat
+            if (performance.now() - lastZxingSuccessAt < ZXING_GRACE_MS) return;
 
             if (isOcrBusy) return;
 
             frameCounter++;
             const now = performance.now();
 
-            // OCR lebih ringan, tapi tetap responsif
-            if (now - lastOcrTime < 450) return;
-            if (frameCounter % 12 !== 0) return;
+            if (now - lastOcrTime < OCR_INTERVAL_MS) return;
+            if (frameCounter % 15 !== 0) return;
             if (!videoElement || videoElement.readyState < videoElement.HAVE_ENOUGH_DATA) return;
 
             isOcrBusy = true;
@@ -490,6 +493,7 @@ async function startScan(deviceId = null) {
 
                 if (code.length >= 8 && code.length <= 13) {
                     if (code === lastDetectedCode && (Date.now() - lastDetectedAt) < 2000) return;
+
                     lastDetectedCode = code;
                     lastDetectedAt = Date.now();
                     onDetected(code);
@@ -538,10 +542,9 @@ async function startScan(deviceId = null) {
     if (videoTrack) {
         try {
             const capabilities = videoTrack.getCapabilities();
-            // Jika mendukung fokus manual (manual-focus atau single-shot)
             if (capabilities.focusMode) {
                 await videoTrack.applyConstraints({
-                    advanced: [{ focusMode: 'continuous' }] // Paksa balik ke continuous
+                    advanced: [{ focusMode: 'continuous' }]
                 });
                 console.log("Fokus dipicu ulang");
             }
@@ -559,30 +562,27 @@ async function startScan(deviceId = null) {
     }
 
     async function onDetected(code) {
-        // Cek Cache dulu
         const cachedData = getLocalCache(code);
         if (cachedData) {
             document.getElementById("beepOk").play(); 
             stopScan(); 
             document.getElementById("searchInput").blur(); 
             document.getElementById("searchInput").value = code; 
-            showDetail(code); // Panggil fungsi asli agar terjemahan tetap jalan
+            showDetail(code);
             return;
         }
 
-        // Fetch lengkap sekali saja, simpan ke cache, lalu panggil showDetail
         const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
         if(data) { 
-            saveToLocalCache(code, data); // Simpan ke cache
+            saveToLocalCache(code, data);
             document.getElementById("beepOk").play(); 
             stopScan(); 
             document.getElementById("searchInput").blur(); 
             document.getElementById("searchInput").value = code; 
-            showDetail(code); // showDetail akan temukan cache dan tidak fetch ulang
+            showDetail(code);
         }
     }
 
-    // FUNGSI RENDER DIPISAH AGAR BISA DIPANGGIL CACHE
     function renderDetailView(p) {
         document.getElementById("listContainer").style.display = "none";
         document.getElementById("ui-header").style.display = "none";
@@ -637,11 +637,9 @@ async function startScan(deviceId = null) {
     async function showDetail(fullBarcode) {
     lastScroll = document.getElementById("scrollContainer").scrollTop;
     
-    // 1. Cek Local Cache dulu (Client Side)
     let p = getLocalCache(fullBarcode);
     
     if (!p) {
-        // 2. Jika tidak ada di local, panggil RPC (Network Cache / Cached Egress)
         const { data, error } = await _supabase.rpc('get_product_by_barcode', { 
             target_barcode: fullBarcode 
         });
@@ -656,23 +654,18 @@ async function startScan(deviceId = null) {
 }
 
     function back() {
-    // Sembunyikan detail & tampilkan kembali header/list
     document.getElementById("detailContainer").style.display = "none";
     document.getElementById("ui-header").style.display = "block";
     document.getElementById("listContainer").style.display = "grid";
     document.getElementById("btnBackFloating").style.display = "none";
     
-    // Reset input pencarian agar bersih
     document.getElementById("searchInput").value = "";
     
-    // Kembalikan ke posisi scroll sebelumnya
     document.getElementById("scrollContainer").scrollTop = lastScroll;
     
-    // Jalankan scan otomatis lagi
     startScan(lastSelectedDeviceId);
 }
 
-    // Jalankan scan otomatis saat startup
     startScan(lastSelectedDeviceId);
 </script>
 

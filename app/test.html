@@ -96,10 +96,7 @@ body.fade-in {
 #reader video { 
     width: 100%; 
     height: 100%; 
-    object-fit: cover; 
-    
-    /* TAMBAHKAN KODE BARU DI SINI */ 
-    image-rendering: -webkit-optimize-contrast;
+    object-fit: cover;
 }
         .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
         .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; }
@@ -315,7 +312,84 @@ function navigateTo(url) {
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
     // Variable global untuk OCR (Letakkan di luar fungsi)
-let ocrWorker = null;
+    let ocrWorker = null;
+    let frameCounter = 0;
+    let isOcrBusy = false;
+    let lastOcrTime = 0;
+    let lastDetectedCode = "";
+    let lastDetectedAt = 0;
+
+    async function initOcrWorker() {
+        if (ocrWorker) return ocrWorker;
+
+        ocrWorker = await Tesseract.createWorker('eng');
+
+        await ocrWorker.setParameters({
+            tessedit_char_whitelist: '0123456789',
+            tessedit_pageseg_mode: '7',
+            preserve_interword_spaces: '0',
+            user_defined_dpi: '300',
+            tessjs_create_hocr: '0',
+            tessjs_create_tsv: '0',
+            tessjs_create_box: '0'
+        });
+
+        return ocrWorker;
+    }
+
+    function preprocessForDigits(videoElement, sx, sy, sw, sh) {
+        const scale = 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(sw * scale));
+        canvas.height = Math.max(1, Math.round(sh * scale));
+
+        const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: false });
+        ctx.imageSmoothingEnabled = true;
+
+        ctx.drawImage(videoElement, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+
+        const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const d = img.data;
+
+        const threshold = 165;
+        for (let i = 0; i < d.length; i += 4) {
+            const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+            const v = gray > threshold ? 255 : 0;
+            d[i] = v;
+            d[i + 1] = v;
+            d[i + 2] = v;
+            d[i + 3] = 255;
+        }
+
+        ctx.putImageData(img, 0, 0);
+        return canvas;
+    }
+
+    async function scanDigitsFromFrame(videoElement) {
+        const vW = videoElement.videoWidth;
+        const vH = videoElement.videoHeight;
+
+        const cropWidth = Math.min(vW * 0.95, vW);
+        const cropHeight = Math.max(90, Math.round(vH * 0.16));
+
+        const startX = Math.max(0, (vW - cropWidth) / 2);
+        const startY = Math.max(0, Math.round((vH - cropHeight) / 2) + 90);
+
+        const canvas = preprocessForDigits(videoElement, startX, startY, cropWidth, cropHeight);
+        const worker = await initOcrWorker();
+
+        let result = await worker.recognize(canvas);
+        let code = (result?.data?.text || '').replace(/\D/g, '').trim();
+
+        if (code.length < 8) {
+            await worker.setParameters({ tessedit_pageseg_mode: '13' });
+            result = await worker.recognize(canvas);
+            code = (result?.data?.text || '').replace(/\D/g, '').trim();
+            await worker.setParameters({ tessedit_pageseg_mode: '7' });
+        }
+
+        return code;
+    }
 
 async function startScan(deviceId = null) {
     scanning = true; 
@@ -376,7 +450,7 @@ async function startScan(deviceId = null) {
             advanced.focusMode = 'continuous';
         }
         if (capabilities.zoom) {
-        const targetZoom = Math.min(capabilities.zoom.min + 0.5, capabilities.zoom.max);
+        const targetZoom = Math.min(capabilities.zoom.min + 1.0, capabilities.zoom.max);
         advanced.zoom = targetZoom;
         }
         // if (capabilities.exposureMode && capabilities.exposureMode.includes('continuous')) {
@@ -389,85 +463,44 @@ async function startScan(deviceId = null) {
         // ==========================================
         // TAMBAHAN LOGIKA HYBRID OCR (TIDAK MERUBAH ATAS)
         // ==========================================
-if (!ocrWorker) {
-    ocrWorker = await Tesseract.createWorker('eng');
-    await ocrWorker.setParameters({
-        tessedit_char_whitelist: '0123456789', // Hanya angka
-        tessedit_pageseg_mode: '7',           // Anggap cuma 1 baris (Sangat Cepat)
-        tessjs_create_hocr: '0',              // Matikan fitur tambahan biar enteng
-        tessjs_create_tsv: '0'
-    });
-}
-        
-const canvas = document.createElement('canvas');
-let isProcessingOCR = false;
-
-const checkOCR = async () => {
-    // Kunci proses: Jangan terima frame baru kalau yang lama belum selesai ditebak
-    if (!scanning || isProcessingOCR) return;
-    
-    frameCounter++;
-    // Naikkan interval ke 30 frame agar HP tidak cepat panas
-    if (frameCounter % 30 === 0 && ocrWorker && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
-        
-        isProcessingOCR = true;
-        
-        const vW = videoElement.videoWidth;
-        const vH = videoElement.videoHeight;
-
-        const cropWidth = vW * 0.9; 
-        const cropHeight = 100;
-        
-        // Area SUPER SEMPIT (Hanya baris angka)
-        const startX = (vW - cropWidth) / 2;
-        const startY = ((vH - cropHeight) / 2) + 115; // Pas di bawah barcode
-
-        // Scale cukup 1.2x saja biar gak berat
-        canvas.width = cropWidth;
-        canvas.height = cropHeight;
-
-        const ctx = canvas.getContext('2d', { alpha: false });
-        
-        // Efek "Biner": Hitam Putih Pekat (Paling disukai Tesseract)
-        ctx.imageSmoothingEnabled = false;
-        ctx.filter = 'threshold(150) grayscale(1)'; 
-        ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-
-        try {
-            // Coba baca normal
-            let result = await ocrWorker.recognize(canvas);
-            let code = result.data.text.replace(/\D/g, '').trim();
-
-            // Jika gagal (angka kurang), baru coba rotate 180 (Silent Flip)
-            if (code.length < 8) {
-                ctx.save();
-                ctx.translate(cropWidth / 2, cropHeight / 2);
-                ctx.rotate(Math.PI);
-                ctx.translate(-cropWidth / 2, -cropHeight / 2);
-                ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-                ctx.restore();
-
-                const flipResult = await ocrWorker.recognize(canvas);
-                const flipCode = flipResult.data.text.replace(/\D/g, '').trim();
-                
-                if (flipCode.length > code.length) {
-                    code = flipCode;
-                    result = flipResult;
-                }
-            }
-
-            // Eksekusi jika digit pas (Miniso biasanya 8-13 digit)
-            if (code.length >= 8 && code.length <= 13) {
-                onDetected(code);
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            isProcessingOCR = false; // Buka kunci proses
+        if (!ocrWorker) {
+            await initOcrWorker();
         }
-    }
-    requestAnimationFrame(checkOCR);
-};        
+        
+        const checkOCR = async () => {
+            if (!scanning) return;
+
+            requestAnimationFrame(checkOCR);
+
+            if (isOcrBusy) return;
+
+            frameCounter++;
+            const now = performance.now();
+
+            // OCR lebih ringan, tapi tetap responsif
+            if (now - lastOcrTime < 450) return;
+            if (frameCounter % 12 !== 0) return;
+            if (!videoElement || videoElement.readyState < videoElement.HAVE_ENOUGH_DATA) return;
+
+            isOcrBusy = true;
+            lastOcrTime = now;
+
+            try {
+                const code = await scanDigitsFromFrame(videoElement);
+
+                if (code.length >= 8 && code.length <= 13) {
+                    if (code === lastDetectedCode && (Date.now() - lastDetectedAt) < 2000) return;
+                    lastDetectedCode = code;
+                    lastDetectedAt = Date.now();
+                    onDetected(code);
+                }
+            } catch (e) {
+                console.error('OCR error:', e);
+            } finally {
+                isOcrBusy = false;
+            }
+        };
+        
         checkOCR();
         // ==========================================
 

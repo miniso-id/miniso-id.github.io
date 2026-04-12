@@ -722,7 +722,7 @@ async function showDetail(fullBarcode) {
         document.getElementById("ui-header").style.display = "block";
         document.getElementById("listContainer").style.display = "grid";
         document.getElementById("btnBackFloating").style.display = "none";
-        document.getElementById("scrollContainer").scrollTop = lastScroll;
+        startScan(lastSelectedDeviceId);
     }
 
 // --- FUNGSI AI VISION (Direct to Edge Function) ---

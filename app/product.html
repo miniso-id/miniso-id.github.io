@@ -748,7 +748,29 @@ async function showDetail(fullBarcode) {
 document.getElementById('aiSearchBtn').onclick = async () => {
     document.getElementById('aiOverlay').style.display = 'flex';
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                facingMode: "environment",
+                focusMode: { ideal: "continuous" },
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            } 
+        });
+
+        // --- BAGIAN TAMBAHAN ZOOM MULAI DI SINI ---
+const video = document.getElementById('aiVideo');
+video.srcObject = stream;
+
+const track = stream.getVideoTracks()[0];
+const capabilities = track.getCapabilities();
+
+// Jika HP mendukung zoom, kita set ke 2x (agar barcode kecil terlihat besar)
+if (capabilities.zoom) {
+    track.applyConstraints({
+        advanced: [{ zoom: 2.0 }] 
+    });
+}
+        
         document.getElementById('aiVideo').srcObject = stream;
     } catch (err) {
         alert("Gagal mengakses kamera: " + err.message);
@@ -765,14 +787,15 @@ async function captureAi() {
     const canvas = document.getElementById('aiCanvas');
     
     // Resolusi diperkecil agar pengiriman ke Edge Function cepat
-    const scale = 0.5; 
-    canvas.width = video.videoWidth * scale;
-    canvas.height = video.videoHeight * scale;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
     
     const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.webkitImageSmoothingEnabled = false;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     
-    const base64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+    const base64 = canvas.toDataURL('image/jpeg', 1.0).split(',')[1];
 
     try {
         const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-vision`, {

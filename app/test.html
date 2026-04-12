@@ -311,7 +311,7 @@ function navigateTo(url) {
     // Variable global untuk OCR (Letakkan di luar fungsi)
     let ocrWorker = null;
     let frameCounter = 0;
-    let isOcrBusy = false;
+    let isProcessingOCR = false;
     let lastOcrTime = 0;
     let lastDetectedCode = "";
     let lastDetectedAt = 0;
@@ -338,16 +338,26 @@ function navigateTo(url) {
         return ocrWorker;
     }
 
-    function preprocessForDigits(videoElement, sx, sy, sw, sh) {
+    function captureFrame(videoElement) {
+        const canvas = document.createElement('canvas');
+        canvas.width = videoElement.videoWidth;
+        canvas.height = videoElement.videoHeight;
+
+        const ctx = canvas.getContext('2d', { alpha: false });
+        ctx.drawImage(videoElement, 0, 0);
+
+        return canvas;
+    }
+
+    function preprocessForDigits(sourceCanvas) {
         const scale = 2;
         const canvas = document.createElement('canvas');
-        canvas.width = Math.max(1, Math.round(sw * scale));
-        canvas.height = Math.max(1, Math.round(sh * scale));
+        canvas.width = Math.max(1, Math.round(sourceCanvas.width * scale));
+        canvas.height = Math.max(1, Math.round(sourceCanvas.height * scale));
 
         const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: false });
         ctx.imageSmoothingEnabled = true;
-
-        ctx.drawImage(videoElement, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(sourceCanvas, 0, 0, canvas.width, canvas.height);
 
         const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const d = img.data;
@@ -366,19 +376,8 @@ function navigateTo(url) {
         return canvas;
     }
 
-    async function scanDigitsFromFrame(videoElement) {
-        const vW = videoElement.videoWidth;
-        const vH = videoElement.videoHeight;
-
-        if (!vW || !vH) return "";
-
-        const cropWidth = Math.min(vW * 0.95, vW);
-        const cropHeight = Math.max(90, Math.round(vH * 0.16));
-
-        const startX = Math.max(0, (vW - cropWidth) / 2);
-        const startY = Math.max(0, Math.round((vH - cropHeight) / 2) + 90);
-
-        const canvas = preprocessForDigits(videoElement, startX, startY, cropWidth, cropHeight);
+    async function scanDigitsFromImage(canvasSource) {
+        const canvas = preprocessForDigits(canvasSource);
         const worker = await initOcrWorker();
 
         let result = await worker.recognize(canvas);
@@ -467,7 +466,7 @@ async function startScan(deviceId = null) {
         if (!ocrWorker) {
             await initOcrWorker();
         }
-
+        
         const checkOCR = async () => {
             if (!scanning) return;
 
@@ -476,7 +475,7 @@ async function startScan(deviceId = null) {
             // OCR baru jalan kalau ZXing belum sukses dalam beberapa saat
             if (performance.now() - lastZxingSuccessAt < ZXING_GRACE_MS) return;
 
-            if (isOcrBusy) return;
+            if (isProcessingOCR) return;
 
             frameCounter++;
             const now = performance.now();
@@ -485,11 +484,12 @@ async function startScan(deviceId = null) {
             if (frameCounter % 15 !== 0) return;
             if (!videoElement || videoElement.readyState < videoElement.HAVE_ENOUGH_DATA) return;
 
-            isOcrBusy = true;
+            isProcessingOCR = true;
             lastOcrTime = now;
 
             try {
-                const code = await scanDigitsFromFrame(videoElement);
+                const captured = captureFrame(videoElement);
+                const code = await scanDigitsFromImage(captured);
 
                 if (code.length >= 8 && code.length <= 13) {
                     if (code === lastDetectedCode && (Date.now() - lastDetectedAt) < 2000) return;
@@ -501,7 +501,7 @@ async function startScan(deviceId = null) {
             } catch (e) {
                 console.error('OCR error:', e);
             } finally {
-                isOcrBusy = false;
+                isProcessingOCR = false;
             }
         };
         
@@ -544,7 +544,7 @@ async function startScan(deviceId = null) {
             const capabilities = videoTrack.getCapabilities();
             if (capabilities.focusMode) {
                 await videoTrack.applyConstraints({
-                    advanced: [{ focusMode: 'continuous' }]
+                    advanced: [{ focusMode: 'continuous' }] // Paksa balik ke continuous
                 });
                 console.log("Fokus dipicu ulang");
             }
@@ -562,27 +562,30 @@ async function startScan(deviceId = null) {
     }
 
     async function onDetected(code) {
+        // Cek Cache dulu
         const cachedData = getLocalCache(code);
         if (cachedData) {
             document.getElementById("beepOk").play(); 
             stopScan(); 
             document.getElementById("searchInput").blur(); 
             document.getElementById("searchInput").value = code; 
-            showDetail(code);
+            showDetail(code); // Panggil fungsi asli agar terjemahan tetap jalan
             return;
         }
 
+        // Fetch lengkap sekali saja, simpan ke cache, lalu panggil showDetail
         const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
         if(data) { 
-            saveToLocalCache(code, data);
+            saveToLocalCache(code, data); // Simpan ke cache
             document.getElementById("beepOk").play(); 
             stopScan(); 
             document.getElementById("searchInput").blur(); 
             document.getElementById("searchInput").value = code; 
-            showDetail(code);
+            showDetail(code); // showDetail akan temukan cache dan tidak fetch ulang
         }
     }
 
+    // FUNGSI RENDER DIPISAH AGAR BISA DIPANGGIL CACHE
     function renderDetailView(p) {
         document.getElementById("listContainer").style.display = "none";
         document.getElementById("ui-header").style.display = "none";
@@ -637,9 +640,11 @@ async function startScan(deviceId = null) {
     async function showDetail(fullBarcode) {
     lastScroll = document.getElementById("scrollContainer").scrollTop;
     
+    // 1. Cek Local Cache dulu (Client Side)
     let p = getLocalCache(fullBarcode);
     
     if (!p) {
+        // 2. Jika tidak ada di local, panggil RPC (Network Cache / Cached Egress)
         const { data, error } = await _supabase.rpc('get_product_by_barcode', { 
             target_barcode: fullBarcode 
         });
@@ -654,18 +659,23 @@ async function startScan(deviceId = null) {
 }
 
     function back() {
+    // Sembunyikan detail & tampilkan kembali header/list
     document.getElementById("detailContainer").style.display = "none";
     document.getElementById("ui-header").style.display = "block";
     document.getElementById("listContainer").style.display = "grid";
     document.getElementById("btnBackFloating").style.display = "none";
     
+    // Reset input pencarian agar bersih
     document.getElementById("searchInput").value = "";
     
+    // Kembalikan ke posisi scroll sebelumnya
     document.getElementById("scrollContainer").scrollTop = lastScroll;
     
+    // Jalankan scan otomatis lagi
     startScan(lastSelectedDeviceId);
 }
 
+    // Jalankan scan otomatis saat startup
     startScan(lastSelectedDeviceId);
 </script>
 

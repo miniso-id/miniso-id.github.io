@@ -767,7 +767,7 @@ const capabilities = track.getCapabilities();
 // Jika HP mendukung zoom, kita set ke 2x (agar barcode kecil terlihat besar)
 if (capabilities.zoom) {
     track.applyConstraints({
-        advanced: [{ zoom: 2.0 }] 
+        advanced: [{ zoom: 1.0 }] 
     });
 }
         

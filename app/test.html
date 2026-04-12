@@ -177,11 +177,27 @@ body.fade-in {
             </div>
         </div>
         <div id="reader">
-    <video id="videoElement"></video>
-    <div class="focus-guide"></div>
-    <div class="tap-hint">ARAHKAN BARCODE KE TENGAH KOTAK</div>
-</div>
-        <div id="cameraControl"><select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select></div>
+            <video id="videoElement"></video>
+            <div class="focus-guide"></div>
+            <div class="tap-hint">ARAHKAN BARCODE KE TENGAH KOTAK</div>
+        </div>
+        <div id="cameraControl">
+            <select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select>
+            <button id="manualOcrBtn" onclick="manualOCR()" style="
+                display:none;
+                margin: 8px auto 0;
+                padding: 10px 16px;
+                border: none;
+                border-radius: 10px;
+                background: var(--miniso-red);
+                color: #fff;
+                font-weight: 700;
+                cursor: pointer;
+                width: fit-content;
+            ">
+                📸 Scan Angka
+            </button>
+        </div>
     </header>
 
     <main class="main-content" id="scrollContainer">
@@ -266,45 +282,45 @@ function navigateTo(url) {
     document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 400); };
 
     async function search() {
-    const q = document.getElementById("searchInput").value.trim();
-    const list = document.getElementById("listContainer");
-    
-    if (q === "") {
-        list.innerHTML = "";
-        return;
-    }
+        const q = document.getElementById("searchInput").value.trim();
+        const list = document.getElementById("listContainer");
+        
+        if (q === "") {
+            list.innerHTML = "";
+            return;
+        }
 
-    // --- AUTO-DIRECT 13 DIGIT ---
-    if (q.length === 13) {
-        const barcodeToSearch = q;
-        showDetail(barcodeToSearch);
-        document.getElementById("searchInput").value = ""; 
-        document.getElementById("searchInput").blur();
-        list.innerHTML = "";
-        return; 
-    }
-    
-    // --- PENCARIAN BIASA (Minimal 8 digit untuk hemat Egress) ---
-    if (q.length >= 8) {
-        let { data } = await _supabase
-            .from('export')
-            .select('Barcode') 
-            .ilike('Barcode', `%${q}%`)
-            .limit(1);
+        // --- AUTO-DIRECT 13 DIGIT ---
+        if (q.length === 13) {
+            const barcodeToSearch = q;
+            showDetail(barcodeToSearch);
+            document.getElementById("searchInput").value = ""; 
+            document.getElementById("searchInput").blur();
+            list.innerHTML = "";
+            return; 
+        }
+        
+        // --- PENCARIAN BIASA (Minimal 8 digit untuk hemat Egress) ---
+        if (q.length >= 8) {
+            let { data } = await _supabase
+                .from('export')
+                .select('Barcode') 
+                .ilike('Barcode', `%${q}%`)
+                .limit(1);
 
-        if(data && data.length > 0) {
-            list.innerHTML = data.map(p => `
-                <div class="list-item" onclick="showDetail('${p.Barcode}'); document.getElementById('searchInput').value=''">
-                    <div class="list-info">
-                        <div class="list-cat">PRODUK DITEMUKAN</div>
-                        <div class="list-name">${p.Name}</div>
-                        <div class="list-bc">${p.Barcode}</div>
+            if(data && data.length > 0) {
+                list.innerHTML = data.map(p => `
+                    <div class="list-item" onclick="showDetail('${p.Barcode}'); document.getElementById('searchInput').value=''">
+                        <div class="list-info">
+                            <div class="list-cat">PRODUK DITEMUKAN</div>
+                            <div class="list-name">${p.Name}</div>
+                            <div class="list-bc">${p.Barcode}</div>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `).join('');
+            }
         }
     }
-}
 
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
@@ -393,9 +409,26 @@ function navigateTo(url) {
         return code;
     }
 
+    async function manualOCR() {
+        const videoElement = document.getElementById('videoElement');
+        if (!videoElement || videoElement.readyState < videoElement.HAVE_ENOUGH_DATA) return;
+
+        try {
+            const captured = captureFrame(videoElement);
+            const code = await scanDigitsFromImage(captured);
+
+            if (code && code.length >= 8 && code.length <= 13) {
+                onDetected(code);
+            }
+        } catch (e) {
+            console.error('Manual OCR error:', e);
+        }
+    }
+
 async function startScan(deviceId = null) {
     scanning = true; 
     document.getElementById("reader").style.display = "block";
+    document.getElementById("manualOcrBtn").style.display = "block";
     
     // --- 1. Definisikan Hints (STRUKTUR ASLI ANDA) ---
     const hints = new Map();
@@ -452,10 +485,10 @@ async function startScan(deviceId = null) {
         if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
             advanced.focusMode = 'continuous';
         }
-        //if (capabilities.zoom) {
-        //    const targetZoom = Math.min(capabilities.zoom.min + 1.0, capabilities.zoom.max);
-        //    advanced.zoom = targetZoom;
-        //}
+        if (capabilities.zoom) {
+            const targetZoom = Math.min(capabilities.zoom.min + 1.0, capabilities.zoom.max);
+            advanced.zoom = targetZoom;
+        }
         if (Object.keys(advanced).length > 0) {
             await videoTrack.applyConstraints({ advanced: [advanced] });
         }
@@ -538,54 +571,52 @@ async function startScan(deviceId = null) {
     };
 
     document.getElementById("reader").onclick = async () => {
-    const videoTrack = document.getElementById('videoElement').srcObject?.getVideoTracks()[0];
-    if (videoTrack) {
-        try {
-            const capabilities = videoTrack.getCapabilities();
-            if (capabilities.focusMode) {
-                await videoTrack.applyConstraints({
-                    advanced: [{ focusMode: 'continuous' }] // Paksa balik ke continuous
-                });
-                console.log("Fokus dipicu ulang");
+        const videoTrack = document.getElementById('videoElement').srcObject?.getVideoTracks()[0];
+        if (videoTrack) {
+            try {
+                const capabilities = videoTrack.getCapabilities();
+                if (capabilities.focusMode) {
+                    await videoTrack.applyConstraints({
+                        advanced: [{ focusMode: 'continuous' }]
+                    });
+                    console.log("Fokus dipicu ulang");
+                }
+            } catch (e) {
+                console.warn("Fokus manual tidak didukung pada perangkat ini.");
             }
-        } catch (e) {
-            console.warn("Fokus manual tidak didukung pada perangkat ini.");
         }
-    }
-};
+    };
 
     function stopScan() { 
         codeReader.reset(); 
         scanning = false; 
         document.getElementById("reader").style.display = "none"; 
         document.getElementById("cameraControl").style.display = "none"; 
+        document.getElementById("manualOcrBtn").style.display = "none";
     }
 
     async function onDetected(code) {
-        // Cek Cache dulu
         const cachedData = getLocalCache(code);
         if (cachedData) {
             document.getElementById("beepOk").play(); 
             stopScan(); 
             document.getElementById("searchInput").blur(); 
             document.getElementById("searchInput").value = code; 
-            showDetail(code); // Panggil fungsi asli agar terjemahan tetap jalan
+            showDetail(code);
             return;
         }
 
-        // Fetch lengkap sekali saja, simpan ke cache, lalu panggil showDetail
         const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
         if(data) { 
-            saveToLocalCache(code, data); // Simpan ke cache
+            saveToLocalCache(code, data);
             document.getElementById("beepOk").play(); 
             stopScan(); 
             document.getElementById("searchInput").blur(); 
             document.getElementById("searchInput").value = code; 
-            showDetail(code); // showDetail akan temukan cache dan tidak fetch ulang
+            showDetail(code);
         }
     }
 
-    // FUNGSI RENDER DIPISAH AGAR BISA DIPANGGIL CACHE
     function renderDetailView(p) {
         document.getElementById("listContainer").style.display = "none";
         document.getElementById("ui-header").style.display = "none";
@@ -638,42 +669,36 @@ async function startScan(deviceId = null) {
     }
 
     async function showDetail(fullBarcode) {
-    lastScroll = document.getElementById("scrollContainer").scrollTop;
-    
-    // 1. Cek Local Cache dulu (Client Side)
-    let p = getLocalCache(fullBarcode);
-    
-    if (!p) {
-        // 2. Jika tidak ada di local, panggil RPC (Network Cache / Cached Egress)
-        const { data, error } = await _supabase.rpc('get_product_by_barcode', { 
-            target_barcode: fullBarcode 
-        });
-
-        if (error || !data || data.length === 0) return;
+        lastScroll = document.getElementById("scrollContainer").scrollTop;
         
-        p = data[0];
-        saveToLocalCache(fullBarcode, p);
+        let p = getLocalCache(fullBarcode);
+        
+        if (!p) {
+            const { data, error } = await _supabase.rpc('get_product_by_barcode', { 
+                target_barcode: fullBarcode 
+            });
+
+            if (error || !data || data.length === 0) return;
+            
+            p = data[0];
+            saveToLocalCache(fullBarcode, p);
+        }
+        
+        renderDetailView(p);
     }
-    
-    renderDetailView(p);
-}
 
     function back() {
-    // Sembunyikan detail & tampilkan kembali header/list
-    document.getElementById("detailContainer").style.display = "none";
-    document.getElementById("ui-header").style.display = "block";
-    document.getElementById("listContainer").style.display = "grid";
-    document.getElementById("btnBackFloating").style.display = "none";
-    
-    // Reset input pencarian agar bersih
-    document.getElementById("searchInput").value = "";
-    
-    // Kembalikan ke posisi scroll sebelumnya
-    document.getElementById("scrollContainer").scrollTop = lastScroll;
-    
-    // Jalankan scan otomatis lagi
-    startScan(lastSelectedDeviceId);
-}
+        document.getElementById("detailContainer").style.display = "none";
+        document.getElementById("ui-header").style.display = "block";
+        document.getElementById("listContainer").style.display = "grid";
+        document.getElementById("btnBackFloating").style.display = "none";
+        
+        document.getElementById("searchInput").value = "";
+        
+        document.getElementById("scrollContainer").scrollTop = lastScroll;
+        
+        startScan(lastSelectedDeviceId);
+    }
 
     // Jalankan scan otomatis saat startup
     startScan(lastSelectedDeviceId);

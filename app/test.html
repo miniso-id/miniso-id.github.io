@@ -617,27 +617,39 @@ function stopScan() {
     document.body.style.overflow = "auto";
 }
 
-    async function onDetected(code) {
-        // OPTIMASI EGRESS: Cek cache sebelum fetch
-        if (getFromCache(code)) {
-            document.getElementById("beepOk").play(); 
-            stopScan(); 
-            document.getElementById("searchInput").blur(); 
-            document.getElementById("searchInput").value = code; 
-            showDetail(code);
-            return;
-        }
-
-        const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
-        if(data) { 
-            document.getElementById("beepOk").play(); 
-            stopScan(); 
-            document.getElementById("searchInput").blur(); 
-            document.getElementById("searchInput").value = code; 
-            showDetail(code); 
-        }
+async function onDetected(code) {
+    // 1. Cek Cache
+    if (getFromCache(code)) {
+        document.getElementById("beepOk").play(); 
+        stopScan(); // Berhenti hanya karena data VALID ditemukan
+        showDetail(code);
+        return;
     }
 
+    // 2. Fetch ke Supabase
+    const { data } = await _supabase.from('export')
+        .select('Barcode')
+        .ilike('Barcode', `%${code}%`)
+        .maybeSingle();
+
+    if(data) { 
+        document.getElementById("beepOk").play(); 
+        stopScan(); // Berhenti karena data VALID ditemukan di DB
+        showDetail(code); 
+    } else {
+        // JIKA GAGAL: Jangan panggil stopScan. Biarkan tetap terbuka.
+        const hint = document.querySelector('.tap-hint');
+        if (hint) {
+            hint.innerText = "BARCODE TIDAK TERDAFTAR: " + code;
+            hint.style.color = "yellow";
+            setTimeout(() => {
+                hint.innerText = "ARAHKAN BARCODE KE TENGAH KOTAK";
+                hint.style.color = "white";
+            }, 2000);
+        }
+    }
+}
+    
 async function showDetail(fullBarcode) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;
 

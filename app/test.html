@@ -483,12 +483,12 @@ if(localStorage.getItem('mms_auth') === 'true') {
         }
 
         // OPTIMASI EGRESS: Pilih kolom yang dibutuhkan saja dan limit lebih kecil (10)
-        let query = _supabase.from('export').select('Barcode, Name, Category, Image');
+        let query = _supabase.from('export').select('Barcode, Name, Category, "Detail Category", Image');
         
         if (currentCategory !== 'All') query = query.eq('Category', currentCategory);
         
         // Karena kita sudah cek q di atas, maka bagian ini pasti dijalankan saat ada teks
-        query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%`);
+        query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%,"Detail Category".ilike.%${q}%`);
         
         let { data } = await query.limit(200);
         
@@ -765,14 +765,16 @@ async function captureAi() {
     const canvas = document.getElementById('aiCanvas');
     
     // Resolusi diperkecil agar pengiriman ke Edge Function cepat
-    const scale = 0.5; 
-    canvas.width = video.videoWidth * scale;
-    canvas.height = video.videoHeight * scale;
+    canvas.width = video.videoWidt;
+    canvas.height = video.videoHeight;
+
+    context.imageSmoothingEnabled = false;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
     
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     
-    const base64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+    const base64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
 
     try {
         const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-vision`, {

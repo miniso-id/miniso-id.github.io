@@ -286,7 +286,7 @@ body.fade-in {
 
 <div id="aiOverlay" style="display:none; position:fixed; inset:0; background:black; z-index:40000; flex-direction:column;">
     <div style="position:absolute; top:40px; width:100%; text-align:center; color:white; font-weight:bold; z-index:10;">MMS-X AI VISION</div>
-    <video id="aiVideo" style="width:100%; height:100%; object-fit:cover;" autoplay playsinline></video>
+    <video id="aiVideo" style="width:100%; height:100%; object-fit:cover; image-rendering: -webkit-optimize-contrast; filter: contrast(1.1);" autoplay playsinline></video>
     <canvas id="aiCanvas" style="display:none;"></canvas>
     
     <div style="position:absolute; bottom:50px; width:100%; display:flex; justify-content:center; gap:30px; align-items:center;">

@@ -419,12 +419,12 @@ const checkOCR = async () => {
         const vW = videoElement.videoWidth;
         const vH = videoElement.videoHeight;
 
-        const cropWidth = 450; 
+        const cropWidth = vW * 0.9; 
         const cropHeight = 100;
         
         // Area SUPER SEMPIT (Hanya baris angka)
-        const startX = (vW - cropWidth) / 2;
-        const startY = ((vH - cropHeight) / 2) + 115; // Pas di bawah barcode
+        // const startX = (vW - cropWidth) / 2;
+        // const startY = ((vH - cropHeight) / 2) + 115; // Pas di bawah barcode
 
         // Scale cukup 1.2x saja biar gak berat
         canvas.width = cropWidth;

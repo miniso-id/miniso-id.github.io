@@ -37,25 +37,6 @@ body.fade-in {
     transition: opacity 0.2s ease-out;
 }
 
-        /* Animasi Garis Laser Scan */
-.scan-line {
-    position: absolute;
-    top: 20%;
-    left: 10%;
-    width: 80%;
-    height: 2px;
-    background: var(--miniso-red);
-    box-shadow: 0 0 8px 1px var(--miniso-red);
-    z-index: 5;
-    animation: scanMove 2s infinite linear;
-}
-
-@keyframes scanMove {
-    0% { top: 20%; }
-    50% { top: 80%; }
-    100% { top: 20%; }
-}
-
 /* Kotak Fokus yang Lebih Responsif */
 .focus-guide {
     position: absolute;
@@ -134,22 +115,40 @@ body.fade-in {
         .cat-chip { padding: 8px 16px; background: #f0f0f0; border-radius: 20px; font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; border: 1px solid transparent; transition: 0.2s; flex-shrink: 0; text-transform: uppercase; }
         .cat-chip.active { background: var(--miniso-red); color: white; }
 
-        #reader { 
-            display:none; width:100%; max-width:340px; aspect-ratio:1/1; 
-            margin:15px auto; background:#000; border-radius:20px; 
-            overflow:hidden; position:relative; border: 4px solid white; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
-        }
-        #reader video { 
+        /* --- SCANNER FULLSCREEN MODE --- */
+#reader { 
+    display: none; 
+    position: fixed; /* Menjadikan posisi menempel pada layar */
+    top: 0; 
+    left: 0; 
+    width: 100vw; 
+    height: 100vh; 
+    background: #000; 
+    z-index: 15000; /* Di atas header dan elemen lainnya */
+    overflow: hidden; 
+}
+
+#reader video { 
     width: 100%; 
     height: 100%; 
-    object-fit: cover; 
-    
-    /* TAMBAHKAN KODE BARU DI SINI */
-    filter: contrast(1.4) brightness(1.2) saturate(0); 
-    image-rendering: crisp-edges;
+    object-fit: cover; /* Video akan memenuhi layar tanpa distorsi */
+    filter: contrast(1.2) brightness(1.1); /* Sedikit tweak untuk akurasi */
 }
-        .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
+
+/* Penyesuaian Focus Guide agar tetap di tengah saat fullscreen */
+.focus-guide { 
+    position: absolute; 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(-50%, -50%); /* Menjaga kotak tepat di tengah */
+    width: 80%; 
+    max-width: 400px; 
+    height: 250px; 
+    border: 2px solid rgba(255, 255, 255, 0.5); 
+    border-radius: 20px; 
+    z-index: 2; 
+    box-shadow: 0 0 0 1000px rgba(0,0,0,0.6); /* Efek lubang di tengah */
+}
         .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; }
         #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
 
@@ -254,24 +253,22 @@ body.fade-in {
     <button id="scanBtn">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
     </button>
-
-    <button id="aiSearchBtn" style="position: absolute; right: 50px; top: 4px; width: 42px; height: 38px; background: #4b5563; color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;">
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-        <text x="50%" y="18" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="13px" letter-spacing="-0.5">AI</text>
-        
-        <path d="M21 6l-1.2 1.2l-1.2-1.2l1.2-1.2z" />
-        <path d="M18 3l-.8.8l-.8-.8l.8-.8z" />
-    </svg>
-</button>
 </div>
         </div>
         <div id="catFilterContainer">
             <div class="cat-chip active" onclick="filterCat('All', this)">All</div>
         </div>
-        <div id="reader">
+<div id="reader">
     <video id="videoElement"></video>
     <div class="focus-guide"></div>
-    <div class="scan-line"></div> <div class="tap-hint">ARAHKAN BARCODE KE TENGAH KOTAK</div>
+    <div class="scan-line"></div> 
+    <div class="tap-hint">ARAHKAN BARCODE ATAU TEKAN TOMBOL AI</div>
+    
+    <button onclick="stopScan()" style="position: absolute; top: 40px; right: 20px; background: rgba(0,0,0,0.5); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; z-index: 10;">✕</button>
+    <div id="hybridAiLoading" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.7); flex-direction:column; align-items:center; justify-content:center; color:white; z-index:20;">
+        <div class="spinner" style="border:4px solid #f3f3f3; border-top:4px solid var(--miniso-red); border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite;"></div>
+        <p style="margin-top:15px; font-weight:bold;">AI Sedang Mengenali Produk...</p>
+    </div>
 </div>
         <div id="cameraControl"><select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select></div>
     </header>
@@ -355,6 +352,8 @@ function navigateTo(url) {
     const USER_SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co"; 
     const USER_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _userSupabase = supabase.createClient(USER_SUPABASE_URL, USER_SUPABASE_KEY);
+
+    let aiAutoTimer = null; // Untuk menyimpan interval AI otomatis
 
     /* --- LOGIKA LOGIN TERINTEGRASI --- */
     async function checkLogin() {
@@ -514,6 +513,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
     async function startScan(deviceId = null) {
         scanning = true; 
         document.getElementById("reader").style.display = "block";
+        document.body.style.overflow = "hidden";
         
         const hints = new Map();
         const formats = [
@@ -579,7 +579,15 @@ if(localStorage.getItem('mms_auth') === 'true') {
             if (Object.keys(advanced).length > 0) {
                 await videoTrack.applyConstraints({ advanced: [advanced] });
             }
-
+if (!aiAutoTimer) {
+                aiAutoTimer = setInterval(() => {
+                    const loading = document.getElementById('hybridAiLoading');
+                    // Jalankan AI otomatis jika sedang scan dan AI tidak sedang loading
+                    if (scanning && (!loading || loading.style.display !== 'flex')) {
+                        captureHybridAi(); 
+                    }
+                }, 2000); // Cek setiap 7 detik
+            }
         } catch (err) {
             console.error("Gagal optimasi kamera:", err);
             if(deviceId) { 
@@ -627,12 +635,19 @@ if(localStorage.getItem('mms_auth') === 'true') {
         }
     };
 
-    function stopScan() { 
-        codeReader.reset(); 
-        scanning = false; 
-        document.getElementById("reader").style.display = "none"; 
-        document.getElementById("cameraControl").style.display = "none"; 
+function stopScan() {
+    codeReader.reset();
+    scanning = false;
+    
+    // MATIKAN AI OTOMATIS
+    if (aiAutoTimer) {
+        clearInterval(aiAutoTimer);
+        aiAutoTimer = null;
     }
+
+    document.getElementById("reader").style.display = "none";
+    document.body.style.overflow = "auto";
+}
 
     async function onDetected(code) {
         // OPTIMASI EGRESS: Cek cache sebelum fetch
@@ -767,7 +782,7 @@ const capabilities = track.getCapabilities();
 // Jika HP mendukung zoom, kita set ke 2x (agar barcode kecil terlihat besar)
 if (capabilities.zoom) {
     track.applyConstraints({
-        advanced: [{ zoom: 1.0 }] 
+        advanced: [{ zoom: 0.5 }] 
     });
 }
         
@@ -778,26 +793,22 @@ if (capabilities.zoom) {
     }
 };
 
-// Ambil Gambar dan Kirim ke Edge Function
-async function captureAi() {
-    // HAPUS pengecekan isAiReady agar bisa langsung jalan
-    showAiLoading("AI Sedang Memeriksa Barang...");
-    
-    const video = document.getElementById('aiVideo');
+async function captureHybridAi() {
+    const video = document.getElementById('videoElement');
     const canvas = document.getElementById('aiCanvas');
     
-    // Resolusi diperkecil agar pengiriman ke Edge Function cepat
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    const ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = false;
-    ctx.webkitImageSmoothingEnabled = false;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    const base64 = canvas.toDataURL('image/jpeg', 1.0).split(',')[1];
+    // Gunakan indikator loading yang lebih halus (misal: hanya spinner kecil)
+    // agar tidak menutupi seluruh layar saat scan otomatis
+    console.log("AI sedang mengecek produk secara otomatis...");
 
     try {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        const base64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
+
         const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-vision`, {
             method: 'POST',
             headers: {
@@ -807,24 +818,21 @@ async function captureAi() {
             body: JSON.stringify({ image: base64 })
         });
 
-        if (!response.ok) throw new Error(`Server Error: ${response.status}`);
-
         const data = await response.json();
-        const textDescription = data.description; 
-        console.log("AI Mendeteksi:", textDescription);
-
-        // --- SOLUSI: LANGSUNG MASUK KE PENCARIAN ---
-        const searchInput = document.getElementById("searchInput");
-        searchInput.value = textDescription; // Isi kolom cari dengan hasil AI
-
-        closeAi(); // Tutup kamera
-        search();  // Jalankan fungsi pencarian otomatis
+        
+        // JIKA AI BERHASIL MENEMUKAN NAMA PRODUK
+        if (data.description && data.description !== "Unknown") {
+            const searchInput = document.getElementById("searchInput");
+            searchInput.value = data.description;
+            
+            stopScan(); // Berhenti karena produk ditemukan
+            search();   // Tampilkan hasil
+        }
         
     } catch (e) {
-        console.error("Detail Error:", e);
-        alert("Gagal menganalisis gambar. Pastikan koneksi internet stabil.");
+        // Cukup log saja, jangan pakai Alert agar user tidak terganggu
+        console.error("Auto AI Silent Error:", e);
     }
-    hideAiLoading();
 }
     
     function showAiLoading(msg) {

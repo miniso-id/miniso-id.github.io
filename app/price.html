@@ -395,7 +395,7 @@ if (!ocrWorker) {
         tessedit_char_whitelist: '0123456789', // Hanya angka
         tessedit_pageseg_mode: '7',           // Anggap cuma 1 baris (Sangat Cepat)
         tessjs_create_hocr: '0',              // Matikan fitur tambahan biar enteng
-        tessjs_create_tsv: '0',
+        tessjs_create_tsv: '0'
     });
 }
         
@@ -414,23 +414,23 @@ const checkOCR = async () => {
         
         const vW = videoElement.videoWidth;
         const vH = videoElement.videoHeight;
+
+        const cropWidth = vW * 0.9; 
+        const cropHeight = 100;
         
         // Area SUPER SEMPIT (Hanya baris angka)
-        const cropWidth = vW * 0.6; // Perkecil lebar
-        const cropHeight = 80;     // Perkecil tinggi (cukup buat 1 baris angka)
         const startX = (vW - cropWidth) / 2;
         const startY = ((vH - cropHeight) / 2) + 115; // Pas di bawah barcode
 
         // Scale cukup 1.2x saja biar gak berat
-        const scale = 1.2;
-        canvas.width = cropWidth * scale;
-        canvas.height = cropHeight * scale;
+        canvas.width = cropWidth;
+        canvas.height = cropHeight;
 
         const ctx = canvas.getContext('2d', { alpha: false });
-        ctx.scale(scale, scale);
         
         // Efek "Biner": Hitam Putih Pekat (Paling disukai Tesseract)
-        ctx.filter = 'threshold(140) grayscale(1)'; 
+        ctx.imageSmoothingEnabled = false;
+        ctx.filter = 'threshold(150) grayscale(1)'; 
         ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
         try {

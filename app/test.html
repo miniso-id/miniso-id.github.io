@@ -390,89 +390,83 @@ async function startScan(deviceId = null) {
         // TAMBAHAN LOGIKA HYBRID OCR (TIDAK MERUBAH ATAS)
         // ==========================================
         if (!ocrWorker) {
-            ocrWorker = await Tesseract.createWorker('eng'); 
-            // TAMBAHAN BARU: Paksa OCR hanya fokus mencari angka 0-9
-            await ocrWorker.setParameters({
-                tessedit_char_whitelist: '0123456789',
-            });
-        }
+    ocrWorker = await Tesseract.createWorker('eng');
+    // Tambahkan ini:
+    await ocrWorker.setParameters({
+        tessedit_char_whitelist: '0123456789',
+        tessedit_pageseg_mode: '7', // Mode '7' artinya menganggap gambar sebagai satu baris teks tunggal (Sangat Cepat)
+    });
+}
 
         const canvas = document.createElement('canvas');
-        let frameCounter = 0;
-        let isProcessingOCR = false; // Kunci agar proses tidak bertabrakan
+let frameCounter = 0;
+let isProcessingOCR = false;
 
-        const checkOCR = async () => {
-            // Jika sedang scan atau mesin OCR masih sibuk proses frame sebelumnya, LEWATI!
-            if (!scanning || isProcessingOCR) return; 
-            
-            frameCounter++;
-            // Interval diubah ke 20 agar CPU HP lebih lega
-            if (frameCounter % 20 === 0 && ocrWorker && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
+const checkOCR = async () => {
+    // Kunci agar tidak terjadi tumpukan proses (Memory Leak)
+    if (!scanning || isProcessingOCR) return;
+    
+    frameCounter++;
+    // Interval 25 frame (~1.5 detik) adalah titik paling stabil untuk HP retail
+    if (frameCounter % 25 === 0 && ocrWorker && videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
+        
+        isProcessingOCR = true;
+        
+        const vW = videoElement.videoWidth;
+        const vH = videoElement.videoHeight;
+        
+        // AREA SUPER FOKUS: Hanya ambil baris angka
+        const cropWidth = vW * 0.7; // Dipersempit agar lebih ringan
+        const cropHeight = 100;    // Diperpendek karena angka cuma satu baris
+        const startX = (vW - cropWidth) / 2;
+        const startY = ((vH - cropHeight) / 2) + 110; // Posisi angka di bawah barcode
+
+        const scale = 1.2; // Turunkan scale ke 1.2x (Cukup untuk Tesseract asal kontras tinggi)
+        canvas.width = cropWidth * scale;
+        canvas.height = cropHeight * scale;
+
+        const ctx = canvas.getContext('2d', { alpha: false });
+        ctx.scale(scale, scale);
+        
+        // Pre-processing minimalis tapi galak
+        ctx.filter = 'threshold(150) grayscale(1)'; 
+        ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+
+        try {
+            // Cukup satu kali recognize per siklus
+            let result = await ocrWorker.recognize(canvas);
+            let code = result.data.text.replace(/\D/g, '').trim();
+
+            // Jika gagal normal, baru coba balik (Silent Flip)
+            if (code.length < 8) {
+                ctx.save();
+                ctx.translate(cropWidth / 2, cropHeight / 2);
+                ctx.rotate(Math.PI);
+                ctx.translate(-cropWidth / 2, -cropHeight / 2);
+                ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+                ctx.restore();
+
+                const flipResult = await ocrWorker.recognize(canvas);
+                const flipCode = flipResult.data.text.replace(/\D/g, '').trim();
                 
-                isProcessingOCR = true; // Kunci sistem
-                
-                const vW = videoElement.videoWidth;
-                const vH = videoElement.videoHeight;
-                
-                const cropWidth = vW * 0.9;
-                const cropHeight = 180; 
-                const startX = (vW - cropWidth) / 2;
-                const startY = ((vH - cropHeight) / 2) + 100; 
-
-                // Scale diturunkan dari 2 ke 1.5. Tetap tajam tapi prosesnya jauh lebih cepat.
-                const scale = 1.5;
-                canvas.width = cropWidth * scale;
-                canvas.height = cropHeight * scale;
-
-                // Tambahan alpha: false untuk menghemat penggunaan RAM browser
-                const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: true });
-                ctx.scale(scale, scale);
-                ctx.imageSmoothingEnabled = true;
-                ctx.imageSmoothingQuality = 'high';
-                ctx.filter = 'grayscale(1) contrast(2.5) brightness(1.1)';
-
-                try {
-                    // --- 1. PROSES BACA NORMAL ---
-                    if (typeof updateScanUI === "function") updateScanUI("NORMAL");
-                    ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-                    
-                    let result = await ocrWorker.recognize(canvas);
-                    let code = result.data.text.replace(/\D/g, '').trim();
-
-                    // --- 2. PROSES BACA TERBALIK (Hanya jika Normal gagal) ---
-                    if (code.length < 8) {
-                        if (typeof updateScanUI === "function") updateScanUI("REVERSE");
-                        
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        ctx.save();
-                        ctx.translate(cropWidth / 2, cropHeight / 2);
-                        ctx.rotate(Math.PI); 
-                        ctx.translate(-cropWidth / 2, -cropHeight / 2);
-                        ctx.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-                        ctx.restore();
-
-                        const resultFlip = await ocrWorker.recognize(canvas);
-                        const codeFlip = resultFlip.data.text.replace(/\D/g, '').trim();
-
-                        if (codeFlip.length > code.length) {
-                            code = codeFlip;
-                            result = resultFlip;
-                        }
-                    }
-
-                    // --- 3. HASIL AKHIR ---
-                    if (result.data.confidence > 45 && code.length >= 8 && code.length <= 13) {
-                        onDetected(code);
-                    }
-                } catch (err) {
-                    console.error("Gagal membaca frame:", err);
-                } finally {
-                    // Selesai diproses, buka kunci agar frame selanjutnya bisa diproses
-                    isProcessingOCR = false; 
+                if (flipCode.length > code.length) {
+                    code = flipCode;
+                    result = flipResult;
                 }
             }
-            requestAnimationFrame(checkOCR);
-        };
+
+            // Langsung eksekusi jika digit pas
+            if (code.length >= 8 && code.length <= 13) {
+                onDetected(code);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            isProcessingOCR = false;
+        }
+    }
+    requestAnimationFrame(checkOCR);
+};        
         checkOCR();
         // ==========================================
 

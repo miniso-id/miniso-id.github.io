@@ -369,6 +369,8 @@ function navigateTo(url) {
     const USER_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _userSupabase = supabase.createClient(USER_SUPABASE_URL, USER_SUPABASE_KEY);
 
+    let aiAutoTimer = null; // Untuk menyimpan interval AI otomatis
+
     /* --- LOGIKA LOGIN TERINTEGRASI --- */
     async function checkLogin() {
         const role = document.getElementById('loginAs').value;
@@ -600,6 +602,14 @@ if(localStorage.getItem('mms_auth') === 'true') {
                 codeReader.reset(); 
                 startScan(null); 
             }
+            if (!aiAutoTimer) {
+        aiAutoTimer = setInterval(() => {
+            // Hanya jalankan AI jika sedang scanning dan tidak sedang loading AI sebelumnya
+            const loading = document.getElementById('hybridAiLoading');
+            if (scanning && loading.style.display !== 'flex') {
+                captureHybridAi(); 
+            }
+        }, 7000); // 7000ms = 7 detik
         }
     }
 
@@ -641,13 +651,19 @@ if(localStorage.getItem('mms_auth') === 'true') {
         }
     };
 
-    function stopScan() { 
-        codeReader.reset(); 
-        scanning = false; 
-        document.getElementById("reader").style.display = "none"; 
-        document.getElementById("cameraControl").style.display = "none";
-        document.body.style.overflow = "auto";
+function stopScan() {
+    codeReader.reset();
+    scanning = false;
+    
+    // MATIKAN AI OTOMATIS
+    if (aiAutoTimer) {
+        clearInterval(aiAutoTimer);
+        aiAutoTimer = null;
     }
+
+    document.getElementById("reader").style.display = "none";
+    document.body.style.overflow = "auto";
+}
 
     async function onDetected(code) {
         // OPTIMASI EGRESS: Cek cache sebelum fetch
@@ -793,29 +809,22 @@ if (capabilities.zoom) {
     }
 };
 
-// Ambil Gambar dan Kirim ke Edge Function
 async function captureHybridAi() {
-    // 1. Ambil elemen video dari scanner ZXing (bukan aiVideo lagi)
     const video = document.getElementById('videoElement');
     const canvas = document.getElementById('aiCanvas');
     
-    // Tampilkan loading overlay yang sudah ada di dalam scanner
-    showAiLoading("AI Sedang Mengenali Produk...");
+    // Gunakan indikator loading yang lebih halus (misal: hanya spinner kecil)
+    // agar tidak menutupi seluruh layar saat scan otomatis
+    console.log("AI sedang mengecek produk secara otomatis...");
 
     try {
-        // 2. Samakan resolusi canvas dengan video stream yang sedang aktif
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        
         const ctx = canvas.getContext('2d');
-        // Setting untuk menjaga ketajaman gambar produk Miniso
-        ctx.imageSmoothingEnabled = true; 
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         
-        // 3. Konversi ke Base64 (Kualitas 0.8 sudah cukup untuk AI dan lebih ringan di kuota)
-        const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+        const base64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
 
-        // 4. Kirim ke Supabase Edge Function
         const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-vision`, {
             method: 'POST',
             headers: {
@@ -825,27 +834,20 @@ async function captureHybridAi() {
             body: JSON.stringify({ image: base64 })
         });
 
-        if (!response.ok) throw new Error(`Server Error: ${response.status}`);
-
         const data = await response.json();
-        const textDescription = data.description; 
         
-        console.log("AI Mendeteksi di Store:", textDescription);
-
-        if (textDescription) {
-            // 5. Eksekusi Hasil: Masukkan ke input dan tutup scanner
+        // JIKA AI BERHASIL MENEMUKAN NAMA PRODUK
+        if (data.description && data.description !== "Unknown") {
             const searchInput = document.getElementById("searchInput");
-            searchInput.value = textDescription;
-
-            stopScan(); // Fungsi bawaan scanner kamu untuk reset kamera
-            search();   // Fungsi bawaan kamu untuk filter list produk
+            searchInput.value = data.description;
+            
+            stopScan(); // Berhenti karena produk ditemukan
+            search();   // Tampilkan hasil
         }
         
     } catch (e) {
-        console.error("Detail Error Vision:", e);
-        alert("Gagal menganalisis gambar. Pastikan koneksi internet stabil.");
-    } finally {
-        hideAiLoading();
+        // Cukup log saja, jangan pakai Alert agar user tidak terganggu
+        console.error("Auto AI Silent Error:", e);
     }
 }
     

@@ -181,7 +181,21 @@ body.fade-in {
     <div class="focus-guide"></div>
     <div class="tap-hint">ARAHKAN BARCODE KE TENGAH KOTAK</div>
 </div>
-        <div id="cameraControl"><select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select></div>
+        <div id="cameraControl">
+            <select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select>
+            <button id="manualOcrBtn" onclick="manualOCR()" style="
+                display:none;
+                margin: 8px auto 0;
+                padding: 10px 16px;
+                border: none;
+                border-radius: 10px;
+                background: var(--miniso-red);
+                color: #fff;
+                font-weight: 700;
+                cursor: pointer;
+                width: fit-content;
+            ">📸 Scan Angka</button>
+        </div>
     </header>
 
     <main class="main-content" id="scrollContainer">
@@ -226,46 +240,46 @@ function navigateTo(url) {
     }, 200); 
 }
 
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js')
-                .then(reg => console.log('Service Worker Registered!', reg.scope))
-                .catch(err => console.log('Service Worker Failed:', err));
-        });
-    }
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker Registered!', reg.scope))
+            .catch(err => console.log('Service Worker Failed:', err));
+    });
+}
     
-    const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
-    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let scanning = false, lastScroll = 0, timer;
-    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
+let scanning = false, lastScroll = 0, timer;
+let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
 
-    // Inisialisasi ZXing
-    const codeReader = new ZXing.BrowserMultiFormatReader();
+// Inisialisasi ZXing
+const codeReader = new ZXing.BrowserMultiFormatReader();
 
-    function openLightbox(src) {
-        if(!src || src.includes('placeholder')) return;
-        const lb = document.getElementById('lightbox');
-        document.getElementById('lightboxImg').src = src;
-        lb.classList.add('active');
-    }
+function openLightbox(src) {
+    if(!src || src.includes('placeholder')) return;
+    const lb = document.getElementById('lightbox');
+    document.getElementById('lightboxImg').src = src;
+    lb.classList.add('active');
+}
 
-    function closeLightbox() { document.getElementById('lightbox').classList.remove('active'); }
+function closeLightbox() { document.getElementById('lightbox').classList.remove('active'); }
 
-    function toggleSidebar() { 
-        document.getElementById("sidebar").classList.toggle("active");
-        document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none";
-    }
+function toggleSidebar() { 
+    document.getElementById("sidebar").classList.toggle("active");
+    document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none";
+}
 
-    function cleanPrice(val) {
-        if(!val) return 0;
-        return parseInt(String(val).replace(/[^0-9]/g, "")) || 0;
-    }
+function cleanPrice(val) {
+    if(!val) return 0;
+    return parseInt(String(val).replace(/[^0-9]/g, "")) || 0;
+}
 
-    document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 400); };
+document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 400); };
 
-    async function search() {
+async function search() {
     const q = document.getElementById("searchInput").value.trim();
     const list = document.getElementById("listContainer");
     
@@ -306,96 +320,122 @@ function navigateTo(url) {
     }
 }
 
-    document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
+document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
-    // Variable global untuk OCR (Letakkan di luar fungsi)
-    let ocrWorker = null;
-    let frameCounter = 0;
-    let isProcessingOCR = false;
-    let lastOcrTime = 0;
-    let lastDetectedCode = "";
-    let lastDetectedAt = 0;
-    let lastZxingSuccessAt = 0;
+// Variable global untuk OCR
+let ocrWorker = null;
+let frameCounter = 0;
+let isProcessingOCR = false;
+let lastOcrTime = 0;
+let lastDetectedCode = "";
+let lastDetectedAt = 0;
+let lastZxingSuccessAt = 0;
 
-    const ZXING_GRACE_MS = 1200;
-    const OCR_INTERVAL_MS = 650;
+const ZXING_GRACE_MS = 1200;
+const OCR_INTERVAL_MS = 650;
 
-    async function initOcrWorker() {
-        if (ocrWorker) return ocrWorker;
+async function initOcrWorker() {
+    if (ocrWorker) return ocrWorker;
 
-        ocrWorker = await Tesseract.createWorker('eng');
+    ocrWorker = await Tesseract.createWorker('eng');
 
-        await ocrWorker.setParameters({
-            tessedit_char_whitelist: '0123456789',
-            tessedit_pageseg_mode: '7',
-            preserve_interword_spaces: '0',
-            user_defined_dpi: '300',
-            tessjs_create_hocr: '0',
-            tessjs_create_tsv: '0',
-            tessjs_create_box: '0'
-        });
+    await ocrWorker.setParameters({
+        tessedit_char_whitelist: '0123456789',
+        tessedit_pageseg_mode: '7',
+        preserve_interword_spaces: '0',
+        user_defined_dpi: '300',
+        tessjs_create_hocr: '0',
+        tessjs_create_tsv: '0',
+        tessjs_create_box: '0'
+    });
 
-        return ocrWorker;
+    return ocrWorker;
+}
+
+function captureFrame(videoElement) {
+    const canvas = document.createElement('canvas');
+    canvas.width = videoElement.videoWidth || 1;
+    canvas.height = videoElement.videoHeight || 1;
+
+    const ctx = canvas.getContext('2d', { alpha: false });
+    ctx.drawImage(videoElement, 0, 0);
+
+    return canvas;
+}
+
+function preprocessForDigits(sourceCanvas) {
+    const srcW = sourceCanvas.width || 1;
+    const srcH = sourceCanvas.height || 1;
+
+    const cropWidth = Math.max(1, Math.round(srcW * 0.9));
+    const cropHeight = Math.max(1, Math.round(srcH * 0.18));
+    const sx = Math.max(0, Math.round((srcW - cropWidth) / 2));
+    const sy = Math.max(0, Math.round((srcH - cropHeight) / 2 + srcH * 0.08));
+
+    const scale = 2;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(cropWidth * scale));
+    canvas.height = Math.max(1, Math.round(cropHeight * scale));
+
+    const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: false });
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(sourceCanvas, sx, sy, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
+
+    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const d = img.data;
+
+    const threshold = 165;
+    for (let i = 0; i < d.length; i += 4) {
+        const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+        const v = gray > threshold ? 255 : 0;
+        d[i] = v;
+        d[i + 1] = v;
+        d[i + 2] = v;
+        d[i + 3] = 255;
     }
 
-    function captureFrame(videoElement) {
-        const canvas = document.createElement('canvas');
-        canvas.width = videoElement.videoWidth;
-        canvas.height = videoElement.videoHeight;
+    ctx.putImageData(img, 0, 0);
+    return canvas;
+}
 
-        const ctx = canvas.getContext('2d', { alpha: false });
-        ctx.drawImage(videoElement, 0, 0);
+async function scanDigitsFromImage(canvasSource) {
+    const canvas = preprocessForDigits(canvasSource);
+    const worker = await initOcrWorker();
 
-        return canvas;
+    let result = await worker.recognize(canvas);
+    let code = (result?.data?.text || '').replace(/\D/g, '').trim();
+
+    if (code.length < 8) {
+        await worker.setParameters({ tessedit_pageseg_mode: '13' });
+        result = await worker.recognize(canvas);
+        code = (result?.data?.text || '').replace(/\D/g, '').trim();
+        await worker.setParameters({ tessedit_pageseg_mode: '7' });
     }
 
-    function preprocessForDigits(sourceCanvas) {
-        const scale = 2;
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.max(1, Math.round(sourceCanvas.width * scale));
-        canvas.height = Math.max(1, Math.round(sourceCanvas.height * scale));
+    return code;
+}
 
-        const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: false });
-        ctx.imageSmoothingEnabled = true;
-        ctx.drawImage(sourceCanvas, 0, 0, canvas.width, canvas.height);
+async function manualOCR() {
+    const videoElement = document.getElementById('videoElement');
+    if (!videoElement || videoElement.readyState < videoElement.HAVE_ENOUGH_DATA) return;
 
-        const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const d = img.data;
+    try {
+        const captured = captureFrame(videoElement);
+        const code = await scanDigitsFromImage(captured);
 
-        const threshold = 165;
-        for (let i = 0; i < d.length; i += 4) {
-            const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-            const v = gray > threshold ? 255 : 0;
-            d[i] = v;
-            d[i + 1] = v;
-            d[i + 2] = v;
-            d[i + 3] = 255;
+        if (code && code.length >= 8 && code.length <= 13) {
+            onDetected(code);
         }
-
-        ctx.putImageData(img, 0, 0);
-        return canvas;
+    } catch (e) {
+        console.error('Manual OCR error:', e);
     }
-
-    async function scanDigitsFromImage(canvasSource) {
-        const canvas = preprocessForDigits(canvasSource);
-        const worker = await initOcrWorker();
-
-        let result = await worker.recognize(canvas);
-        let code = (result?.data?.text || '').replace(/\D/g, '').trim();
-
-        if (code.length < 8) {
-            await worker.setParameters({ tessedit_pageseg_mode: '13' });
-            result = await worker.recognize(canvas);
-            code = (result?.data?.text || '').replace(/\D/g, '').trim();
-            await worker.setParameters({ tessedit_pageseg_mode: '7' });
-        }
-
-        return code;
-    }
+}
 
 async function startScan(deviceId = null) {
     scanning = true; 
     document.getElementById("reader").style.display = "block";
+    document.getElementById("manualOcrBtn").style.display = "block";
+    lastZxingSuccessAt = performance.now();
     
     // --- 1. Definisikan Hints (STRUKTUR ASLI ANDA) ---
     const hints = new Map();
@@ -452,10 +492,10 @@ async function startScan(deviceId = null) {
         if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
             advanced.focusMode = 'continuous';
         }
-        //if (capabilities.zoom) {
-        //    const targetZoom = Math.min(capabilities.zoom.min + 1.0, capabilities.zoom.max);
-        //    advanced.zoom = targetZoom;
-        //}
+        if (capabilities.zoom) {
+            const targetZoom = Math.min(capabilities.zoom.min + 1.0, capabilities.zoom.max);
+            advanced.zoom = targetZoom;
+        }
         if (Object.keys(advanced).length > 0) {
             await videoTrack.applyConstraints({ advanced: [advanced] });
         }
@@ -516,35 +556,36 @@ async function startScan(deviceId = null) {
         }
     }
 }
-    function updateCameraList(devices, currentId) {
-        const source = document.getElementById("videoSource");
-        const control = document.getElementById("cameraControl");
-        
-        if (devices.length <= 1) {
-            control.style.display = "none";
-        } else {
-            control.style.display = "block";
-            source.innerHTML = devices.map(d => 
-                `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>${d.label || 'Kamera'}</option>`
-            ).join("");
-        }
+
+function updateCameraList(devices, currentId) {
+    const source = document.getElementById("videoSource");
+    const control = document.getElementById("cameraControl");
+    
+    if (devices.length <= 1) {
+        control.style.display = "none";
+    } else {
+        control.style.display = "block";
+        source.innerHTML = devices.map(d => 
+            `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>${d.label || 'Kamera'}</option>`
+        ).join("");
     }
+}
 
-    document.getElementById("videoSource").onchange = (e) => { 
-        lastSelectedDeviceId = e.target.value; 
-        localStorage.setItem('preferredCameraId', lastSelectedDeviceId); 
-        stopScan(); 
-        startScan(lastSelectedDeviceId); 
-    };
+document.getElementById("videoSource").onchange = (e) => { 
+    lastSelectedDeviceId = e.target.value; 
+    localStorage.setItem('preferredCameraId', lastSelectedDeviceId); 
+    stopScan(); 
+    startScan(lastSelectedDeviceId); 
+};
 
-    document.getElementById("reader").onclick = async () => {
+document.getElementById("reader").onclick = async () => {
     const videoTrack = document.getElementById('videoElement').srcObject?.getVideoTracks()[0];
     if (videoTrack) {
         try {
             const capabilities = videoTrack.getCapabilities();
             if (capabilities.focusMode) {
                 await videoTrack.applyConstraints({
-                    advanced: [{ focusMode: 'continuous' }] // Paksa balik ke continuous
+                    advanced: [{ focusMode: 'continuous' }]
                 });
                 console.log("Fokus dipicu ulang");
             }
@@ -554,97 +595,93 @@ async function startScan(deviceId = null) {
     }
 };
 
-    function stopScan() { 
-        codeReader.reset(); 
-        scanning = false; 
-        document.getElementById("reader").style.display = "none"; 
-        document.getElementById("cameraControl").style.display = "none"; 
+function stopScan() { 
+    codeReader.reset(); 
+    scanning = false; 
+    document.getElementById("reader").style.display = "none"; 
+    document.getElementById("cameraControl").style.display = "none"; 
+    document.getElementById("manualOcrBtn").style.display = "none";
+}
+
+async function onDetected(code) {
+    const cachedData = getLocalCache(code);
+    if (cachedData) {
+        document.getElementById("beepOk").play(); 
+        stopScan(); 
+        document.getElementById("searchInput").blur(); 
+        document.getElementById("searchInput").value = code; 
+        showDetail(code);
+        return;
     }
 
-    async function onDetected(code) {
-        // Cek Cache dulu
-        const cachedData = getLocalCache(code);
-        if (cachedData) {
-            document.getElementById("beepOk").play(); 
-            stopScan(); 
-            document.getElementById("searchInput").blur(); 
-            document.getElementById("searchInput").value = code; 
-            showDetail(code); // Panggil fungsi asli agar terjemahan tetap jalan
-            return;
-        }
-
-        // Fetch lengkap sekali saja, simpan ke cache, lalu panggil showDetail
-        const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
-        if(data) { 
-            saveToLocalCache(code, data); // Simpan ke cache
-            document.getElementById("beepOk").play(); 
-            stopScan(); 
-            document.getElementById("searchInput").blur(); 
-            document.getElementById("searchInput").value = code; 
-            showDetail(code); // showDetail akan temukan cache dan tidak fetch ulang
-        }
+    const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
+    if(data) { 
+        saveToLocalCache(code, data);
+        document.getElementById("beepOk").play(); 
+        stopScan(); 
+        document.getElementById("searchInput").blur(); 
+        document.getElementById("searchInput").value = code; 
+        showDetail(code);
     }
+}
 
-    // FUNGSI RENDER DIPISAH AGAR BISA DIPANGGIL CACHE
-    function renderDetailView(p) {
-        document.getElementById("listContainer").style.display = "none";
-        document.getElementById("ui-header").style.display = "none";
-        const regPrice = cleanPrice(p["Regular Store Price"]);
-        const strPrice = cleanPrice(p["Street Store Price"]);
-        const promoText = (p["Extra Promo"] || "").trim();
-        const discountLabel = (promoText !== "" && promoText !== "NORMAL PRICE" && p["Regular Store Promo"] !== "NORMAL") 
-            ? `<div class="promo-badge">${promoText}</div>` 
-            : "";
-            
-        const det = document.getElementById("detailContainer");
-        det.innerHTML = `
-            <div class="product-card">
-                <div class="image-box">
-                    ${discountLabel}
-                    <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/500x500?text=Miniso+Product'" onclick="openLightbox('${p.Image || ''}')">
-                </div>
-                <div class="p-info">
-                    <span class="p-cat">${p.Category || 'GENERAL'}</span>
-                    <h3 class="p-title">${p.Name}</h3>
-                    <p class="p-desc">${p.Description || ''}</p>
-                    <div class="price-comparison-grid">
-                        <div class="price-item reg">
-                            <span class="price-label">Regular Store</span>
-                            <span class="price-val">Rp${regPrice.toLocaleString('id-ID')}</span>
-                        </div>
-                        <div class="price-item str">
-                            <span class="price-label">Street Store</span>
-                            <span class="price-val">Rp${strPrice.toLocaleString('id-ID')}</span>
-                        </div>
+function renderDetailView(p) {
+    document.getElementById("listContainer").style.display = "none";
+    document.getElementById("ui-header").style.display = "none";
+    const regPrice = cleanPrice(p["Regular Store Price"]);
+    const strPrice = cleanPrice(p["Street Store Price"]);
+    const promoText = (p["Extra Promo"] || "").trim();
+    const discountLabel = (promoText !== "" && promoText !== "NORMAL PRICE" && p["Regular Store Promo"] !== "NORMAL") 
+        ? `<div class="promo-badge">${promoText}</div>` 
+        : "";
+        
+    const det = document.getElementById("detailContainer");
+    det.innerHTML = `
+        <div class="product-card">
+            <div class="image-box">
+                ${discountLabel}
+                <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/500x500?text=Miniso+Product'" onclick="openLightbox('${p.Image || ''}')">
+            </div>
+            <div class="p-info">
+                <span class="p-cat">${p.Category || 'GENERAL'}</span>
+                <h3 class="p-title">${p.Name}</h3>
+                <p class="p-desc">${p.Description || ''}</p>
+                <div class="price-comparison-grid">
+                    <div class="price-item reg">
+                        <span class="price-label">Regular Store</span>
+                        <span class="price-val">Rp${regPrice.toLocaleString('id-ID')}</span>
                     </div>
-                    <div style="border-top: 1px solid #eee; padding-top: 20px;">
-                        <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px;">
-                            <span style="color:#888; font-weight:600;">BARCODE</span><span style="font-weight:700; word-break:break-all; text-align:right; max-width:60%;">${p.Barcode}</span>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px;">
-                            <span style="color:#888; font-weight:600;">REG PROMO</span><span style="font-weight:700; color:var(--promo-blue)">${p["Regular Store Promo"] || '-'}</span>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; font-size:12px;">
-                            <span style="color:#888; font-weight:600;">STR PROMO</span><span style="font-weight:700; color:var(--promo-green)">${p["Street Store Promo"] || '-'}</span>
-                        </div>
+                    <div class="price-item str">
+                        <span class="price-label">Street Store</span>
+                        <span class="price-val">Rp${strPrice.toLocaleString('id-ID')}</span>
+                    </div>
+                </div>
+                <div style="border-top: 1px solid #eee; padding-top: 20px;">
+                    <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px;">
+                        <span style="color:#888; font-weight:600;">BARCODE</span><span style="font-weight:700; word-break:break-all; text-align:right; max-width:60%;">${p.Barcode}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px;">
+                        <span style="color:#888; font-weight:600;">REG PROMO</span><span style="font-weight:700; color:var(--promo-blue)">${p["Regular Store Promo"] || '-'}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:12px;">
+                        <span style="color:#888; font-weight:600;">STR PROMO</span><span style="font-weight:700; color:var(--promo-green)">${p["Street Store Promo"] || '-'}</span>
                     </div>
                 </div>
             </div>
-        `;
-        det.style.display = "block";
-        det.classList.add('active');
-        document.getElementById("btnBackFloating").style.display = "flex";
-        document.getElementById("scrollContainer").scrollTo(0, 0);
-    }
+        </div>
+    `;
+    det.style.display = "block";
+    det.classList.add('active');
+    document.getElementById("btnBackFloating").style.display = "flex";
+    document.getElementById("scrollContainer").scrollTo(0, 0);
+}
 
-    async function showDetail(fullBarcode) {
+async function showDetail(fullBarcode) {
     lastScroll = document.getElementById("scrollContainer").scrollTop;
     
-    // 1. Cek Local Cache dulu (Client Side)
     let p = getLocalCache(fullBarcode);
     
     if (!p) {
-        // 2. Jika tidak ada di local, panggil RPC (Network Cache / Cached Egress)
         const { data, error } = await _supabase.rpc('get_product_by_barcode', { 
             target_barcode: fullBarcode 
         });
@@ -658,25 +695,21 @@ async function startScan(deviceId = null) {
     renderDetailView(p);
 }
 
-    function back() {
-    // Sembunyikan detail & tampilkan kembali header/list
+function back() {
     document.getElementById("detailContainer").style.display = "none";
     document.getElementById("ui-header").style.display = "block";
     document.getElementById("listContainer").style.display = "grid";
     document.getElementById("btnBackFloating").style.display = "none";
     
-    // Reset input pencarian agar bersih
     document.getElementById("searchInput").value = "";
     
-    // Kembalikan ke posisi scroll sebelumnya
     document.getElementById("scrollContainer").scrollTop = lastScroll;
     
-    // Jalankan scan otomatis lagi
     startScan(lastSelectedDeviceId);
 }
 
-    // Jalankan scan otomatis saat startup
-    startScan(lastSelectedDeviceId);
+// Jalankan scan otomatis saat startup
+startScan(lastSelectedDeviceId);
 </script>
 
 <script>

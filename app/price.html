@@ -98,8 +98,7 @@ body.fade-in {
     height: 100%; 
     object-fit: cover; 
     
-    /* TAMBAHKAN KODE BARU DI SINI */
-    filter: contrast(2.5) brightness(0.8) grayscale(1); 
+    /* TAMBAHKAN KODE BARU DI SINI */ 
     image-rendering: -webkit-optimize-contrast;
 }
         .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
@@ -420,7 +419,6 @@ context.imageSmoothingEnabled = true;
 context.imageSmoothingQuality = 'high';
 
         // 3. Gambar hanya area tengah ke canvas
-        context.filter = 'contrast(2) grayscale(1)'; // Pre-processing instan agar angka lebih tajam
         context.drawImage(videoElement, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
         try {

@@ -536,10 +536,8 @@ if(localStorage.getItem('mms_auth') === 'true') {
                 deviceId: deviceId ? { exact: deviceId } : undefined,
                 width: { min: 1280, ideal: 1920, max: 2560 },
                 height: { min: 720, ideal: 1080, max: 1440 },
-                frameRate: { ideal: 30, max: 60 },
-                facingMode: "environment",
-                aspectRatio: { ideal: 1.7777777778 },
-                whiteBalanceMode: { ideal: "continuous" }
+                frameRate: { ideal: 30 },
+                facingMode: "environment"
             }
         };
 

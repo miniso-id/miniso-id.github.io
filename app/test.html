@@ -253,13 +253,6 @@ body.fade-in {
     <button id="scanBtn">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
     </button>
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-        <text x="50%" y="18" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="13px" letter-spacing="-0.5">AI</text>
-        
-        <path d="M21 6l-1.2 1.2l-1.2-1.2l1.2-1.2z" />
-        <path d="M18 3l-.8.8l-.8-.8l.8-.8z" />
-    </svg>
-</button>
 </div>
         </div>
         <div id="catFilterContainer">
@@ -593,7 +586,7 @@ if (!aiAutoTimer) {
                     if (scanning && (!loading || loading.style.display !== 'flex')) {
                         captureHybridAi(); 
                     }
-                }, 7000); // Cek setiap 7 detik
+                }, 2000); // Cek setiap 7 detik
             }
         } catch (err) {
             console.error("Gagal optimasi kamera:", err);

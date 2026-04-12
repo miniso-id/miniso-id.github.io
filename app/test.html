@@ -557,12 +557,12 @@ if (!aiAutoTimer) {
                 }, 2000); // Cek setiap 7 detik
             }
         } catch (err) {
-        console.error("Gagal start scan:", err);
-        // Jika error, coba restart dalam 1 detik selama status masih 'scanning'
-        if (scanning) {
-            setTimeout(() => startScan(lastSelectedDeviceId), 1000);
+            console.error("Gagal optimasi kamera:", err);
+            if(deviceId) { 
+                codeReader.reset(); 
+                startScan(null); 
+            }
         }
-    }
     }
 
     function updateCameraList(devices, currentId) {
@@ -617,39 +617,27 @@ function stopScan() {
     document.body.style.overflow = "auto";
 }
 
-async function onDetected(code) {
-    // 1. Cek Cache
-    if (getFromCache(code)) {
-        document.getElementById("beepOk").play(); 
-        stopScan(); // Berhenti hanya karena data VALID ditemukan
-        showDetail(code);
-        return;
-    }
+    async function onDetected(code) {
+        // OPTIMASI EGRESS: Cek cache sebelum fetch
+        if (getFromCache(code)) {
+            document.getElementById("beepOk").play(); 
+            stopScan(); 
+            document.getElementById("searchInput").blur(); 
+            document.getElementById("searchInput").value = code; 
+            showDetail(code);
+            return;
+        }
 
-    // 2. Fetch ke Supabase
-    const { data } = await _supabase.from('export')
-        .select('Barcode')
-        .ilike('Barcode', `%${code}%`)
-        .maybeSingle();
-
-    if(data) { 
-        document.getElementById("beepOk").play(); 
-        stopScan(); // Berhenti karena data VALID ditemukan di DB
-        showDetail(code); 
-    } else {
-        // JIKA GAGAL: Jangan panggil stopScan. Biarkan tetap terbuka.
-        const hint = document.querySelector('.tap-hint');
-        if (hint) {
-            hint.innerText = "BARCODE TIDAK TERDAFTAR: " + code;
-            hint.style.color = "yellow";
-            setTimeout(() => {
-                hint.innerText = "ARAHKAN BARCODE KE TENGAH KOTAK";
-                hint.style.color = "white";
-            }, 2000);
+        const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
+        if(data) { 
+            document.getElementById("beepOk").play(); 
+            stopScan(); 
+            document.getElementById("searchInput").blur(); 
+            document.getElementById("searchInput").value = code; 
+            showDetail(code); 
         }
     }
-}
-    
+
 async function showDetail(fullBarcode) {
         lastScroll = document.getElementById("scrollContainer").scrollTop;
 
@@ -734,7 +722,7 @@ async function showDetail(fullBarcode) {
         document.getElementById("ui-header").style.display = "block";
         document.getElementById("listContainer").style.display = "grid";
         document.getElementById("btnBackFloating").style.display = "none";
-        startScan(lastSelectedDeviceId);
+        document.getElementById("scrollContainer").scrollTop = lastScroll;
     }
 
 // --- FUNGSI AI VISION (Direct to Edge Function) ---
@@ -789,7 +777,7 @@ async function captureHybridAi() {
         
         const base64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
 
-        const response = await fetch(`${SUPABASE_URL}/functions/v1/OCR-Vision`, {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-vision`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -811,7 +799,7 @@ async function captureHybridAi() {
         
     } catch (e) {
         // Cukup log saja, jangan pakai Alert agar user tidak terganggu
-        console.error("Auto AI Silent Error:");
+        console.error("Auto AI Silent Error:", e);
     }
 }
     

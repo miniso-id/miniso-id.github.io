@@ -500,26 +500,29 @@ async function startScan(deviceId = null) {
             await videoTrack.applyConstraints({ advanced: [advanced] });
         }
 
-        // --- Tempel ini tepat setelah videoElement.play() ---
-if ('BarcodeDetector' in window) {
-    const nativeDetector = new BarcodeDetector({ 
-        formats: ['ean_13', 'ean_8', 'code_128'] 
-    });
+        // --- AKSELERATOR NATIVE (KHUSUS ANDROID/PDA) ---
+        if ('BarcodeDetector' in window) {
+            const nativeDetector = new BarcodeDetector({ 
+                formats: ['ean_13', 'ean_8', 'code_128', 'upc_a', 'upc_e'] 
+            });
 
-    const fastScan = async () => {
-        if (!scanning) return;
-        try {
-            const barcodes = await nativeDetector.detect(videoElement);
-            if (barcodes.length > 0) {
-                onDetected(barcodes[0].rawValue); // Langsung deteksi!
-                return;
-            }
-        } catch (e) {}
-        requestAnimationFrame(fastScan);
-    };
-    fastScan();
-}
-// --- Selesai Tambahan ---
+            const fastScanLoop = async () => {
+                if (!scanning) return;
+                try {
+                    const barcodes = await nativeDetector.detect(videoElement);
+                    if (barcodes.length > 0 && scanning) {
+                        scanning = false; // Matikan flag agar tidak double detect
+                        onDetected(barcodes[0].rawValue); 
+                        return; // Keluar dari loop native
+                    }
+                } catch (e) {
+                    console.log("Native Detector belum siap");
+                }
+                requestAnimationFrame(fastScanLoop);
+            };
+            fastScanLoop();
+        }
+        // --- SELESAI AKSELERATOR ---
 
         // ==========================================
         // TAMBAHAN LOGIKA HYBRID OCR (TIDAK MERUBAH ATAS)

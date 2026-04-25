@@ -492,19 +492,6 @@ if(localStorage.getItem('mms_auth') === 'true') {
     /* --- LOGIKA SCANNER ZXING --- */
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
-    async function scanNative(video) {
-    if (!('BarcodeDetector' in window)) return null;
-    const detector = new BarcodeDetector({ 
-        formats: ['ean_13', 'ean_8', 'code_128', 'upc_a', 'upc_e'] 
-    });
-    try {
-        const barcodes = await detector.detect(video);
-        return barcodes.length > 0 ? barcodes[0].rawValue : null;
-    } catch (e) {
-        return null;
-    }
-}
-
     async function startScan(deviceId = null) {
         scanning = true; 
         document.getElementById("reader").style.display = "block";
@@ -525,6 +512,17 @@ if(localStorage.getItem('mms_auth') === 'true') {
         hints.set(ZXing.DecodeHintType.ASSUME_GS1, true);
         hints.set(ZXing.DecodeHintType.ALSO_SUPPORT_CONVEX, true);
 
+        // --- LOGIKA NATIVE (Tambahan untuk Hybrid) ---
+        const supportsNative = 'BarcodeDetector' in window;
+        let nativeDetector = null;
+        if (supportsNative) {
+            nativeDetector = new BarcodeDetector({ 
+                formats: ['ean_13', 'ean_8', 'code_128', 'upc_a', 'upc_e'] 
+            });
+        }
+        const video = document.getElementById('videoElement');
+        // ---------------------------------------------
+
         const constraints = {
             video: {
                 deviceId: deviceId ? { exact: deviceId } : undefined,
@@ -540,13 +538,31 @@ if(localStorage.getItem('mms_auth') === 'true') {
         try {
             const videoDevices = await codeReader.listVideoInputDevices();
             const backCameras = videoDevices.filter(d => !d.label.toLowerCase().includes('front'));
+            
+            // Tetap menggunakan preferensi kamera terakhir [cite: 2026-02-22]
             let selectedId = deviceId || lastSelectedDeviceId || (backCameras.length > 0 ? backCameras[0].deviceId : videoDevices[0].deviceId);
             
             updateCameraList(backCameras, selectedId);
 
             codeReader.hints = hints;
 
-            await codeReader.decodeFromConstraints(constraints, 'videoElement', (result, err) => {
+            await codeReader.decodeFromConstraints(constraints, 'videoElement', async (result, err) => {
+                if (!scanning) return;
+
+                // 1. Cek via Native Detector terlebih dahulu (Hybrid)
+                if (supportsNative) {
+                    try {
+                        const barcodes = await nativeDetector.detect(video);
+                        if (barcodes.length > 0) {
+                            onDetected(barcodes[0].rawValue);
+                            return; 
+                        }
+                    } catch (e) {
+                        // Jika native gagal, biarkan ZXing berjalan di bawah
+                    }
+                }
+
+                // 2. Fallback ke ZXing result
                 if (result) {
                     onDetected(result.text);
                 }
@@ -567,8 +583,8 @@ if(localStorage.getItem('mms_auth') === 'true') {
             }
 
             if (capabilities.exposureMode && capabilities.exposureMode.includes('continuous')) {
-    advanced.exposureMode = 'continuous';
-}
+                advanced.exposureMode = 'continuous';
+            }
 
             if (Object.keys(advanced).length > 0) {
                 await videoTrack.applyConstraints({ advanced: [advanced] });
@@ -582,7 +598,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
             }
         }
     }
-
+    
     function updateCameraList(devices, currentId) {
         const source = document.getElementById("videoSource");
         const control = document.getElementById("cameraControl");

@@ -8,7 +8,6 @@
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     
     <style>
         :root {
@@ -334,24 +333,6 @@ let lastZxingSuccessAt = 0;
 const ZXING_GRACE_MS = 1200;
 const OCR_INTERVAL_MS = 650;
 
-async function initOcrWorker() {
-    if (ocrWorker) return ocrWorker;
-
-    ocrWorker = await Tesseract.createWorker('eng');
-
-    await ocrWorker.setParameters({
-        tessedit_char_whitelist: '0123456789',
-        tessedit_pageseg_mode: '7',
-        preserve_interword_spaces: '0',
-        user_defined_dpi: '300',
-        tessjs_create_hocr: '0',
-        tessjs_create_tsv: '0',
-        tessjs_create_box: '0'
-    });
-
-    return ocrWorker;
-}
-
 function captureFrame(videoElement) {
     const canvas = document.createElement('canvas');
     canvas.width = videoElement.videoWidth || 1;
@@ -523,54 +504,6 @@ async function startScan(deviceId = null) {
             fastScanLoop();
         }
         // --- SELESAI AKSELERATOR ---
-
-        // ==========================================
-        // TAMBAHAN LOGIKA HYBRID OCR (TIDAK MERUBAH ATAS)
-        // ==========================================
-        if (!ocrWorker) {
-            await initOcrWorker();
-        }
-        
-        const checkOCR = async () => {
-            if (!scanning) return;
-
-            requestAnimationFrame(checkOCR);
-
-            // OCR baru jalan kalau ZXing belum sukses dalam beberapa saat
-            if (performance.now() - lastZxingSuccessAt < ZXING_GRACE_MS) return;
-
-            if (isProcessingOCR) return;
-
-            frameCounter++;
-            const now = performance.now();
-
-            if (now - lastOcrTime < OCR_INTERVAL_MS) return;
-            if (frameCounter % 15 !== 0) return;
-            if (!videoElement || videoElement.readyState < videoElement.HAVE_ENOUGH_DATA) return;
-
-            isProcessingOCR = true;
-            lastOcrTime = now;
-
-            try {
-                const captured = captureFrame(videoElement);
-                const code = await scanDigitsFromImage(captured);
-
-                if (code.length >= 8 && code.length <= 13) {
-                    if (code === lastDetectedCode && (Date.now() - lastDetectedAt) < 2000) return;
-
-                    lastDetectedCode = code;
-                    lastDetectedAt = Date.now();
-                    onDetected(code);
-                }
-            } catch (e) {
-                console.error('OCR error:', e);
-            } finally {
-                isProcessingOCR = false;
-            }
-        };
-        
-        checkOCR();
-        // ==========================================
 
     } catch (err) {
         console.error("Gagal optimasi kamera:", err);

@@ -492,6 +492,19 @@ if(localStorage.getItem('mms_auth') === 'true') {
     /* --- LOGIKA SCANNER ZXING --- */
     document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
+    async function scanNative(video) {
+    if (!('BarcodeDetector' in window)) return null;
+    const detector = new BarcodeDetector({ 
+        formats: ['ean_13', 'ean_8', 'code_128', 'upc_a', 'upc_e'] 
+    });
+    try {
+        const barcodes = await detector.detect(video);
+        return barcodes.length > 0 ? barcodes[0].rawValue : null;
+    } catch (e) {
+        return null;
+    }
+}
+
     async function startScan(deviceId = null) {
         scanning = true; 
         document.getElementById("reader").style.display = "block";

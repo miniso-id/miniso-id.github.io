@@ -170,15 +170,20 @@ body.fade-in {
             margin: 0; padding: 0; 
             font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto; 
             background: #ffffff; color: var(--text-dark); 
-            height: 100vh; overflow: hidden;
+            height: 100vh; 
+            min-height: -webkit-fill-available; /* Tambahkan baris ini */
+            overflow: hidden;
         }
 
         /* Style Notifikasi Update */
+        /* Style Notifikasi Update - PERBAIKAN NAVBAR */
         #update-toast {
             position: fixed;
-            bottom: 25px;
+            /* Menggunakan safe-area agar tidak tertutup Navbar */
+            bottom: calc(20px + env(safe-area-inset-bottom));
             left: 50%;
-            transform: translateX(-50%) translateY(150px);
+            /* Mulai dari posisi lebih bawah agar transisi lebih mulus */
+            transform: translateX(-50%) translateY(200px);
             background: #2d2d2d;
             color: white;
             padding: 14px 20px;
@@ -187,11 +192,17 @@ body.fade-in {
             align-items: center;
             justify-content: space-between;
             gap: 15px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-            z-index: 10000;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+            /* Z-index ditingkatkan agar tidak tertutup elemen lain */
+            z-index: 25000; 
             transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            width: 90%;
-            max-width: 400px;
+            width: 92%;
+            max-width: 450px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #update-toast.show { 
+            transform: translateX(-50%) translateY(0); 
         }
 
         #update-toast.show { transform: translateX(-50%) translateY(0); }
@@ -400,7 +411,7 @@ body.fade-in {
                 <div class="banner-left">
                     <img src="https://miniso-id.github.io/app/user512.png" class="banner-logo-img">
                     <div class="banner-text">
-                        <h2>MMS-X<span class="app-version">v2.3.9 • AI Vision</span></h2>
+                        <h2>MMS-X<span class="app-version">v2.4.0 • AI Vision</span></h2>
                         <p>User: <span id="displayUsername">Guest</span></p>
                     </div>
                 </div>

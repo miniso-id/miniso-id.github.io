@@ -694,7 +694,7 @@ async function showDetail(fullBarcode) {
                     <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/500x500?text=Miniso+Product'" onclick="openLightbox('${p.Image}')">
                 </div>
                 <div class="p-info">
-                    <span class="p-cat">${p.Category || 'GENERAL'}</span>
+                    <span class="p-cat">${p."Detail Category" || 'GENERAL'}</span>
                     <h3 class="p-title">${p.Name}</h3>
                     <p class="p-desc">${p.Description || ''}</p>
                     <div class="price-comparison-grid">

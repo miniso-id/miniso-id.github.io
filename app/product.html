@@ -478,7 +478,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
                     </div>
                     <div class="list-info">
                         <div class="list-cat">${p.Category || 'GENERAL'}</div>
-                        <div style="font-size: 10px; color: #888; margin-top: -2px;">${p["Detail Category"] || ''}</div>
+                        <div style="font-size: 10px; color: #888; margin-top: 1px; margin-bottom: 1px;">${p["Detail Category"] || ''}</div>
                         <div class="list-name">${p.Name}</div>
                         <div class="list-bc">${p.Barcode}</div>
                     </div>
@@ -696,7 +696,7 @@ async function showDetail(fullBarcode) {
                 </div>
                 <div class="p-info">
                     <span class="p-cat">${p.Category || 'GENERAL'}</span>
-                    <span style="display: block; font-size: 10px; color: #888; margin-top: 2px;">
+                    <span style="display: block; font-size: 10px; color: #888; margin-top: 1px; margin-bottom: 1px;">
         ${p["Detail Category"] || ''}
     </span>
                     <h3 class="p-title">${p.Name}</h3>

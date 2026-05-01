@@ -8,7 +8,6 @@
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     
     <style>
         :root {
@@ -35,6 +34,25 @@ body.fade-in {
 .fade-out {
     opacity: 0 !important;
     transition: opacity 0.2s ease-out;
+}
+
+/* Animasi Garis Laser Scan */
+.scan-line {
+    position: absolute;
+    top: 20%;
+    left: 10%;
+    width: 80%;
+    height: 2px;
+    background: var(--miniso-red);
+    box-shadow: 0 0 8px 1px var(--miniso-red);
+    z-index: 5;
+    animation: scanMove 2s infinite linear;
+}
+
+@keyframes scanMove {
+    0% { top: 20%; }
+    50% { top: 80%; }
+    100% { top: 20%; }
 }
 
 /* Kotak Fokus yang Lebih Responsif */
@@ -96,8 +114,11 @@ body.fade-in {
 #reader video { 
     width: 100%; 
     height: 100%; 
-    object-fit: cover;
-    filter: grayscale(1) contrast(2) brightness(1.2);
+    object-fit: cover; 
+    
+    /* TAMBAHKAN KODE BARU DI SINI */
+    filter: contrast(1.4) brightness(1.2) saturate(0); 
+    image-rendering: crisp-edges;
 }
         .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
         .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; }
@@ -152,7 +173,7 @@ body.fade-in {
 
 <div id="sidebar" class="sidebar">
     <h2>MMS-X</h2>
-    <a href="https://miniso-id.github.io/app/?app=mmsx" onclick="toggleSidebar()">Home</a>
+    <a href="https://miniso-id.github.io/app/" onclick="toggleSidebar()">Home</a>
 </div>
 <div id="overlay" onclick="toggleSidebar()"></div>
 
@@ -180,23 +201,9 @@ body.fade-in {
         <div id="reader">
     <video id="videoElement"></video>
     <div class="focus-guide"></div>
-    <div class="tap-hint">ARAHKAN BARCODE KE TENGAH KOTAK</div>
+    <div class="scan-line"></div> <div class="tap-hint">ARAHKAN BARCODE KE TENGAH KOTAK</div>
 </div>
-        <div id="cameraControl">
-            <select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select>
-            <button id="manualOcrBtn" onclick="manualOCR()" style="
-                display:none;
-                margin: 8px auto 0;
-                padding: 10px 16px;
-                border: none;
-                border-radius: 10px;
-                background: var(--miniso-red);
-                color: #fff;
-                font-weight: 700;
-                cursor: pointer;
-                width: fit-content;
-            ">📸 Scan Angka</button>
-        </div>
+        <div id="cameraControl"><select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select></div>
     </header>
 
     <main class="main-content" id="scrollContainer">
@@ -208,24 +215,6 @@ body.fade-in {
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
-// --- SISTEM CACHE MENGHEMAT EGRESS ---
-const CACHE_EXPIRATION = 86400000;
-
-function saveToLocalCache(barcode, data) {
-    const cacheEntry = { timestamp: Date.now(), payload: data };
-    localStorage.setItem(`cache_${barcode}`, JSON.stringify(cacheEntry));
-}
-
-function getLocalCache(barcode) {
-    const rawData = localStorage.getItem(`cache_${barcode}`);
-    if (!rawData) return null;
-    const cacheEntry = JSON.parse(rawData);
-    if ((Date.now() - cacheEntry.timestamp) > CACHE_EXPIRATION) {
-        localStorage.removeItem(`cache_${barcode}`);
-        return null;
-    }
-    return cacheEntry.payload;
-}
 
 // Jalankan saat halaman dimuat
 document.addEventListener("DOMContentLoaded", () => {
@@ -241,77 +230,61 @@ function navigateTo(url) {
     }, 200); 
 }
 
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker Registered!', reg.scope))
-            .catch(err => console.log('Service Worker Failed:', err));
-    });
-}
-    
-const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
-const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-let scanning = false, lastScroll = 0, timer;
-let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
-
-// Inisialisasi ZXing
-const codeReader = new ZXing.BrowserMultiFormatReader();
-
-function openLightbox(src) {
-    if(!src || src.includes('placeholder')) return;
-    const lb = document.getElementById('lightbox');
-    document.getElementById('lightboxImg').src = src;
-    lb.classList.add('active');
-}
-
-function closeLightbox() { document.getElementById('lightbox').classList.remove('active'); }
-
-function toggleSidebar() { 
-    document.getElementById("sidebar").classList.toggle("active");
-    document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none";
-}
-
-function cleanPrice(val) {
-    if(!val) return 0;
-    return parseInt(String(val).replace(/[^0-9]/g, "")) || 0;
-}
-
-document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 400); };
-
-async function search() {
-    const q = document.getElementById("searchInput").value.trim();
-    const list = document.getElementById("listContainer");
-    
-    if (q === "") {
-        list.innerHTML = "";
-        return;
-    }
-
-    // --- AUTO-DIRECT 13 DIGIT ---
-    if (q.length === 13) {
-        const barcodeToSearch = q;
-        showDetail(barcodeToSearch);
-        document.getElementById("searchInput").value = ""; 
-        document.getElementById("searchInput").blur();
-        list.innerHTML = "";
-        return; 
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Service Worker Registered!', reg.scope))
+                .catch(err => console.log('Service Worker Failed:', err));
+        });
     }
     
-    // --- PENCARIAN BIASA (Minimal 8 digit untuk hemat Egress) ---
-    if (q.length >= 8) {
-        let { data } = await _supabase
-            .from('export')
-            .select('Barcode') 
-            .ilike('Barcode', `%${q}%`)
-            .limit(1);
+    const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        if(data && data.length > 0) {
+    let scanning = false, lastScroll = 0, timer;
+    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
+
+    // Inisialisasi ZXing
+    const codeReader = new ZXing.BrowserMultiFormatReader();
+
+    function openLightbox(src) {
+        if(!src || src.includes('placeholder')) return;
+        const lb = document.getElementById('lightbox');
+        document.getElementById('lightboxImg').src = src;
+        lb.classList.add('active');
+    }
+
+    function closeLightbox() { document.getElementById('lightbox').classList.remove('active'); }
+
+    function toggleSidebar() { 
+        document.getElementById("sidebar").classList.toggle("active");
+        document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none";
+    }
+
+    function cleanPrice(val) {
+        if(!val) return 0;
+        return parseInt(String(val).replace(/[^0-9]/g, "")) || 0;
+    }
+
+    document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 400); };
+
+    async function search() {
+        const q = document.getElementById("searchInput").value.trim();
+        const list = document.getElementById("listContainer");
+        let query = _supabase.from('export').select('*');
+        
+        if (q) query = query.ilike('Barcode', `%${q}%`);
+        
+        let { data } = await query.limit(1);
+        if(data) {
             list.innerHTML = data.map(p => `
-                <div class="list-item" onclick="showDetail('${p.Barcode}'); document.getElementById('searchInput').value=''">
+                <div class="list-item" onclick="showDetail('${p.Barcode}')">
+                    <div class="list-img-box" onclick="event.stopPropagation(); openLightbox('${p.Image || ''}')">
+                        <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/150x150?text=Miniso'" loading="lazy">
+                    </div>
                     <div class="list-info">
-                        <div class="list-cat">PRODUK DITEMUKAN</div>
+                        <div class="list-cat">${p.Category || 'GENERAL'}</div>
                         <div class="list-name">${p.Name}</div>
                         <div class="list-bc">${p.Barcode}</div>
                     </div>
@@ -319,140 +292,14 @@ async function search() {
             `).join('');
         }
     }
-}
 
-document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
+    document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
-// Variable global untuk OCR
-let ocrWorker = null;
-let frameCounter = 0;
-let isProcessingOCR = false;
-let lastOcrTime = 0;
-let lastDetectedCode = "";
-let lastDetectedAt = 0;
-let lastZxingSuccessAt = 0;
-
-const ZXING_GRACE_MS = 1200;
-const OCR_INTERVAL_MS = 650;
-
-async function initOcrWorker() {
-    if (ocrWorker) return ocrWorker;
-
-    ocrWorker = await Tesseract.createWorker('eng');
-
-    await ocrWorker.setParameters({
-        tessedit_char_whitelist: '0123456789',
-        tessedit_pageseg_mode: '7',
-        preserve_interword_spaces: '0',
-        user_defined_dpi: '300',
-        tessjs_create_hocr: '0',
-        tessjs_create_tsv: '0',
-        tessjs_create_box: '0'
-    });
-
-    return ocrWorker;
-}
-
-function captureFrame(videoElement) {
-    const canvas = document.createElement('canvas');
-    canvas.width = videoElement.videoWidth || 1;
-    canvas.height = videoElement.videoHeight || 1;
-
-    const ctx = canvas.getContext('2d', { alpha: false });
-    ctx.drawImage(videoElement, 0, 0);
-
-    return canvas;
-}
-
-function preprocessForDigits(sourceCanvas) {
-    const srcW = sourceCanvas.width || 1;
-    const srcH = sourceCanvas.height || 1;
-
-    const cropWidth = Math.max(1, Math.round(srcW * 0.9));
-    const cropHeight = Math.max(1, Math.round(srcH * 0.18));
-    const sx = Math.max(0, Math.round((srcW - cropWidth) / 2));
-    const sy = Math.max(0, Math.round((srcH - cropHeight) / 2 + srcH * 0.08));
-
-    const scale = 2;
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(cropWidth * scale));
-    canvas.height = Math.max(1, Math.round(cropHeight * scale));
-
-    const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: false });
-    ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(sourceCanvas, sx, sy, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
-
-    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const d = img.data;
-
-    const threshold = 165;
-    for (let i = 0; i < d.length; i += 4) {
-        const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-        const v = gray > threshold ? 255 : 0;
-        d[i] = v;
-        d[i + 1] = v;
-        d[i + 2] = v;
-        d[i + 3] = 255;
-    }
-
-    ctx.putImageData(img, 0, 0);
-    return canvas;
-}
-
-async function scanDigitsFromImage(canvasSource) {
-    const canvas = preprocessForDigits(canvasSource);
-    const worker = await initOcrWorker();
-
-    let result = await worker.recognize(canvas);
-    let code = (result?.data?.text || '').replace(/\D/g, '').trim();
-
-    if (code.length < 8) {
-        await worker.setParameters({ tessedit_pageseg_mode: '13' });
-        result = await worker.recognize(canvas);
-        code = (result?.data?.text || '').replace(/\D/g, '').trim();
-        await worker.setParameters({ tessedit_pageseg_mode: '7' });
-    }
-
-    return code;
-}
-
-// Tambahkan fungsi pembantu ini
-async function scanNative(video) {
-    if (!('BarcodeDetector' in window)) return null;
-    const detector = new BarcodeDetector({ 
-        formats: ['ean_13', 'ean_8', 'code_128', 'upc_a', 'upc_e'] 
-    });
-    try {
-        const barcodes = await detector.detect(video);
-        return barcodes.length > 0 ? barcodes[0].rawValue : null;
-    } catch (e) {
-        return null;
-    }
-}
-
-async function manualOCR() {
-    const videoElement = document.getElementById('videoElement');
-    if (!videoElement || videoElement.readyState < videoElement.HAVE_ENOUGH_DATA) return;
-
-    try {
-        const captured = captureFrame(videoElement);
-        const code = await scanDigitsFromImage(captured);
-
-        if (code && code.length >= 8 && code.length <= 13) {
-            onDetected(code);
-        }
-    } catch (e) {
-        console.error('Manual OCR error:', e);
-    }
-}
-
-async function startScan(deviceId = null) {
+    async function startScan(deviceId = null) {
     scanning = true; 
     document.getElementById("reader").style.display = "block";
-    document.getElementById("manualOcrBtn").style.display = "block";
-    lastZxingSuccessAt = performance.now();
     
-    // --- 1. Definisikan Hints (STRUKTUR ASLI ANDA) ---
+    // 1. Definisikan Hints untuk ZXing (Kunci Ketajaman & 360 Derajat)
     const hints = new Map();
     const formats = [
         ZXing.BarcodeFormat.EAN_13,
@@ -461,24 +308,33 @@ async function startScan(deviceId = null) {
         ZXing.BarcodeFormat.UPC_A,
         ZXing.BarcodeFormat.UPC_E
     ];
+    
     hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+    
+    // TRY_HARDER wajib aktif untuk mencari barcode miring/distorsi
     hints.set(ZXing.DecodeHintType.TRY_HARDER, true); 
+    
+    // CHARACTER_SET membantu pembacaan data yang lebih stabil
     hints.set(ZXing.DecodeHintType.CHARACTER_SET, 'utf-8');
+    
+    // PURE_BARCODE false memberi tahu scanner bahwa ada background di sekitar barcode
     hints.set(ZXing.DecodeHintType.PURE_BARCODE, false);
     hints.set(ZXing.DecodeHintType.ASSUME_GS1, true);
     hints.set(ZXing.DecodeHintType.ALSO_SUPPORT_CONVEX, true);
 
-    // --- 2. Setting Constraints (STRUKTUR ASLI ANDA) ---
+    // 2. Setting Resolusi Tinggi & Aspect Ratio
     const constraints = {
         video: {
             deviceId: deviceId ? { exact: deviceId } : undefined,
-            width: { min: 1280, ideal: 1280, max: 2560 },
-            height: { min: 720, ideal: 720, max: 1440 },
+            width: { min: 1280, ideal: 1920, max: 2560 },
+            height: { min: 720, ideal: 1080, max: 1440 },
             frameRate: { ideal: 30, max: 60 },
             facingMode: "environment",
+            // Mengunci aspect ratio 16:9 agar barcode tidak terdistorsi/gepeng saat miring
             aspectRatio: { ideal: 1.7777777778 },
             focusMode: { ideal: "continuous" },
             whiteBalanceMode: { ideal: "continuous" }
+            
         }
     };
 
@@ -488,125 +344,83 @@ async function startScan(deviceId = null) {
         let selectedId = deviceId || lastSelectedDeviceId || (backCameras.length > 0 ? backCameras[0].deviceId : videoDevices[0].deviceId);
         
         updateCameraList(backCameras, selectedId);
+
+        // 3. Pasang hints ke reader sebelum mulai
         codeReader.hints = hints;
 
-        // --- 3. Dekode Constraints (STRUKTUR ASLI ANDA) ---
+        // Gunakan decodeFromConstraints untuk menerapkan setting video di atas
         await codeReader.decodeFromConstraints(constraints, 'videoElement', (result, err) => {
             if (result) {
-                lastZxingSuccessAt = performance.now();
+                // ZXing secara otomatis mendeteksi rotasi jika TRY_HARDER aktif
                 onDetected(result.text);
             }
         });
 
-        // --- 4. Maksimalkan Hardware (STRUKTUR ASLI ANDA) ---
-        const videoElement = document.getElementById('videoElement');
-        const videoTrack = videoElement.srcObject.getVideoTracks()[0];
+        // 4. Maksimalkan Hardware Focus & Zoom
+        const videoTrack = document.getElementById('videoElement').srcObject.getVideoTracks()[0];
         const capabilities = videoTrack.getCapabilities();
+        
         const advanced = {};
         
+        // Paksa Continuous Focus (Sangat penting untuk angle miring)
         if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
             advanced.focusMode = 'continuous';
         }
-        //if (capabilities.zoom) {
-        //    const targetZoom = Math.min(capabilities.zoom.min + 1.0, capabilities.zoom.max);
-        //    advanced.zoom = targetZoom;
-        //}
+
+        // Gunakan sedikit Zoom (0.5 di atas minimum) 
+        // Ini membantu sensor memisahkan garis barcode yang merapat akibat angle miring
+        if (capabilities.zoom) {
+            const targetZoom = Math.min(capabilities.zoom.min + 0.5, capabilities.zoom.max);
+            advanced.zoom = targetZoom;
+        }
+
+        if (capabilities.exposureMode && capabilities.exposureMode.includes('continuous')) {
+    advanced.exposureMode = 'continuous';
+}
+
         if (Object.keys(advanced).length > 0) {
             await videoTrack.applyConstraints({ advanced: [advanced] });
         }
 
-        // ==========================================
-        // TAMBAHAN LOGIKA HYBRID OCR (TIDAK MERUBAH ATAS)
-        // ==========================================
-        if (!ocrWorker) {
-            await initOcrWorker();
-        }
-        
-        const checkOCR = async () => {
-            if (!scanning) return;
-
-            requestAnimationFrame(checkOCR);
-
-            const nativeCode = await scanNative(videoElement);
-            if (nativeCode) {
-                onDetected(nativeCode);
-                return; 
-            }
-
-            // OCR baru jalan kalau ZXing belum sukses dalam beberapa saat
-            if (performance.now() - lastZxingSuccessAt < ZXING_GRACE_MS) return;
-
-            if (isProcessingOCR) return;
-
-            frameCounter++;
-            const now = performance.now();
-
-            if (now - lastOcrTime < OCR_INTERVAL_MS) return;
-            if (frameCounter % 15 !== 0) return;
-            if (!videoElement || videoElement.readyState < videoElement.HAVE_ENOUGH_DATA) return;
-
-            isProcessingOCR = true;
-            lastOcrTime = now;
-
-            try {
-                const captured = captureFrame(videoElement);
-                const code = await scanDigitsFromImage(captured);
-
-                if (code.length >= 8 && code.length <= 13) {
-                    if (code === lastDetectedCode && (Date.now() - lastDetectedAt) < 2000) return;
-
-                    lastDetectedCode = code;
-                    lastDetectedAt = Date.now();
-                    onDetected(code);
-                }
-            } catch (e) {
-                console.error('OCR error:', e);
-            } finally {
-                isProcessingOCR = false;
-            }
-        };
-        
-        checkOCR();
-        // ==========================================
-
     } catch (err) {
         console.error("Gagal optimasi kamera:", err);
+        // Fallback jika deviceId bermasalah
         if(deviceId) { 
             codeReader.reset(); 
             startScan(null); 
         }
     }
 }
-
-function updateCameraList(devices, currentId) {
-    const source = document.getElementById("videoSource");
-    const control = document.getElementById("cameraControl");
-    
-    if (devices.length <= 1) {
-        control.style.display = "none";
-    } else {
-        control.style.display = "block";
-        source.innerHTML = devices.map(d => 
-            `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>${d.label || 'Kamera'}</option>`
-        ).join("");
+    function updateCameraList(devices, currentId) {
+        const source = document.getElementById("videoSource");
+        const control = document.getElementById("cameraControl");
+        
+        if (devices.length <= 1) {
+            control.style.display = "none";
+        } else {
+            control.style.display = "block";
+            source.innerHTML = devices.map(d => 
+                `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>${d.label || 'Kamera'}</option>`
+            ).join("");
+        }
     }
-}
 
-document.getElementById("videoSource").onchange = (e) => { 
-    lastSelectedDeviceId = e.target.value; 
-    localStorage.setItem('preferredCameraId', lastSelectedDeviceId); 
-    stopScan(); 
-    startScan(lastSelectedDeviceId); 
-};
+    document.getElementById("videoSource").onchange = (e) => { 
+        lastSelectedDeviceId = e.target.value; 
+        localStorage.setItem('preferredCameraId', lastSelectedDeviceId); 
+        stopScan(); 
+        startScan(lastSelectedDeviceId); 
+    };
 
-document.getElementById("reader").onclick = async () => {
+    document.getElementById("reader").onclick = async () => {
     const videoTrack = document.getElementById('videoElement').srcObject?.getVideoTracks()[0];
     if (videoTrack) {
         try {
             const capabilities = videoTrack.getCapabilities();
+            // Jika mendukung fokus manual (manual-focus atau single-shot)
             if (capabilities.focusMode) {
                 await videoTrack.applyConstraints({
-                    advanced: [{ focusMode: 'continuous' }]
+                    advanced: [{ focusMode: 'continuous' }] // Paksa balik ke continuous
                 });
                 console.log("Fokus dipicu ulang");
             }
@@ -616,121 +430,89 @@ document.getElementById("reader").onclick = async () => {
     }
 };
 
-function stopScan() { 
-    codeReader.reset(); 
-    scanning = false; 
-    document.getElementById("reader").style.display = "none"; 
-    document.getElementById("cameraControl").style.display = "none"; 
-    document.getElementById("manualOcrBtn").style.display = "none";
-}
-
-async function onDetected(code) {
-    const cachedData = getLocalCache(code);
-    if (cachedData) {
-        document.getElementById("beepOk").play(); 
-        stopScan(); 
-        document.getElementById("searchInput").blur(); 
-        document.getElementById("searchInput").value = code; 
-        showDetail(code);
-        return;
+    function stopScan() { 
+        codeReader.reset(); 
+        scanning = false; 
+        document.getElementById("reader").style.display = "none"; 
+        document.getElementById("cameraControl").style.display = "none"; 
     }
 
-    const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
-    if(data) { 
-        saveToLocalCache(code, data);
-        document.getElementById("beepOk").play(); 
-        stopScan(); 
-        document.getElementById("searchInput").blur(); 
-        document.getElementById("searchInput").value = code; 
-        showDetail(code);
+    async function onDetected(code) {
+        const { data } = await _supabase.from('export').select('Barcode').ilike('Barcode', `%${code}%`).maybeSingle();
+        if(data) { 
+            document.getElementById("beepOk").play(); 
+            stopScan(); 
+            document.getElementById("searchInput").blur(); 
+            document.getElementById("searchInput").value = code; 
+            showDetail(code); 
+        }
     }
-}
 
-function renderDetailView(p) {
-    document.getElementById("listContainer").style.display = "none";
-    document.getElementById("ui-header").style.display = "none";
-    const regPrice = cleanPrice(p["Regular Store Price"]);
-    const strPrice = cleanPrice(p["Street Store Price"]);
-    const promoText = (p["Extra Promo"] || "").trim();
-    const discountLabel = (promoText !== "" && promoText !== "NORMAL PRICE" && p["Regular Store Promo"] !== "NORMAL") 
-        ? `<div class="promo-badge">${promoText}</div>` 
-        : "";
-        
-    const det = document.getElementById("detailContainer");
-    det.innerHTML = `
-        <div class="product-card">
-            <div class="image-box">
-                ${discountLabel}
-                <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/500x500?text=Miniso+Product'" onclick="openLightbox('${p.Image || ''}')">
-            </div>
-            <div class="p-info">
-                <span class="p-cat">${p.Category || 'GENERAL'}</span>
-                <h3 class="p-title">${p.Name}</h3>
-                <p class="p-desc">${p.Description || ''}</p>
-                <div class="price-comparison-grid">
-                    <div class="price-item reg">
-                        <span class="price-label">Regular Store</span>
-                        <span class="price-val">Rp${regPrice.toLocaleString('id-ID')}</span>
-                    </div>
-                    <div class="price-item str">
-                        <span class="price-label">Street Store</span>
-                        <span class="price-val">Rp${strPrice.toLocaleString('id-ID')}</span>
-                    </div>
+    async function showDetail(fullBarcode) {
+        lastScroll = document.getElementById("scrollContainer").scrollTop;
+        const { data: p } = await _supabase.from('export').select('*').ilike('Barcode', `%${fullBarcode}%`).maybeSingle();
+        if(!p) return;
+        document.getElementById("listContainer").style.display = "none";
+        document.getElementById("ui-header").style.display = "none";
+        const regPrice = cleanPrice(p["Regular Store Price"]);
+        const strPrice = cleanPrice(p["Street Store Price"]);
+        const promoText = (p["Extra Promo"] || "").trim();
+        const discountLabel = (promoText !== "" && promoText !== "NORMAL PRICE" && p["Regular Store Promo"] !== "NORMAL") 
+            ? `<div class="promo-badge">${promoText}</div>` 
+            : "";
+            
+        const det = document.getElementById("detailContainer");
+        det.innerHTML = `
+            <div class="product-card">
+                <div class="image-box">
+                    ${discountLabel}
+                    <img src="${p.Image || ''}" onerror="this.src='https://via.placeholder.com/500x500?text=Miniso+Product'" onclick="openLightbox('${p.Image || ''}')">
                 </div>
-                <div style="border-top: 1px solid #eee; padding-top: 20px;">
-                    <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px;">
-                        <span style="color:#888; font-weight:600;">BARCODE</span><span style="font-weight:700; word-break:break-all; text-align:right; max-width:60%;">${p.Barcode}</span>
+                <div class="p-info">
+                    <span class="p-cat">${p.Category || 'GENERAL'}</span>
+                    <h3 class="p-title">${p.Name}</h3>
+                    <p class="p-desc">${p.Description || ''}</p>
+                    <div class="price-comparison-grid">
+                        <div class="price-item reg">
+                            <span class="price-label">Regular Store</span>
+                            <span class="price-val">Rp${regPrice.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div class="price-item str">
+                            <span class="price-label">Street Store</span>
+                            <span class="price-val">Rp${strPrice.toLocaleString('id-ID')}</span>
+                        </div>
                     </div>
-                    <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px;">
-                        <span style="color:#888; font-weight:600;">REG PROMO</span><span style="font-weight:700; color:var(--promo-blue)">${p["Regular Store Promo"] || '-'}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; font-size:12px;">
-                        <span style="color:#888; font-weight:600;">STR PROMO</span><span style="font-weight:700; color:var(--promo-green)">${p["Street Store Promo"] || '-'}</span>
+                    <div style="border-top: 1px solid #eee; padding-top: 20px;">
+                        <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px;">
+                            <span style="color:#888; font-weight:600;">BARCODE</span><span style="font-weight:700; word-break:break-all; text-align:right; max-width:60%;">${p.Barcode}</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px;">
+                            <span style="color:#888; font-weight:600;">REG PROMO</span><span style="font-weight:700; color:var(--promo-blue)">${p["Regular Store Promo"] || '-'}</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:12px;">
+                            <span style="color:#888; font-weight:600;">STR PROMO</span><span style="font-weight:700; color:var(--promo-green)">${p["Street Store Promo"] || '-'}</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    `;
-    det.style.display = "block";
-    det.classList.add('active');
-    document.getElementById("btnBackFloating").style.display = "flex";
-    document.getElementById("scrollContainer").scrollTo(0, 0);
-}
-
-async function showDetail(fullBarcode) {
-    lastScroll = document.getElementById("scrollContainer").scrollTop;
-    
-    let p = getLocalCache(fullBarcode);
-    
-    if (!p) {
-        const { data, error } = await _supabase.rpc('get_product_by_barcode', { 
-            target_barcode: fullBarcode 
-        });
-
-        if (error || !data || data.length === 0) return;
-        
-        p = data[0];
-        saveToLocalCache(fullBarcode, p);
+        `;
+        det.style.display = "block";
+        det.classList.add('active');
+        document.getElementById("btnBackFloating").style.display = "flex";
+        document.getElementById("scrollContainer").scrollTo(0, 0);
     }
-    
-    renderDetailView(p);
-}
 
-function back() {
-    document.getElementById("detailContainer").style.display = "none";
-    document.getElementById("ui-header").style.display = "block";
-    document.getElementById("listContainer").style.display = "grid";
-    document.getElementById("btnBackFloating").style.display = "none";
-    
-    document.getElementById("searchInput").value = "";
-    
-    document.getElementById("scrollContainer").scrollTop = lastScroll;
-    
+    function back() {
+        document.getElementById("detailContainer").style.display = "none";
+        document.getElementById("ui-header").style.display = "block";
+        document.getElementById("listContainer").style.display = "grid";
+        document.getElementById("btnBackFloating").style.display = "none";
+        document.getElementById("scrollContainer").scrollTop = lastScroll;
+        startScan(lastSelectedDeviceId);
+    }
+
+    // Jalankan scan otomatis saat startup
     startScan(lastSelectedDeviceId);
-}
-
-// Jalankan scan otomatis saat startup
-startScan(lastSelectedDeviceId);
 </script>
 
 <script>

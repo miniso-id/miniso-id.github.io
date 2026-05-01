@@ -483,8 +483,8 @@ async function startScan(deviceId = null) {
     const constraints = {
         video: {
             deviceId: deviceId ? { exact: deviceId } : undefined,
-            width: { min: 1280, ideal: 1280 },
-            height: { min: 720, ideal: 720 },
+            width: { min: 1280, ideal: 1920 },
+            height: { min: 720, ideal: 1080 },
             frameRate: { ideal: 30 },
             facingMode: "environment",
             // Mengunci aspect ratio 16:9 agar barcode tidak terdistorsi/gepeng saat miring

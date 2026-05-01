@@ -425,7 +425,7 @@ async function scanDigitsFromImage(canvasSource) {
  async function scanNative(video) {
     if (!('BarcodeDetector' in window)) return null;
     const detector = new BarcodeDetector({ 
-        formats: ['ean_13', 'ean_8', 'code_128', 'upc_a', 'upc_e'] 
+        formats: ['code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e']
     });
     try {
        const barcodes = await detector.detect(video);
@@ -483,9 +483,9 @@ async function startScan(deviceId = null) {
     const constraints = {
         video: {
             deviceId: deviceId ? { exact: deviceId } : undefined,
-            width: { min: 1280, ideal: 1920, max: 2560 },
-            height: { min: 720, ideal: 1080, max: 1440 },
-            frameRate: { ideal: 30, max: 60 },
+            width: { min: 1280, ideal: 1280 },
+            height: { min: 720, ideal: 720 },
+            frameRate: { ideal: 30 },
             facingMode: "environment",
             // Mengunci aspect ratio 16:9 agar barcode tidak terdistorsi/gepeng saat miring
             aspectRatio: { ideal: 1.7777777778 },

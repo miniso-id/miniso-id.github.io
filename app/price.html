@@ -422,18 +422,18 @@ async function scanDigitsFromImage(canvasSource) {
 }
 
 // Tambahkan fungsi pembantu ini
-// async function scanNative(video) {
-//    if (!('BarcodeDetector' in window)) return null;
-//    const detector = new BarcodeDetector({ 
-//        formats: ['ean_13', 'ean_8', 'code_128', 'upc_a', 'upc_e'] 
-//    });
-//    try {
-//       const barcodes = await detector.detect(video);
-//        return barcodes.length > 0 ? barcodes[0].rawValue : null;
-//    } catch (e) {
-//        return null;
-//    }
-// }
+ async function scanNative(video) {
+    if (!('BarcodeDetector' in window)) return null;
+    const detector = new BarcodeDetector({ 
+        formats: ['ean_13', 'ean_8', 'code_128', 'upc_a', 'upc_e'] 
+    });
+    try {
+       const barcodes = await detector.detect(video);
+        return barcodes.length > 0 ? barcodes[0].rawValue : null;
+    } catch (e) {
+        return null;
+    }
+ }
 
 async function manualOCR() {
     const videoElement = document.getElementById('videoElement');

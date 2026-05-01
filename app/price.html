@@ -652,7 +652,7 @@ async function onDetected(code) {
         return;
     }
 
-    const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
+    const { data } = await _supabase.from('export').select('*').eq('Barcode', code).maybeSingle();
     if(data) { 
         saveToLocalCache(code, data);
         document.getElementById("beepOk").play(); 

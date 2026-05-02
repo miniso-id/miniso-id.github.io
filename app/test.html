@@ -7,7 +7,7 @@
     <title>MMS-X</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <!-- <script src="https://unpkg.com/@zxing/library@latest"></script> -->
     
     
     <style>
@@ -342,6 +342,42 @@ let lastDetectedAt = 0;
 async function startScan(deviceId = null) {
     scanning = true; 
     document.getElementById("reader").style.display = "block";
+
+        const constraints = {
+        video: {
+            deviceId: deviceId ? { exact: deviceId } : undefined,
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30 },
+            facingMode: "environment",
+            // Mengunci aspect ratio 16:9 agar barcode tidak terdistorsi/gepeng saat miring
+            // aspectRatio: { ideal: 1.7777777778 },
+            focusMode: { ideal: "continuous" },
+            whiteBalanceMode: { ideal: "continuous" }
+            
+        }
+    };
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+        await video.play();
+
+        // Loop Pemindaian Murni Native
+        const scanLoop = async () => {
+            if (!scanning) return;
+
+            const code = await scanNative(video);
+            if (code) {
+                onDetected(code);
+                return;
+            }
+            requestAnimationFrame(scanLoop);
+        };
+        
+        scanLoop();
+
+/*
     lastZxingSuccessAt = performance.now();
     
     // --- 1. Definisikan Hints (STRUKTUR ASLI ANDA) ---
@@ -367,20 +403,7 @@ async function startScan(deviceId = null) {
     hints.set(ZXing.DecodeHintType.ALSO_SUPPORT_CONVEX, true);
     
     // --- 2. Setting Constraints (STRUKTUR ASLI ANDA) ---
-    const constraints = {
-        video: {
-            deviceId: deviceId ? { exact: deviceId } : undefined,
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            frameRate: { ideal: 30 },
-            facingMode: "environment",
-            // Mengunci aspect ratio 16:9 agar barcode tidak terdistorsi/gepeng saat miring
-            // aspectRatio: { ideal: 1.7777777778 },
-            focusMode: { ideal: "continuous" },
-            whiteBalanceMode: { ideal: "continuous" }
-            
-        }
-    };
+
 
     try {
         const videoDevices = await codeReader.listVideoInputDevices();
@@ -449,6 +472,8 @@ const checkHybrid = async () => {
 };
         
         checkHybrid();
+
+*/
 
     } catch (err) {
         console.error("Gagal optimasi kamera:", err);

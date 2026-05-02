@@ -329,10 +329,58 @@ const nativeDetector = ('BarcodeDetector' in window)
     ? new BarcodeDetector({ formats: ['code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e'] })
     : null;
 
+// Canvas preprocessing — crop tengah + tingkatkan kontras + sharpen
+const _canvas = document.getElementById('cropCanvas');
+const _ctx = _canvas.getContext('2d', { willReadFrequently: true });
+
+function preprocessFrame(video, zoomFactor = 1.5) {
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    if (!vw || !vh) return null;
+
+    // Crop area tengah sesuai zoomFactor
+    const cropW = Math.floor(vw / zoomFactor);
+    const cropH = Math.floor(vh / zoomFactor);
+    const cropX = Math.floor((vw - cropW) / 2);
+    const cropY = Math.floor((vh - cropH) / 2);
+
+    // Output canvas ukuran tetap agar decode konsisten
+    const outW = 640;
+    const outH = Math.floor(outW * (cropH / cropW));
+    _canvas.width = outW;
+    _canvas.height = outH;
+
+    // Gambar crop ke canvas (efek zoom digital)
+    _ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, outW, outH);
+
+    // Boost kontras via pixel manipulation
+    const imageData = _ctx.getImageData(0, 0, outW, outH);
+    const d = imageData.data;
+    const contrast = 60; // 0–100, makin tinggi makin kontras
+    const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+
+    for (let i = 0; i < d.length; i += 4) {
+        // Grayscale dulu untuk barcode
+        const gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+        const boosted = Math.min(255, Math.max(0, factor * (gray - 128) + 128));
+        d[i] = d[i+1] = d[i+2] = boosted;
+    }
+    _ctx.putImageData(imageData, 0, 0);
+
+    return _canvas;
+}
+
 async function scanNative(video) {
     if (!nativeDetector) return null;
     try {
-        const barcodes = await nativeDetector.detect(video);
+        // Coba langsung dari video dulu (cepat)
+        let barcodes = await nativeDetector.detect(video);
+        if (barcodes.length > 0) return barcodes[0].rawValue;
+
+        // Jika gagal, coba dari frame yang sudah dipreprocess
+        const processed = preprocessFrame(video, 1.5);
+        if (!processed) return null;
+        barcodes = await nativeDetector.detect(processed);
         return barcodes.length > 0 ? barcodes[0].rawValue : null;
     } catch (e) {
         return null;
@@ -356,6 +404,36 @@ _hints.set(ZXing.DecodeHintType.PURE_BARCODE, false);
 _hints.set(ZXing.DecodeHintType.ASSUME_GS1, true);
 _hints.set(ZXing.DecodeHintType.ALSO_SUPPORT_CONVEX, true);
 codeReader.hints = _hints;
+
+// ZXing khusus untuk barcode sulit — TRY_HARDER aktif, decode dari canvas preprocessed
+const _hintsHard = new Map();
+_hintsHard.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+    ZXing.BarcodeFormat.EAN_13,
+    ZXing.BarcodeFormat.EAN_8,
+    ZXing.BarcodeFormat.CODE_128,
+    ZXing.BarcodeFormat.UPC_A,
+    ZXing.BarcodeFormat.UPC_E
+]);
+_hintsHard.set(ZXing.DecodeHintType.TRY_HARDER, true);
+_hintsHard.set(ZXing.DecodeHintType.CHARACTER_SET, 'utf-8');
+_hintsHard.set(ZXing.DecodeHintType.PURE_BARCODE, false);
+_hintsHard.set(ZXing.DecodeHintType.ASSUME_GS1, true);
+const codeReaderHard = new ZXing.BrowserMultiFormatReader();
+codeReaderHard.hints = _hintsHard;
+
+// Decode ZXing dari canvas preprocessed (untuk barcode sulit/melengkung)
+async function scanZxingHard(video) {
+    try {
+        const processed = preprocessFrame(video, 1.5);
+        if (!processed) return null;
+        const luminanceSource = new ZXing.HTMLCanvasElementLuminanceSource(processed);
+        const binaryBitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminanceSource));
+        const result = codeReaderHard.decodeBitmap(binaryBitmap);
+        return result ? result.text : null;
+    } catch (e) {
+        return null;
+    }
+}
 
 let _cachedDevices = null; // Cache device list agar tidak query ulang tiap startScan
 
@@ -413,17 +491,41 @@ async function startScan(deviceId = null) {
 
         // Loop Native — pakai setTimeout bukan rAF agar tidak terikat 60fps
         if (useNative) {
-            const NATIVE_INTERVAL = 100; // 100ms = 10 scan/detik, cukup agresif & ringan
+            const NATIVE_INTERVAL = 100;
             const checkNative = async () => {
                 if (!scanning) return;
+
+                // Layer 1: Native langsung dari video (tercepat)
                 const nativeCode = await scanNative(videoElement);
                 if (nativeCode && !isProcessingScan) {
                     onDetected(nativeCode);
-                    // Tidak return — loop tetap jalan agar siap barcode berikutnya
+                    setTimeout(checkNative, NATIVE_INTERVAL);
+                    return;
                 }
+
+                // Layer 2: ZXing TRY_HARDER dari canvas preprocessed (untuk barcode sulit)
+                if (!isProcessingScan) {
+                    const hardCode = await scanZxingHard(videoElement);
+                    if (hardCode && !isProcessingScan) {
+                        onDetected(hardCode);
+                    }
+                }
+
                 setTimeout(checkNative, NATIVE_INTERVAL);
             };
             checkNative();
+        } else {
+            // Tanpa Native: ZXing loop internal + ZXing Hard sebagai lapisan kedua
+            const HARD_INTERVAL = 200;
+            const checkHard = async () => {
+                if (!scanning) return;
+                if (!isProcessingScan) {
+                    const hardCode = await scanZxingHard(videoElement);
+                    if (hardCode && !isProcessingScan) onDetected(hardCode);
+                }
+                setTimeout(checkHard, HARD_INTERVAL);
+            };
+            checkHard();
         }
 
     } catch (err) {

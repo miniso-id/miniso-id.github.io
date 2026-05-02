@@ -184,6 +184,7 @@ body.fade-in {
         </div>
         <div id="reader">
     <video id="videoElement"></video>
+    <canvas id="cropCanvas" style="display:none;"></canvas>
     <div class="focus-guide"></div>
     <div class="tap-hint">ARAHKAN BARCODE KE TENGAH KOTAK</div>
 </div>
@@ -424,7 +425,7 @@ async function startScan(deviceId = null) {
         // HYBRID SCANNER (Hanya Native & ZXing)
         // ==========================================
         let lastZxingTime = 0;
-const ZXING_INTERVAL = 400; // Jalankan ZXing setiap 400ms saja
+const ZXING_INTERVAL = 1000; // Jalankan ZXing setiap 400ms saja
 
 const checkHybrid = async () => {
     if (!scanning) return;

@@ -324,49 +324,45 @@ let lastDetectedAt = 0;
 
 
 // Tambahkan fungsi pembantu ini
- async function scanNative(video) {
-    if (!('BarcodeDetector' in window)) return null;
-    const detector = new BarcodeDetector({ 
-        formats: ['code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e']
-    });
+// BarcodeDetector dibuat SEKALI di luar loop agar tidak ada overhead tiap scan
+const nativeDetector = ('BarcodeDetector' in window)
+    ? new BarcodeDetector({ formats: ['code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e'] })
+    : null;
+
+async function scanNative(video) {
+    if (!nativeDetector) return null;
     try {
-       const barcodes = await detector.detect(video);
+        const barcodes = await nativeDetector.detect(video);
         return barcodes.length > 0 ? barcodes[0].rawValue : null;
     } catch (e) {
         return null;
     }
- }
+}
 
 
+
+// Hints & constraints dibuat SEKALI sebagai konstanta — tidak perlu rebuild tiap startScan
+const _hints = new Map();
+_hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+    ZXing.BarcodeFormat.EAN_13,
+    ZXing.BarcodeFormat.EAN_8,
+    ZXing.BarcodeFormat.CODE_128,
+    ZXing.BarcodeFormat.UPC_A,
+    ZXing.BarcodeFormat.UPC_E
+]);
+_hints.set(ZXing.DecodeHintType.TRY_HARDER, false);
+_hints.set(ZXing.DecodeHintType.CHARACTER_SET, 'utf-8');
+_hints.set(ZXing.DecodeHintType.PURE_BARCODE, false);
+_hints.set(ZXing.DecodeHintType.ASSUME_GS1, true);
+_hints.set(ZXing.DecodeHintType.ALSO_SUPPORT_CONVEX, true);
+codeReader.hints = _hints;
+
+let _cachedDevices = null; // Cache device list agar tidak query ulang tiap startScan
 
 async function startScan(deviceId = null) {
     scanning = true; 
     document.getElementById("reader").style.display = "block";
-    lastZxingSuccessAt = performance.now();
-    
-    // --- 1. Definisikan Hints (STRUKTUR ASLI ANDA) ---
-    const hints = new Map();
-    const formats = [
-        ZXing.BarcodeFormat.EAN_13,
-        ZXing.BarcodeFormat.EAN_8,
-        ZXing.BarcodeFormat.CODE_128,
-        ZXing.BarcodeFormat.UPC_A,
-        ZXing.BarcodeFormat.UPC_E
-    ];
-    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
-    
-    // TRY_HARDER wajib aktif untuk mencari barcode miring/distorsi
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, false); 
-    
-    // CHARACTER_SET membantu pembacaan data yang lebih stabil
-    hints.set(ZXing.DecodeHintType.CHARACTER_SET, 'utf-8');
-    
-    // PURE_BARCODE false memberi tahu scanner bahwa ada background di sekitar barcode
-    hints.set(ZXing.DecodeHintType.PURE_BARCODE, false);
-    hints.set(ZXing.DecodeHintType.ASSUME_GS1, true);
-    hints.set(ZXing.DecodeHintType.ALSO_SUPPORT_CONVEX, true);
-    
-    // --- 2. Setting Constraints (STRUKTUR ASLI ANDA) ---
+
     const constraints = {
         video: {
             deviceId: deviceId ? { exact: deviceId } : undefined,
@@ -374,88 +370,65 @@ async function startScan(deviceId = null) {
             height: { ideal: 720 },
             frameRate: { ideal: 30 },
             facingMode: "environment",
-            // Mengunci aspect ratio 16:9 agar barcode tidak terdistorsi/gepeng saat miring
-            // aspectRatio: { ideal: 1.7777777778 },
             focusMode: { ideal: "continuous" },
             whiteBalanceMode: { ideal: "continuous" }
-            
         }
     };
 
     try {
-        const videoDevices = await codeReader.listVideoInputDevices();
-        const backCameras = videoDevices.filter(d => !d.label.toLowerCase().includes('front'));
-        let selectedId = deviceId || lastSelectedDeviceId || (backCameras.length > 0 ? backCameras[0].deviceId : videoDevices[0].deviceId);
+        // Gunakan cache device list jika sudah ada
+        if (!_cachedDevices) {
+            const videoDevices = await codeReader.listVideoInputDevices();
+            _cachedDevices = videoDevices.filter(d => !d.label.toLowerCase().includes('front'));
+        }
+        const backCameras = _cachedDevices;
+        let selectedId = deviceId || lastSelectedDeviceId || (backCameras.length > 0 ? backCameras[0].deviceId : null);
         
         updateCameraList(backCameras, selectedId);
-        codeReader.hints = hints;
 
-        // --- 3. Dekode Constraints (STRUKTUR ASLI ANDA) ---
-        await codeReader.decodeFromConstraints(constraints, 'videoElement', (result, err) => {
-            if (result) {
-                // ZXing secara otomatis mendeteksi rotasi jika TRY_HARDER aktif
-                onDetected(result.text);
-            }
-        });
+        const useNative = !!nativeDetector;
 
-        // 4. Maksimalkan Hardware Focus & Zoom
+        if (useNative) {
+            let zxingThrottled = false;
+            await codeReader.decodeFromConstraints(constraints, 'videoElement', (result, err) => {
+                if (result && !isProcessingScan && !zxingThrottled) {
+                    zxingThrottled = true;
+                    setTimeout(() => { zxingThrottled = false; }, 1500);
+                    onDetected(result.text);
+                }
+            });
+        } else {
+            await codeReader.decodeFromConstraints(constraints, 'videoElement', (result, err) => {
+                if (result) onDetected(result.text);
+            });
+        }
+
+        // Maksimalkan Hardware Focus & Exposure
         const videoTrack = document.getElementById('videoElement').srcObject.getVideoTracks()[0];
         const capabilities = videoTrack.getCapabilities();
         const advanced = {};
-        
-        if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
-            advanced.focusMode = 'continuous';
+        if (capabilities.focusMode?.includes('continuous')) advanced.focusMode = 'continuous';
+        if (capabilities.exposureMode?.includes('continuous')) advanced.exposureMode = 'continuous';
+        if (Object.keys(advanced).length > 0) await videoTrack.applyConstraints({ advanced: [advanced] });
+
+        // Loop Native — pakai setTimeout bukan rAF agar tidak terikat 60fps
+        if (useNative) {
+            const NATIVE_INTERVAL = 100; // 100ms = 10 scan/detik, cukup agresif & ringan
+            const checkNative = async () => {
+                if (!scanning) return;
+                const nativeCode = await scanNative(videoElement);
+                if (nativeCode && !isProcessingScan) {
+                    onDetected(nativeCode);
+                    // Tidak return — loop tetap jalan agar siap barcode berikutnya
+                }
+                setTimeout(checkNative, NATIVE_INTERVAL);
+            };
+            checkNative();
         }
-        // if (capabilities.zoom) {
-        //    const targetZoom = Math.min(capabilities.zoom.min + 0.5, capabilities.zoom.max);
-        //    advanced.zoom = targetZoom;
-        //}
-
-                if (capabilities.exposureMode && capabilities.exposureMode.includes('continuous')) {
-    advanced.exposureMode = 'continuous';
-}
-        
-// ... (kode ZXing di atas tetap sama)
-
-        if (Object.keys(advanced).length > 0) {
-            await videoTrack.applyConstraints({ advanced: [advanced] });
-        }
-
-        // ==========================================
-        // HYBRID SCANNER (Hanya Native & ZXing)
-        // ==========================================
-        let lastZxingTime = 0;
-const ZXING_INTERVAL = 1000; // Jalankan ZXing setiap 400ms saja
-
-const checkHybrid = async () => {
-    if (!scanning) return;
-
-    // 1. Native API (Sangat Ringan, jalankan setiap frame)
-    const nativeCode = await scanNative(videoElement);
-    if (nativeCode) {
-        onDetected(nativeCode);
-        return;
-    }
-
-    // 2. ZXing (Berat, jalankan dengan interval)
-    const now = performance.now();
-    if (now - lastZxingTime > ZXING_INTERVAL) {
-        // Logika ZXing dijalankan di sini oleh BrowserMultiFormatReader
-        // Jika sudah menggunakan decodeFromConstraints, ZXing sebenarnya sudah punya loop internal.
-        lastZxingTime = now;
-    }
-
-    requestAnimationFrame(checkHybrid);
-};
-        
-        checkHybrid();
 
     } catch (err) {
-        console.error("Gagal optimasi kamera:", err);
-        if(deviceId) { 
-            codeReader.reset(); 
-            startScan(null); 
-        }
+        console.error("Gagal start scan:", err);
+        if (deviceId) { codeReader.reset(); startScan(null); }
     }
 }
     
@@ -475,7 +448,8 @@ function updateCameraList(devices, currentId) {
 
 document.getElementById("videoSource").onchange = (e) => { 
     lastSelectedDeviceId = e.target.value; 
-    localStorage.setItem('preferredCameraId', lastSelectedDeviceId); 
+    localStorage.setItem('preferredCameraId', lastSelectedDeviceId);
+    _cachedDevices = null; // Reset cache saat user ganti kamera manual
     stopScan(); 
     startScan(lastSelectedDeviceId); 
 };
@@ -504,34 +478,58 @@ function stopScan() {
     document.getElementById("cameraControl").style.display = "none"; 
 }
 
-let isProcessingScan = false; // Tambahkan variabel pengunci
+let isProcessingScan = false;
+const failedBarcodes = new Map();
+const FAILED_COOLDOWN = 5000;
+const SUPABASE_TIMEOUT = 3000;
+
+async function queryWithTimeout(code) {
+    return Promise.race([
+        _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), SUPABASE_TIMEOUT))
+    ]);
+}
 
 async function onDetected(code) {
+    // Cek cache SEBELUM lock — paling cepat, tidak perlu tunggu apapun
+    const cachedData = getLocalCache(code);
+    if (cachedData) {
+        if (isProcessingScan) return;
+        isProcessingScan = true;
+        try {
+            stopScan();
+            renderDetailView(cachedData); // Langsung render, tidak perlu query lagi
+            document.getElementById("beepOk").play();
+            document.getElementById("searchInput").blur();
+            document.getElementById("searchInput").value = code;
+        } finally {
+            isProcessingScan = false;
+        }
+        return;
+    }
+
+    // Cek cooldown barcode yang sudah terbukti tidak ada di DB
+    const failedAt = failedBarcodes.get(code);
+    if (failedAt && (Date.now() - failedAt) < FAILED_COOLDOWN) return;
+
     if (isProcessingScan) return;
     isProcessingScan = true;
 
     try {
-    const cachedData = getLocalCache(code);
-    if (cachedData) {
-        document.getElementById("beepOk").play(); 
-        stopScan(); 
-        document.getElementById("searchInput").blur(); 
-        document.getElementById("searchInput").value = code; 
-        showDetail(code);
-        return;
-    }
-
-    const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
-    if(data) { 
-        saveToLocalCache(code, data);
-        document.getElementById("beepOk").play(); 
-        stopScan(); 
-        document.getElementById("searchInput").blur(); 
-        document.getElementById("searchInput").value = code; 
-        showDetail(code);
-    }
-} finally {
-        // Lepaskan kunci setelah proses selesai (baik berhasil maupun gagal)
+        const { data } = await queryWithTimeout(code);
+        if (data) {
+            saveToLocalCache(code, data);
+            stopScan();
+            renderDetailView(data); // Langsung render dari data yang baru diambil
+            document.getElementById("beepOk").play();
+            document.getElementById("searchInput").blur();
+            document.getElementById("searchInput").value = code;
+        } else {
+            failedBarcodes.set(code, Date.now());
+        }
+    } catch (e) {
+        failedBarcodes.set(code, Date.now());
+    } finally {
         isProcessingScan = false;
     }
 }
@@ -593,15 +591,14 @@ function renderDetailView(p) {
 async function showDetail(fullBarcode) {
     lastScroll = document.getElementById("scrollContainer").scrollTop;
     
+    // Cek cache dulu — tidak perlu query jika sudah ada
     let p = getLocalCache(fullBarcode);
     
     if (!p) {
         const { data, error } = await _supabase.rpc('get_product_by_barcode', { 
             target_barcode: fullBarcode 
         });
-
         if (error || !data || data.length === 0) return;
-        
         p = data[0];
         saveToLocalCache(fullBarcode, p);
     }

@@ -251,7 +251,7 @@ let scanning = false, lastScroll = 0, timer;
 let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
 
 // Inisialisasi ZXing
-const codeReader = new ZXing.BrowserMultiFormatReader();
+// const codeReader = new ZXing.BrowserMultiFormatReader();
 
 function openLightbox(src) {
     if(!src || src.includes('placeholder')) return;
@@ -341,20 +341,16 @@ let lastDetectedAt = 0;
 
 async function startScan(deviceId = null) {
     scanning = true; 
+    const video = document.getElementById("videoElement"); // Tambahkan baris ini
     document.getElementById("reader").style.display = "block";
 
-        const constraints = {
+    const constraints = {
         video: {
             deviceId: deviceId ? { exact: deviceId } : undefined,
             width: { ideal: 1280 },
             height: { ideal: 720 },
-            frameRate: { ideal: 30 },
             facingMode: "environment",
-            // Mengunci aspect ratio 16:9 agar barcode tidak terdistorsi/gepeng saat miring
-            // aspectRatio: { ideal: 1.7777777778 },
-            focusMode: { ideal: "continuous" },
-            whiteBalanceMode: { ideal: "continuous" }
-            
+            focusMode: { ideal: "continuous" }
         }
     };
 
@@ -370,12 +366,18 @@ async function startScan(deviceId = null) {
             const code = await scanNative(video);
             if (code) {
                 onDetected(code);
-                return;
+                return; // Berhenti jika barcode terdeteksi
             }
             requestAnimationFrame(scanLoop);
         };
         
         scanLoop();
+
+    } catch (err) {
+        console.error("Gagal akses kamera:", err);
+        alert("Pastikan koneksi HTTPS aktif dan izin kamera diberikan.");
+    }
+}
 
 /*
     lastZxingSuccessAt = performance.now();
@@ -474,15 +476,6 @@ const checkHybrid = async () => {
         checkHybrid();
 
 */
-
-    } catch (err) {
-        console.error("Gagal optimasi kamera:", err);
-        if(deviceId) { 
-            codeReader.reset(); 
-            startScan(null); 
-        }
-    }
-}
     
 function updateCameraList(devices, currentId) {
     const source = document.getElementById("videoSource");

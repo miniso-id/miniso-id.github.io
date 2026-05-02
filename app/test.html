@@ -523,10 +523,13 @@ document.getElementById("reader").onclick = async () => {
 };
 
 function stopScan() { 
-    codeReader.reset(); 
     scanning = false; 
+    const video = document.getElementById("videoElement");
+    if (video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+    }
     document.getElementById("reader").style.display = "none"; 
-    document.getElementById("cameraControl").style.display = "none"; 
 }
 
 let isProcessingScan = false; // Tambahkan variabel pengunci

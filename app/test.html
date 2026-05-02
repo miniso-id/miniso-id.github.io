@@ -425,7 +425,7 @@ async function scanDigitsFromImage(canvasSource) {
  async function scanNative(video) {
     if (!('BarcodeDetector' in window)) return null;
     const detector = new BarcodeDetector({ 
-        formats: ['ean_13', 'ean_8', 'code_128', 'upc_a', 'upc_e'] 
+        formats: ['code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e']
     });
     try {
        const barcodes = await detector.detect(video);
@@ -483,9 +483,9 @@ async function startScan(deviceId = null) {
     const constraints = {
         video: {
             deviceId: deviceId ? { exact: deviceId } : undefined,
-            width: { min: 1280, ideal: 1280 },
-            height: { min: 720, ideal: 720 },
-            frameRate: { ideal: 30, max: 60 },
+            width: { min: 1280, ideal: 1920 },
+            height: { min: 720, ideal: 1080 },
+            frameRate: { ideal: 30 },
             facingMode: "environment",
             // Mengunci aspect ratio 16:9 agar barcode tidak terdistorsi/gepeng saat miring
             aspectRatio: { ideal: 1.7777777778 },
@@ -519,10 +519,10 @@ async function startScan(deviceId = null) {
         if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
             advanced.focusMode = 'continuous';
         }
-        if (capabilities.zoom) {
-            const targetZoom = Math.min(capabilities.zoom.min + 0.5, capabilities.zoom.max);
-            advanced.zoom = targetZoom;
-        }
+        // if (capabilities.zoom) {
+        //    const targetZoom = Math.min(capabilities.zoom.min + 0.5, capabilities.zoom.max);
+        //    advanced.zoom = targetZoom;
+        //}
 
                 if (capabilities.exposureMode && capabilities.exposureMode.includes('continuous')) {
     advanced.exposureMode = 'continuous';
@@ -641,7 +641,13 @@ function stopScan() {
     document.getElementById("manualOcrBtn").style.display = "none";
 }
 
+let isProcessingScan = false; // Tambahkan variabel pengunci
+
 async function onDetected(code) {
+    if (isProcessingScan) return;
+    isProcessingScan = true;
+
+    try {
     const cachedData = getLocalCache(code);
     if (cachedData) {
         document.getElementById("beepOk").play(); 
@@ -660,6 +666,10 @@ async function onDetected(code) {
         document.getElementById("searchInput").blur(); 
         document.getElementById("searchInput").value = code; 
         showDetail(code);
+    }
+} finally {
+        // Lepaskan kunci setelah proses selesai (baik berhasil maupun gagal)
+        isProcessingScan = false;
     }
 }
 

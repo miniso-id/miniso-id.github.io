@@ -641,7 +641,13 @@ function stopScan() {
     document.getElementById("manualOcrBtn").style.display = "none";
 }
 
+let isProcessingScan = false; // Tambahkan variabel pengunci
+
 async function onDetected(code) {
+    if (isProcessingScan) return;
+    isProcessingScan = true;
+
+    try {
     const cachedData = getLocalCache(code);
     if (cachedData) {
         document.getElementById("beepOk").play(); 
@@ -660,6 +666,10 @@ async function onDetected(code) {
         document.getElementById("searchInput").blur(); 
         document.getElementById("searchInput").value = code; 
         showDetail(code);
+    }
+} finally {
+        // Lepaskan kunci setelah proses selesai (baik berhasil maupun gagal)
+        isProcessingScan = false;
     }
 }
 

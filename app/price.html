@@ -7,7 +7,7 @@
     <title>MMS-X</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- <script src="https://unpkg.com/@zxing/library@latest"></script> -->
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
     
     
     <style>
@@ -338,11 +338,14 @@ async function scanNative(video) {
     }
 }
 
+const codeReader = new ZXing.BrowserMultiFormatReader();
 
+// Inisialisasi ZXing secara global
+const codeReader = new ZXing.BrowserMultiFormatReader();
 
 async function startScan(deviceId = null) {
     scanning = true; 
-    const video = document.getElementById("videoElement"); // Tambahkan baris ini
+    const video = document.getElementById("videoElement");
     document.getElementById("reader").style.display = "block";
 
     const constraints = {
@@ -350,8 +353,7 @@ async function startScan(deviceId = null) {
             deviceId: deviceId ? { exact: deviceId } : undefined,
             width: { ideal: 1280 },
             height: { ideal: 720 },
-            facingMode: "environment",
-            focusMode: { ideal: "continuous" }
+            facingMode: "environment"
         }
     };
 
@@ -360,42 +362,43 @@ async function startScan(deviceId = null) {
         video.srcObject = stream;
         await video.play();
 
-        // Loop Pemindaian Murni Native
-        const scanLoop = async () => {
-    if (!scanning) return;
-
-    if (isProcessingScan) {
-        // Jika macet lebih dari 5 detik, paksa buka kunci (Self-Reset)
-        if (performance.now() - lastDetectedAt > 5000) {
-            isProcessingScan = false;
-        }
-        requestAnimationFrame(scanLoop);
-        return;
-    }
-
-    try {
-        const code = await scanNative(video);
-        if (code) {
-            lastDetectedAt = performance.now(); // Catat waktu deteksi terakhir
-            onDetected(code);
-        }
-    } catch (err) {
-        console.error("Loop Error:", err);
-    }
-
-    // PENTING: Selalu panggil frame berikutnya apapun yang terjadi
-    requestAnimationFrame(scanLoop);
-};
+        // --- MULAI SCANNING HYBRID ---
         
-        scanLoop();
+        // 1. Jalankan ZXing di Background (Pasif)
+        codeReader.decodeFromVideoElement(video, (result, err) => {
+            if (result && scanning && !isProcessingScan) {
+                console.log("Detected by ZXing");
+                onDetected(result.text);
+            }
+        });
+
+        // 2. Jalankan Native Scanner Loop (Aktif)
+        const hybridLoop = async () => {
+            if (!scanning) return;
+
+            if (!isProcessingScan) {
+                try {
+                    // Coba Native API dahulu (Lebih cepat di Android)
+                    const code = await scanNative(video);
+                    if (code) {
+                        console.log("Detected by Native");
+                        onDetected(code);
+                    }
+                } catch (err) {
+                    // Jika native tidak didukung (seperti di iOS), biarkan ZXing bekerja
+                }
+            }
+            requestAnimationFrame(hybridLoop);
+        };
+        
+        hybridLoop();
 
     } catch (err) {
         console.error("Gagal akses kamera:", err);
-        alert("Pastikan koneksi HTTPS aktif dan izin kamera diberikan.");
     }
 }
 
-/*
+
     lastZxingSuccessAt = performance.now();
     
     // --- 1. Definisikan Hints (STRUKTUR ASLI ANDA) ---
@@ -490,8 +493,6 @@ const checkHybrid = async () => {
 };
         
         checkHybrid();
-
-*/
     
 function updateCameraList(devices, currentId) {
     const source = document.getElementById("videoSource");
@@ -533,6 +534,8 @@ document.getElementById("reader").onclick = async () => {
 
 function stopScan() { 
     scanning = false; 
+    codeReader.reset(); // WAJIB: Menghentikan ZXing yang sedang berjalan
+    
     const video = document.getElementById("videoElement");
     if (video.srcObject) {
         video.srcObject.getTracks().forEach(track => track.stop());

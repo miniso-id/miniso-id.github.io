@@ -518,10 +518,43 @@ async function scanNative(video) {
             if (barcodes.length > 0) return barcodes[0].rawValue;
         }
 
+        // Layer 4: Crop area bawah frame — zona angka di bawah barcode
+        const digits = scanDigitArea(video);
+        if (digits) {
+            barcodes = await nativeDetector.detect(digits);
+            if (barcodes.length > 0) return barcodes[0].rawValue;
+        }
+
         return null;
     } catch (e) {
         return null;
     }
+}
+
+// Crop zona angka di bawah barcode — area sepertiga bawah frame, zoom 2x, kontras tinggi
+function scanDigitArea(video) {
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    if (!vw || !vh) return null;
+
+    // Ambil sepertiga bawah dari tengah frame (zona angka barcode)
+    const cropW = Math.floor(vw / 1.5);
+    const cropH = Math.floor(vh / 4);         // Hanya sepertiga bawah
+    const cropX = Math.floor((vw - cropW) / 2);
+    const cropY = Math.floor(vh / 2);          // Mulai dari tengah ke bawah
+
+    const outW = 640;
+    const outH = Math.floor(outW * (cropH / cropW));
+    _canvas.width = outW;
+    _canvas.height = outH;
+    _ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, outW, outH);
+
+    // Kontras sangat tinggi untuk angka hitam di background putih
+    const imageData = _ctx.getImageData(0, 0, outW, outH);
+    applyContrastGrayscale(imageData, 80);
+    _ctx.putImageData(imageData, 0, 0);
+
+    return _canvas;
 }
 
 

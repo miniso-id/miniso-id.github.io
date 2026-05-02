@@ -519,9 +519,9 @@ function stopScan() {
 }
 
 let isProcessingScan = false;
-const failedBarcodes = new Map(); // Cooldown per barcode yang tidak ditemukan
-const FAILED_COOLDOWN = 5000; // Skip barcode gagal selama 5 detik
-const SUPABASE_TIMEOUT = 3000; // Maksimal tunggu Supabase 3 detik
+const failedBarcodes = new Map();
+const FAILED_COOLDOWN = 5000;
+const SUPABASE_TIMEOUT = 3000;
 
 async function queryWithTimeout(code) {
     return Promise.race([
@@ -531,7 +531,24 @@ async function queryWithTimeout(code) {
 }
 
 async function onDetected(code) {
-    // Cek cooldown — barcode ini baru saja gagal, skip dulu
+    // Cek cache SEBELUM lock — paling cepat, tidak perlu tunggu apapun
+    const cachedData = getLocalCache(code);
+    if (cachedData) {
+        if (isProcessingScan) return;
+        isProcessingScan = true;
+        try {
+            stopScan();
+            renderDetailView(cachedData); // Langsung render, tidak perlu query lagi
+            document.getElementById("beepOk").play();
+            document.getElementById("searchInput").blur();
+            document.getElementById("searchInput").value = code;
+        } finally {
+            isProcessingScan = false;
+        }
+        return;
+    }
+
+    // Cek cooldown barcode yang sudah terbukti tidak ada di DB
     const failedAt = failedBarcodes.get(code);
     if (failedAt && (Date.now() - failedAt) < FAILED_COOLDOWN) return;
 
@@ -539,33 +556,21 @@ async function onDetected(code) {
     isProcessingScan = true;
 
     try {
-        const cachedData = getLocalCache(code);
-        if (cachedData) {
-            document.getElementById("beepOk").play();
-            stopScan();
-            document.getElementById("searchInput").blur();
-            document.getElementById("searchInput").value = code;
-            showDetail(code);
-            return;
-        }
-
         const { data } = await queryWithTimeout(code);
         if (data) {
             saveToLocalCache(code, data);
-            document.getElementById("beepOk").play();
             stopScan();
+            renderDetailView(data); // Langsung render dari data yang baru diambil
+            document.getElementById("beepOk").play();
             document.getElementById("searchInput").blur();
             document.getElementById("searchInput").value = code;
-            showDetail(code);
         } else {
-            // Tidak ditemukan — tandai cooldown agar tidak query ulang barcode sama
             failedBarcodes.set(code, Date.now());
         }
     } catch (e) {
-        // Timeout atau error jaringan — langsung lepas lock, scanner lanjut
         failedBarcodes.set(code, Date.now());
     } finally {
-        isProcessingScan = false; // Lock selalu dilepas, scanner tidak bengong
+        isProcessingScan = false;
     }
 }
 
@@ -626,15 +631,14 @@ function renderDetailView(p) {
 async function showDetail(fullBarcode) {
     lastScroll = document.getElementById("scrollContainer").scrollTop;
     
+    // Cek cache dulu — tidak perlu query jika sudah ada
     let p = getLocalCache(fullBarcode);
     
     if (!p) {
         const { data, error } = await _supabase.rpc('get_product_by_barcode', { 
             target_barcode: fullBarcode 
         });
-
         if (error || !data || data.length === 0) return;
-        
         p = data[0];
         saveToLocalCache(fullBarcode, p);
     }

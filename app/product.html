@@ -969,13 +969,9 @@ async function showDetail(fullBarcode) {
         document.getElementById("btnBackFloating").style.display = "none";
         document.getElementById("searchInput").value = "";
         document.getElementById("scrollContainer").scrollTop = lastScroll;
-        startScan(lastSelectedDeviceId);
     }
 
-// Auto-start scan saat halaman pertama kali dibuka
-window.addEventListener('load', () => {
-    startScan(lastSelectedDeviceId);
-});
+
 
 // --- FUNGSI AI VISION (Direct to Edge Function) ---
 

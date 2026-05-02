@@ -324,18 +324,20 @@ let lastDetectedAt = 0;
 
 
 // Tambahkan fungsi pembantu ini
- async function scanNative(video) {
-    if (!('BarcodeDetector' in window)) return null;
-    const detector = new BarcodeDetector({ 
-        formats: ['code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e']
-    });
+// BarcodeDetector dibuat SEKALI di luar loop agar tidak ada overhead tiap scan
+const nativeDetector = ('BarcodeDetector' in window)
+    ? new BarcodeDetector({ formats: ['code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e'] })
+    : null;
+
+async function scanNative(video) {
+    if (!nativeDetector) return null;
     try {
-       const barcodes = await detector.detect(video);
+        const barcodes = await nativeDetector.detect(video);
         return barcodes.length > 0 ? barcodes[0].rawValue : null;
     } catch (e) {
         return null;
     }
- }
+}
 
 
 
@@ -356,7 +358,8 @@ async function startScan(deviceId = null) {
     hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
     
     // TRY_HARDER wajib aktif untuk mencari barcode miring/distorsi
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, true); 
+    // TRY_HARDER: false karena Native sudah jadi scanner utama, ZXing cukup sebagai fallback ringan
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, false); 
     
     // CHARACTER_SET membantu pembacaan data yang lebih stabil
     hints.set(ZXing.DecodeHintType.CHARACTER_SET, 'utf-8');
@@ -370,8 +373,8 @@ async function startScan(deviceId = null) {
     const constraints = {
         video: {
             deviceId: deviceId ? { exact: deviceId } : undefined,
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
             frameRate: { ideal: 30 },
             facingMode: "environment",
             // Mengunci aspect ratio 16:9 agar barcode tidak terdistorsi/gepeng saat miring
@@ -439,7 +442,7 @@ async function startScan(deviceId = null) {
 
         // Loop Native BarcodeDetector — hanya jalan jika tersedia
         if (useNative) {
-            const NATIVE_INTERVAL = 300; // ms antar scan Native
+            const NATIVE_INTERVAL = 150; // ms antar scan Native — lebih agresif untuk respon cepat
             let lastNativeTime = 0;
 
             const checkNative = async () => {
@@ -522,27 +525,28 @@ async function onDetected(code) {
     isProcessingScan = true;
 
     try {
-    const cachedData = getLocalCache(code);
-    if (cachedData) {
-        document.getElementById("beepOk").play(); 
-        stopScan(); 
-        document.getElementById("searchInput").blur(); 
-        document.getElementById("searchInput").value = code; 
-        showDetail(code);
-        return;
-    }
+        const cachedData = getLocalCache(code);
+        if (cachedData) {
+            document.getElementById("beepOk").play(); 
+            stopScan(); 
+            document.getElementById("searchInput").blur(); 
+            document.getElementById("searchInput").value = code; 
+            showDetail(code);
+            return;
+        }
 
-    const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
-    if(data) { 
-        saveToLocalCache(code, data);
-        document.getElementById("beepOk").play(); 
-        stopScan(); 
-        document.getElementById("searchInput").blur(); 
-        document.getElementById("searchInput").value = code; 
-        showDetail(code);
-    }
-} finally {
-        // Lepaskan kunci setelah proses selesai (baik berhasil maupun gagal)
+        const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
+        if (data) { 
+            saveToLocalCache(code, data);
+            document.getElementById("beepOk").play(); 
+            stopScan(); 
+            document.getElementById("searchInput").blur(); 
+            document.getElementById("searchInput").value = code; 
+            showDetail(code);
+        }
+        // Jika data tidak ditemukan, isProcessingScan otomatis di-reset di finally
+        // sehingga scanner bisa langsung coba lagi
+    } finally {
         isProcessingScan = false;
     }
 }

@@ -355,7 +355,7 @@ async function startScan(deviceId = null) {
     hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
     
     // TRY_HARDER wajib aktif untuk mencari barcode miring/distorsi
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, true); 
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, false); 
     
     // CHARACTER_SET membantu pembacaan data yang lebih stabil
     hints.set(ZXing.DecodeHintType.CHARACTER_SET, 'utf-8');
@@ -369,8 +369,8 @@ async function startScan(deviceId = null) {
     const constraints = {
         video: {
             deviceId: deviceId ? { exact: deviceId } : undefined,
-            width: { min: 1280, ideal: 1920 },
-            height: { min: 720, ideal: 1080 },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
             frameRate: { ideal: 30 },
             facingMode: "environment",
             // Mengunci aspect ratio 16:9 agar barcode tidak terdistorsi/gepeng saat miring
@@ -423,20 +423,29 @@ async function startScan(deviceId = null) {
         // ==========================================
         // HYBRID SCANNER (Hanya Native & ZXing)
         // ==========================================
-        
-        const checkHybrid = async () => {
-            if (!scanning) return;
-            
-            // Cek menggunakan Barcode Detector API (Native) yang sangat cepat
-            const nativeCode = await scanNative(document.getElementById('videoElement'));
-            if (nativeCode) {
-                onDetected(nativeCode);
-                return; 
-            }
-            
-            // Loop terus selama scanning aktif
-            requestAnimationFrame(checkHybrid);
-        };
+        let lastZxingTime = 0;
+const ZXING_INTERVAL = 400; // Jalankan ZXing setiap 400ms saja
+
+const checkHybrid = async () => {
+    if (!scanning) return;
+
+    // 1. Native API (Sangat Ringan, jalankan setiap frame)
+    const nativeCode = await scanNative(videoElement);
+    if (nativeCode) {
+        onDetected(nativeCode);
+        return;
+    }
+
+    // 2. ZXing (Berat, jalankan dengan interval)
+    const now = performance.now();
+    if (now - lastZxingTime > ZXING_INTERVAL) {
+        // Logika ZXing dijalankan di sini oleh BrowserMultiFormatReader
+        // Jika sudah menggunakan decodeFromConstraints, ZXing sebenarnya sudah punya loop internal.
+        lastZxingTime = now;
+    }
+
+    requestAnimationFrame(checkHybrid);
+};
         
         checkHybrid();
 

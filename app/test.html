@@ -356,7 +356,7 @@ async function startScan(deviceId = null) {
     hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
     
     // TRY_HARDER wajib aktif untuk mencari barcode miring/distorsi
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, false); 
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true); 
     
     // CHARACTER_SET membantu pembacaan data yang lebih stabil
     hints.set(ZXing.DecodeHintType.CHARACTER_SET, 'utf-8');

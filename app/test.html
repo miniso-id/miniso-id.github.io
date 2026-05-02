@@ -105,7 +105,8 @@ body.fade-in {
         /*
         .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
         */
-        .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; }
+        .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; transition: all 0.3s ease; }
+        .tap-hint.warn { color: #FFD600; font-size: 12px; }
         #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
 
         .main-content { flex: 1; overflow-y: auto; overflow-x: hidden; width: 100%; padding: 0 16px; }
@@ -588,6 +589,47 @@ async function startScan(deviceId = null) {
     scanning = true; 
     document.getElementById("reader").style.display = "block";
 
+    // Reset hint ke default
+    const tapHint = document.querySelector('.tap-hint');
+    const HINT_DEFAULT = 'POINT BARCODE HERE • TAP TO FOCUS';
+    const HINTS_STRUGGLE = [
+        'Try a flatter side of the package',
+        'Avoid curved edges',
+        'Move closer or further',
+        'Better lighting helps',
+    ];
+    let hintIndex = 0;
+    let hintTimer = null;
+
+    function resetHint() {
+        if (tapHint) { tapHint.textContent = HINT_DEFAULT; tapHint.classList.remove('warn'); }
+        clearInterval(hintTimer);
+        hintTimer = null;
+    }
+
+    function startStruggleHints() {
+        if (hintTimer) return; // Sudah jalan
+        hintIndex = 0;
+        hintTimer = setInterval(() => {
+            if (!scanning) { clearInterval(hintTimer); return; }
+            if (tapHint) {
+                tapHint.textContent = HINTS_STRUGGLE[hintIndex % HINTS_STRUGGLE.length];
+                tapHint.classList.add('warn');
+            }
+            hintIndex++;
+        }, 2500); // Ganti hint tiap 2.5 detik
+    }
+
+    // Mulai hint struggle setelah 4 detik tidak terbaca
+    let struggleTimeout = setTimeout(startStruggleHints, 4000);
+
+    // Patch onDetected untuk reset hint saat berhasil
+    const _origOnDetected = onDetected;
+    window._resetScanHint = () => {
+        clearTimeout(struggleTimeout);
+        resetHint();
+    };
+
     const constraints = {
         video: {
             deviceId: deviceId ? { exact: deviceId } : undefined,
@@ -724,7 +766,11 @@ function stopScan() {
     codeReader.reset(); 
     scanning = false; 
     document.getElementById("reader").style.display = "none"; 
-    document.getElementById("cameraControl").style.display = "none"; 
+    document.getElementById("cameraControl").style.display = "none";
+    // Reset hint state
+    const tapHint = document.querySelector('.tap-hint');
+    if (tapHint) { tapHint.textContent = 'POINT BARCODE HERE • TAP TO FOCUS'; tapHint.classList.remove('warn'); }
+    if (window._resetScanHint) window._resetScanHint();
 }
 
 let isProcessingScan = false;

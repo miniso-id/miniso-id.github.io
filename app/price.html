@@ -7,8 +7,8 @@
     <title>MMS-X</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://unpkg.com/@zxing/library@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <!-- <script src="https://unpkg.com/@zxing/library@latest"></script> -->
+    
     
     <style>
         :root {
@@ -189,18 +189,6 @@ body.fade-in {
 </div>
         <div id="cameraControl">
             <select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select>
-            <button id="manualOcrBtn" onclick="manualOCR()" style="
-                display:none;
-                margin: 8px auto 0;
-                padding: 10px 16px;
-                border: none;
-                border-radius: 10px;
-                background: var(--miniso-red);
-                color: #fff;
-                font-weight: 700;
-                cursor: pointer;
-                width: fit-content;
-            ">📸 Scan Angka</button>
         </div>
     </header>
 
@@ -262,7 +250,7 @@ let scanning = false, lastScroll = 0, timer;
 let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
 
 // Inisialisasi ZXing
-const codeReader = new ZXing.BrowserMultiFormatReader();
+// const codeReader = new ZXing.BrowserMultiFormatReader();
 
 function openLightbox(src) {
     if(!src || src.includes('placeholder')) return;
@@ -329,132 +317,84 @@ async function search() {
 document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
 // Variable global untuk OCR
-let ocrWorker = null;
-let frameCounter = 0;
-let isProcessingOCR = false;
-let lastOcrTime = 0;
+
 let lastDetectedCode = "";
 let lastDetectedAt = 0;
-let lastZxingSuccessAt = 0;
 
-const ZXING_GRACE_MS = 1200;
-const OCR_INTERVAL_MS = 650;
-
-async function initOcrWorker() {
-    if (ocrWorker) return ocrWorker;
-
-    ocrWorker = await Tesseract.createWorker('eng');
-
-    await ocrWorker.setParameters({
-        tessedit_char_whitelist: '0123456789',
-        tessedit_pageseg_mode: '7',
-        preserve_interword_spaces: '0',
-        user_defined_dpi: '300',
-        tessjs_create_hocr: '0',
-        tessjs_create_tsv: '0',
-        tessjs_create_box: '0'
-    });
-
-    return ocrWorker;
-}
-
-function captureFrame(videoElement) {
-    const canvas = document.createElement('canvas');
-    canvas.width = videoElement.videoWidth || 1;
-    canvas.height = videoElement.videoHeight || 1;
-
-    const ctx = canvas.getContext('2d', { alpha: false });
-    ctx.drawImage(videoElement, 0, 0);
-
-    return canvas;
-}
-
-function preprocessForDigits(sourceCanvas) {
-    const srcW = sourceCanvas.width || 1;
-    const srcH = sourceCanvas.height || 1;
-
-    const cropWidth = Math.max(1, Math.round(srcW * 0.9));
-    const cropHeight = Math.max(1, Math.round(srcH * 0.18));
-    const sx = Math.max(0, Math.round((srcW - cropWidth) / 2));
-    const sy = Math.max(0, Math.round((srcH - cropHeight) / 2 + srcH * 0.08));
-
-    const scale = 2;
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(cropWidth * scale));
-    canvas.height = Math.max(1, Math.round(cropHeight * scale));
-
-    const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: false });
-    ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(sourceCanvas, sx, sy, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
-
-    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const d = img.data;
-
-    const threshold = 165;
-    for (let i = 0; i < d.length; i += 4) {
-        const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-        const v = gray > threshold ? 255 : 0;
-        d[i] = v;
-        d[i + 1] = v;
-        d[i + 2] = v;
-        d[i + 3] = 255;
-    }
-
-    ctx.putImageData(img, 0, 0);
-    return canvas;
-}
-
-async function scanDigitsFromImage(canvasSource) {
-    const canvas = preprocessForDigits(canvasSource);
-    const worker = await initOcrWorker();
-
-    let result = await worker.recognize(canvas);
-    let code = (result?.data?.text || '').replace(/\D/g, '').trim();
-
-    if (code.length < 8) {
-        await worker.setParameters({ tessedit_pageseg_mode: '13' });
-        result = await worker.recognize(canvas);
-        code = (result?.data?.text || '').replace(/\D/g, '').trim();
-        await worker.setParameters({ tessedit_pageseg_mode: '7' });
-    }
-
-    return code;
-}
 
 // Tambahkan fungsi pembantu ini
- async function scanNative(video) {
+async function scanNative(video) {
     if (!('BarcodeDetector' in window)) return null;
-    const detector = new BarcodeDetector({ 
-        formats: ['code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e']
-    });
     try {
-       const barcodes = await detector.detect(video);
+        const detector = new BarcodeDetector({ 
+            formats: ['ean_13', 'ean_8', 'code_128', 'upc_a', 'upc_e']
+        });
+        const barcodes = await detector.detect(video);
         return barcodes.length > 0 ? barcodes[0].rawValue : null;
     } catch (e) {
-        return null;
-    }
- }
-
-async function manualOCR() {
-    const videoElement = document.getElementById('videoElement');
-    if (!videoElement || videoElement.readyState < videoElement.HAVE_ENOUGH_DATA) return;
-
-    try {
-        const captured = captureFrame(videoElement);
-        const code = await scanDigitsFromImage(captured);
-
-        if (code && code.length >= 8 && code.length <= 13) {
-            onDetected(code);
-        }
-    } catch (e) {
-        console.error('Manual OCR error:', e);
+        console.error("Native Detector Error:", e);
+        return null; // Pastikan tetap return null agar loop tidak mati
     }
 }
+
+
 
 async function startScan(deviceId = null) {
     scanning = true; 
+    const video = document.getElementById("videoElement"); // Tambahkan baris ini
     document.getElementById("reader").style.display = "block";
-    document.getElementById("manualOcrBtn").style.display = "block";
+
+    const constraints = {
+        video: {
+            deviceId: deviceId ? { exact: deviceId } : undefined,
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: "environment",
+            focusMode: { ideal: "continuous" }
+        }
+    };
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+        await video.play();
+
+        // Loop Pemindaian Murni Native
+        const scanLoop = async () => {
+    if (!scanning) return;
+
+    if (isProcessingScan) {
+        // Jika macet lebih dari 5 detik, paksa buka kunci (Self-Reset)
+        if (performance.now() - lastDetectedAt > 5000) {
+            isProcessingScan = false;
+        }
+        requestAnimationFrame(scanLoop);
+        return;
+    }
+
+    try {
+        const code = await scanNative(video);
+        if (code) {
+            lastDetectedAt = performance.now(); // Catat waktu deteksi terakhir
+            onDetected(code);
+        }
+    } catch (err) {
+        console.error("Loop Error:", err);
+    }
+
+    // PENTING: Selalu panggil frame berikutnya apapun yang terjadi
+    requestAnimationFrame(scanLoop);
+};
+        
+        scanLoop();
+
+    } catch (err) {
+        console.error("Gagal akses kamera:", err);
+        alert("Pastikan koneksi HTTPS aktif dan izin kamera diberikan.");
+    }
+}
+
+/*
     lastZxingSuccessAt = performance.now();
     
     // --- 1. Definisikan Hints (STRUKTUR ASLI ANDA) ---
@@ -469,7 +409,7 @@ async function startScan(deviceId = null) {
     hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
     
     // TRY_HARDER wajib aktif untuk mencari barcode miring/distorsi
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, true); 
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, false); 
     
     // CHARACTER_SET membantu pembacaan data yang lebih stabil
     hints.set(ZXing.DecodeHintType.CHARACTER_SET, 'utf-8');
@@ -480,20 +420,7 @@ async function startScan(deviceId = null) {
     hints.set(ZXing.DecodeHintType.ALSO_SUPPORT_CONVEX, true);
     
     // --- 2. Setting Constraints (STRUKTUR ASLI ANDA) ---
-    const constraints = {
-        video: {
-            deviceId: deviceId ? { exact: deviceId } : undefined,
-            width: { min: 1280, ideal: 1920 },
-            height: { min: 720, ideal: 1080 },
-            frameRate: { ideal: 30 },
-            facingMode: "environment",
-            // Mengunci aspect ratio 16:9 agar barcode tidak terdistorsi/gepeng saat miring
-            aspectRatio: { ideal: 1.7777777778 },
-            focusMode: { ideal: "continuous" },
-            whiteBalanceMode: { ideal: "continuous" }
-            
-        }
-    };
+
 
     try {
         const videoDevices = await codeReader.listVideoInputDevices();
@@ -528,73 +455,43 @@ async function startScan(deviceId = null) {
     advanced.exposureMode = 'continuous';
 }
         
+// ... (kode ZXing di atas tetap sama)
+
         if (Object.keys(advanced).length > 0) {
             await videoTrack.applyConstraints({ advanced: [advanced] });
         }
 
         // ==========================================
-        // TAMBAHAN LOGIKA HYBRID OCR (TIDAK MERUBAH ATAS)
+        // HYBRID SCANNER (Hanya Native & ZXing)
         // ==========================================
-        if (!ocrWorker) {
-            await initOcrWorker();
-        }
-        
-        const checkOCR = async () => {
-            if (!scanning) return;
+        let lastZxingTime = 0;
+const ZXING_INTERVAL = 1000; // Jalankan ZXing setiap 400ms saja
 
-            requestAnimationFrame(checkOCR);
+const checkHybrid = async () => {
+    if (!scanning) return;
 
-            const nativeCode = await scanNative(videoElement);
-            if (nativeCode) {
-                onDetected(nativeCode);
-                return; 
-            }
-
-            // OCR baru jalan kalau ZXing belum sukses dalam beberapa saat
-            if (performance.now() - lastZxingSuccessAt < ZXING_GRACE_MS) return;
-
-            if (isProcessingOCR) return;
-
-            frameCounter++;
-            const now = performance.now();
-
-            if (now - lastOcrTime < OCR_INTERVAL_MS) return;
-            if (frameCounter % 15 !== 0) return;
-            if (!videoElement || videoElement.readyState < videoElement.HAVE_ENOUGH_DATA) return;
-
-            isProcessingOCR = true;
-            lastOcrTime = now;
-
-            try {
-                const captured = captureFrame(videoElement);
-                const code = await scanDigitsFromImage(captured);
-
-                if (code.length >= 8 && code.length <= 13) {
-                    if (code === lastDetectedCode && (Date.now() - lastDetectedAt) < 2000) return;
-
-                    lastDetectedCode = code;
-                    lastDetectedAt = Date.now();
-                    onDetected(code);
-                }
-            } catch (e) {
-                console.error('OCR error:', e);
-            } finally {
-                isProcessingOCR = false;
-            }
-        };
-        
-        checkOCR();
-        // ==========================================
-
-    } catch (err) {
-        console.error("Gagal optimasi kamera:", err);
-        if(deviceId) { 
-            codeReader.reset(); 
-            startScan(null); 
-        }
+    // 1. Native API (Sangat Ringan, jalankan setiap frame)
+    const nativeCode = await scanNative(videoElement);
+    if (nativeCode) {
+        onDetected(nativeCode);
+        return;
     }
-}
 
+    // 2. ZXing (Berat, jalankan dengan interval)
+    const now = performance.now();
+    if (now - lastZxingTime > ZXING_INTERVAL) {
+        // Logika ZXing dijalankan di sini oleh BrowserMultiFormatReader
+        // Jika sudah menggunakan decodeFromConstraints, ZXing sebenarnya sudah punya loop internal.
+        lastZxingTime = now;
+    }
+
+    requestAnimationFrame(checkHybrid);
+};
+        
+        checkHybrid();
+
+*/
+    
 function updateCameraList(devices, currentId) {
     const source = document.getElementById("videoSource");
     const control = document.getElementById("cameraControl");
@@ -634,11 +531,13 @@ document.getElementById("reader").onclick = async () => {
 };
 
 function stopScan() { 
-    codeReader.reset(); 
     scanning = false; 
+    const video = document.getElementById("videoElement");
+    if (video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+    }
     document.getElementById("reader").style.display = "none"; 
-    document.getElementById("cameraControl").style.display = "none"; 
-    document.getElementById("manualOcrBtn").style.display = "none";
 }
 
 let isProcessingScan = false; // Tambahkan variabel pengunci
@@ -648,28 +547,30 @@ async function onDetected(code) {
     isProcessingScan = true;
 
     try {
-    const cachedData = getLocalCache(code);
-    if (cachedData) {
-        document.getElementById("beepOk").play(); 
-        stopScan(); 
-        document.getElementById("searchInput").blur(); 
-        document.getElementById("searchInput").value = code; 
-        showDetail(code);
-        return;
-    }
-
-    const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
-    if(data) { 
-        saveToLocalCache(code, data);
-        document.getElementById("beepOk").play(); 
-        stopScan(); 
-        document.getElementById("searchInput").blur(); 
-        document.getElementById("searchInput").value = code; 
-        showDetail(code);
-    }
-} finally {
-        // Lepaskan kunci setelah proses selesai (baik berhasil maupun gagal)
-        isProcessingScan = false;
+        const cachedData = getLocalCache(code);
+        if (cachedData) {
+            document.getElementById("beepOk").play(); 
+            showDetail(code);
+            // Jangan stopScan() di sini agar loop tetap jalan
+        } else {
+            const { data, error } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
+            
+            if (data) { 
+                saveToLocalCache(code, data);
+                document.getElementById("beepOk").play(); 
+                showDetail(code);
+            } else {
+                // Jika barcode tidak ada di DB, tampilkan log tapi buka kunci lagi
+                console.warn("Barcode tidak terdaftar:", code);
+            }
+        }
+    } catch (err) {
+        console.error("Detail Error:", err);
+    } finally {
+        // Buka kembali kunci setelah 1.5 detik
+        setTimeout(() => {
+            isProcessingScan = false;
+        }, 1500);
     }
 }
 

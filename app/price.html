@@ -250,8 +250,6 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let scanning = false, lastScroll = 0, timer;
 let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
 
-// Inisialisasi ZXing
-// const codeReader = new ZXing.BrowserMultiFormatReader();
 
 function openLightbox(src) {
     if(!src || src.includes('placeholder')) return;
@@ -360,9 +358,6 @@ async function startScan(deviceId = null) {
         video.srcObject = stream;
         await video.play();
 
-        // --- MULAI SCANNING HYBRID ---
-        
-        // 1. Jalankan ZXing di Background (Pasif)
         codeReader.decodeFromVideoElement(video, (result, err) => {
             if (result && scanning && !isProcessingScan) {
                 console.log("Detected by ZXing");
@@ -370,20 +365,17 @@ async function startScan(deviceId = null) {
             }
         });
 
-        // 2. Jalankan Native Scanner Loop (Aktif)
         const hybridLoop = async () => {
             if (!scanning) return;
 
             if (!isProcessingScan) {
                 try {
-                    // Coba Native API dahulu (Lebih cepat di Android)
                     const code = await scanNative(video);
                     if (code) {
                         console.log("Detected by Native");
                         onDetected(code);
                     }
                 } catch (err) {
-                    // Jika native tidak didukung (seperti di iOS), biarkan ZXing bekerja
                 }
             }
             requestAnimationFrame(hybridLoop);
@@ -395,7 +387,6 @@ async function startScan(deviceId = null) {
         console.error("Gagal akses kamera:", err);
     }
 }
-
 
     lastZxingSuccessAt = performance.now();
     

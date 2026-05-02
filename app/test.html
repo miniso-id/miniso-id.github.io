@@ -422,58 +422,31 @@ async function startScan(deviceId = null) {
     advanced.exposureMode = 'continuous';
 }
         
+// ... (kode ZXing di atas tetap sama)
+
         if (Object.keys(advanced).length > 0) {
             await videoTrack.applyConstraints({ advanced: [advanced] });
         }
 
         // ==========================================
-        // TAMBAHAN LOGIKA HYBRID OCR (TIDAK MERUBAH ATAS)
+        // HYBRID SCANNER (Hanya Native & ZXing)
         // ==========================================
-
         
-       
-
-            const nativeCode = await scanNative(videoElement);
+        const checkHybrid = async () => {
+            if (!scanning) return;
+            
+            // Cek menggunakan Barcode Detector API (Native) yang sangat cepat
+            const nativeCode = await scanNative(document.getElementById('videoElement'));
             if (nativeCode) {
                 onDetected(nativeCode);
                 return; 
             }
-
-            // OCR baru jalan kalau ZXing belum sukses dalam beberapa saat
-            if (performance.now() - lastZxingSuccessAt < ZXING_GRACE_MS) return;
-
-            if (isProcessingOCR) return;
-
-            frameCounter++;
-            const now = performance.now();
-
-            if (now - lastOcrTime < OCR_INTERVAL_MS) return;
-            if (frameCounter % 15 !== 0) return;
-            if (!videoElement || videoElement.readyState < videoElement.HAVE_ENOUGH_DATA) return;
-
-            isProcessingOCR = true;
-            lastOcrTime = now;
-
-            try {
-                const captured = captureFrame(videoElement);
-                const code = await scanDigitsFromImage(captured);
-
-                if (code.length >= 8 && code.length <= 13) {
-                    if (code === lastDetectedCode && (Date.now() - lastDetectedAt) < 2000) return;
-
-                    lastDetectedCode = code;
-                    lastDetectedAt = Date.now();
-                    onDetected(code);
-                }
-            } catch (e) {
-                console.error('OCR error:', e);
-            } finally {
-                isProcessingOCR = false;
-            }
+            
+            // Loop terus selama scanning aktif
+            requestAnimationFrame(checkHybrid);
         };
         
-        checkOCR();
-        // ==========================================
+        checkHybrid();
 
     } catch (err) {
         console.error("Gagal optimasi kamera:", err);
@@ -483,7 +456,7 @@ async function startScan(deviceId = null) {
         }
     }
 }
-
+    
 function updateCameraList(devices, currentId) {
     const source = document.getElementById("videoSource");
     const control = document.getElementById("cameraControl");

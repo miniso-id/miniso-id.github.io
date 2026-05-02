@@ -518,36 +518,54 @@ function stopScan() {
     document.getElementById("cameraControl").style.display = "none"; 
 }
 
-let isProcessingScan = false; // Tambahkan variabel pengunci
+let isProcessingScan = false;
+const failedBarcodes = new Map(); // Cooldown per barcode yang tidak ditemukan
+const FAILED_COOLDOWN = 5000; // Skip barcode gagal selama 5 detik
+const SUPABASE_TIMEOUT = 3000; // Maksimal tunggu Supabase 3 detik
+
+async function queryWithTimeout(code) {
+    return Promise.race([
+        _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), SUPABASE_TIMEOUT))
+    ]);
+}
 
 async function onDetected(code) {
+    // Cek cooldown — barcode ini baru saja gagal, skip dulu
+    const failedAt = failedBarcodes.get(code);
+    if (failedAt && (Date.now() - failedAt) < FAILED_COOLDOWN) return;
+
     if (isProcessingScan) return;
     isProcessingScan = true;
 
     try {
         const cachedData = getLocalCache(code);
         if (cachedData) {
-            document.getElementById("beepOk").play(); 
-            stopScan(); 
-            document.getElementById("searchInput").blur(); 
-            document.getElementById("searchInput").value = code; 
+            document.getElementById("beepOk").play();
+            stopScan();
+            document.getElementById("searchInput").blur();
+            document.getElementById("searchInput").value = code;
             showDetail(code);
             return;
         }
 
-        const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
-        if (data) { 
+        const { data } = await queryWithTimeout(code);
+        if (data) {
             saveToLocalCache(code, data);
-            document.getElementById("beepOk").play(); 
-            stopScan(); 
-            document.getElementById("searchInput").blur(); 
-            document.getElementById("searchInput").value = code; 
+            document.getElementById("beepOk").play();
+            stopScan();
+            document.getElementById("searchInput").blur();
+            document.getElementById("searchInput").value = code;
             showDetail(code);
+        } else {
+            // Tidak ditemukan — tandai cooldown agar tidak query ulang barcode sama
+            failedBarcodes.set(code, Date.now());
         }
-        // Jika data tidak ditemukan, isProcessingScan otomatis di-reset di finally
-        // sehingga scanner bisa langsung coba lagi
+    } catch (e) {
+        // Timeout atau error jaringan — langsung lepas lock, scanner lanjut
+        failedBarcodes.set(code, Date.now());
     } finally {
-        isProcessingScan = false;
+        isProcessingScan = false; // Lock selalu dilepas, scanner tidak bengong
     }
 }
 

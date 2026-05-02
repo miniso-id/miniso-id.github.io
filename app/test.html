@@ -341,35 +341,28 @@ async function scanNative(video) {
 
 
 
+// Hints & constraints dibuat SEKALI sebagai konstanta — tidak perlu rebuild tiap startScan
+const _hints = new Map();
+_hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+    ZXing.BarcodeFormat.EAN_13,
+    ZXing.BarcodeFormat.EAN_8,
+    ZXing.BarcodeFormat.CODE_128,
+    ZXing.BarcodeFormat.UPC_A,
+    ZXing.BarcodeFormat.UPC_E
+]);
+_hints.set(ZXing.DecodeHintType.TRY_HARDER, false);
+_hints.set(ZXing.DecodeHintType.CHARACTER_SET, 'utf-8');
+_hints.set(ZXing.DecodeHintType.PURE_BARCODE, false);
+_hints.set(ZXing.DecodeHintType.ASSUME_GS1, true);
+_hints.set(ZXing.DecodeHintType.ALSO_SUPPORT_CONVEX, true);
+codeReader.hints = _hints;
+
+let _cachedDevices = null; // Cache device list agar tidak query ulang tiap startScan
+
 async function startScan(deviceId = null) {
     scanning = true; 
     document.getElementById("reader").style.display = "block";
-    lastZxingSuccessAt = performance.now();
-    
-    // --- 1. Definisikan Hints (STRUKTUR ASLI ANDA) ---
-    const hints = new Map();
-    const formats = [
-        ZXing.BarcodeFormat.EAN_13,
-        ZXing.BarcodeFormat.EAN_8,
-        ZXing.BarcodeFormat.CODE_128,
-        ZXing.BarcodeFormat.UPC_A,
-        ZXing.BarcodeFormat.UPC_E
-    ];
-    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
-    
-    // TRY_HARDER wajib aktif untuk mencari barcode miring/distorsi
-    // TRY_HARDER: false karena Native sudah jadi scanner utama, ZXing cukup sebagai fallback ringan
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, false); 
-    
-    // CHARACTER_SET membantu pembacaan data yang lebih stabil
-    hints.set(ZXing.DecodeHintType.CHARACTER_SET, 'utf-8');
-    
-    // PURE_BARCODE false memberi tahu scanner bahwa ada background di sekitar barcode
-    hints.set(ZXing.DecodeHintType.PURE_BARCODE, false);
-    hints.set(ZXing.DecodeHintType.ASSUME_GS1, true);
-    hints.set(ZXing.DecodeHintType.ALSO_SUPPORT_CONVEX, true);
-    
-    // --- 2. Setting Constraints (STRUKTUR ASLI ANDA) ---
+
     const constraints = {
         video: {
             deviceId: deviceId ? { exact: deviceId } : undefined,
@@ -377,37 +370,27 @@ async function startScan(deviceId = null) {
             height: { ideal: 720 },
             frameRate: { ideal: 30 },
             facingMode: "environment",
-            // Mengunci aspect ratio 16:9 agar barcode tidak terdistorsi/gepeng saat miring
-            // aspectRatio: { ideal: 1.7777777778 },
             focusMode: { ideal: "continuous" },
             whiteBalanceMode: { ideal: "continuous" }
-            
         }
     };
 
     try {
-        const videoDevices = await codeReader.listVideoInputDevices();
-        const backCameras = videoDevices.filter(d => !d.label.toLowerCase().includes('front'));
-        let selectedId = deviceId || lastSelectedDeviceId || (backCameras.length > 0 ? backCameras[0].deviceId : videoDevices[0].deviceId);
+        // Gunakan cache device list jika sudah ada
+        if (!_cachedDevices) {
+            const videoDevices = await codeReader.listVideoInputDevices();
+            _cachedDevices = videoDevices.filter(d => !d.label.toLowerCase().includes('front'));
+        }
+        const backCameras = _cachedDevices;
+        let selectedId = deviceId || lastSelectedDeviceId || (backCameras.length > 0 ? backCameras[0].deviceId : null);
         
         updateCameraList(backCameras, selectedId);
-        codeReader.hints = hints;
 
-        // --- 3. Dekode Constraints (STRUKTUR ASLI ANDA) ---
-        // ==========================================
-        // HYBRID SCANNER: ZXing + Native BarcodeDetector
-        // ZXing: berjalan via loop internalnya sendiri (fallback)
-        // Native: berjalan via rAF loop terpisah (prioritas utama, lebih ringan)
-        // ==========================================
-
-        const useNative = 'BarcodeDetector' in window;
+        const useNative = !!nativeDetector;
 
         if (useNative) {
-            // Jika Native API tersedia: ZXing dipakai sebagai fallback diam (loop internal tetap jalan)
-            // tapi callback-nya dibuat throttle agar tidak bentrok
             let zxingThrottled = false;
             await codeReader.decodeFromConstraints(constraints, 'videoElement', (result, err) => {
-                // ZXing hanya aktif jika Native sedang tidak proses & throttle lewat
                 if (result && !isProcessingScan && !zxingThrottled) {
                     zxingThrottled = true;
                     setTimeout(() => { zxingThrottled = false; }, 1500);
@@ -415,61 +398,37 @@ async function startScan(deviceId = null) {
                 }
             });
         } else {
-            // Jika Native API TIDAK tersedia: ZXing jadi scanner utama penuh
             await codeReader.decodeFromConstraints(constraints, 'videoElement', (result, err) => {
-                if (result) {
-                    onDetected(result.text);
-                }
+                if (result) onDetected(result.text);
             });
         }
 
-        // 4. Maksimalkan Hardware Focus & Zoom
+        // Maksimalkan Hardware Focus & Exposure
         const videoTrack = document.getElementById('videoElement').srcObject.getVideoTracks()[0];
         const capabilities = videoTrack.getCapabilities();
         const advanced = {};
-        
-        if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
-            advanced.focusMode = 'continuous';
-        }
+        if (capabilities.focusMode?.includes('continuous')) advanced.focusMode = 'continuous';
+        if (capabilities.exposureMode?.includes('continuous')) advanced.exposureMode = 'continuous';
+        if (Object.keys(advanced).length > 0) await videoTrack.applyConstraints({ advanced: [advanced] });
 
-        if (capabilities.exposureMode && capabilities.exposureMode.includes('continuous')) {
-            advanced.exposureMode = 'continuous';
-        }
-        
-        if (Object.keys(advanced).length > 0) {
-            await videoTrack.applyConstraints({ advanced: [advanced] });
-        }
-
-        // Loop Native BarcodeDetector — hanya jalan jika tersedia
+        // Loop Native — pakai setTimeout bukan rAF agar tidak terikat 60fps
         if (useNative) {
-            const NATIVE_INTERVAL = 150; // ms antar scan Native — lebih agresif untuk respon cepat
-            let lastNativeTime = 0;
-
+            const NATIVE_INTERVAL = 100; // 100ms = 10 scan/detik, cukup agresif & ringan
             const checkNative = async () => {
                 if (!scanning) return;
-
-                const now = performance.now();
-                if (now - lastNativeTime >= NATIVE_INTERVAL) {
-                    lastNativeTime = now;
-                    const nativeCode = await scanNative(videoElement);
-                    if (nativeCode && !isProcessingScan) {
-                        onDetected(nativeCode);
-                        return; // Hentikan loop sementara, onDetected akan stopScan
-                    }
+                const nativeCode = await scanNative(videoElement);
+                if (nativeCode && !isProcessingScan) {
+                    onDetected(nativeCode);
+                    // Tidak return — loop tetap jalan agar siap barcode berikutnya
                 }
-
-                requestAnimationFrame(checkNative);
+                setTimeout(checkNative, NATIVE_INTERVAL);
             };
-
             checkNative();
         }
 
     } catch (err) {
-        console.error("Gagal optimasi kamera:", err);
-        if(deviceId) { 
-            codeReader.reset(); 
-            startScan(null); 
-        }
+        console.error("Gagal start scan:", err);
+        if (deviceId) { codeReader.reset(); startScan(null); }
     }
 }
     
@@ -489,7 +448,8 @@ function updateCameraList(devices, currentId) {
 
 document.getElementById("videoSource").onchange = (e) => { 
     lastSelectedDeviceId = e.target.value; 
-    localStorage.setItem('preferredCameraId', lastSelectedDeviceId); 
+    localStorage.setItem('preferredCameraId', lastSelectedDeviceId);
+    _cachedDevices = null; // Reset cache saat user ganti kamera manual
     stopScan(); 
     startScan(lastSelectedDeviceId); 
 };

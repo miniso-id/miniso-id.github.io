@@ -11,7 +11,6 @@
     
     
     <style>
-    /* <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script> */
         :root {
             --miniso-red: #e61523;
             --miniso-soft: #fff1f2;
@@ -190,18 +189,6 @@ body.fade-in {
 </div>
         <div id="cameraControl">
             <select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select>
-            <button id="manualOcrBtn" onclick="manualOCR()" style="
-                display:none;
-                margin: 8px auto 0;
-                padding: 10px 16px;
-                border: none;
-                border-radius: 10px;
-                background: var(--miniso-red);
-                color: #fff;
-                font-weight: 700;
-                cursor: pointer;
-                width: fit-content;
-            ">📸 Scan Angka</button>
         </div>
     </header>
 
@@ -330,97 +317,18 @@ async function search() {
 document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
 
 // Variable global untuk OCR
-let ocrWorker = null;
-let frameCounter = 0;
-let isProcessingOCR = false;
-let lastOcrTime = 0;
+
 let lastDetectedCode = "";
 let lastDetectedAt = 0;
 let lastZxingSuccessAt = 0;
 
 const ZXING_GRACE_MS = 1200;
-const OCR_INTERVAL_MS = 650;
 
-async function initOcrWorker() {
-    if (ocrWorker) return ocrWorker;
 
-    ocrWorker = await Tesseract.createWorker('eng');
 
-    await ocrWorker.setParameters({
-        tessedit_char_whitelist: '0123456789',
-        tessedit_pageseg_mode: '7',
-        preserve_interword_spaces: '0',
-        user_defined_dpi: '300',
-        tessjs_create_hocr: '0',
-        tessjs_create_tsv: '0',
-        tessjs_create_box: '0'
-    });
 
-    return ocrWorker;
-}
 
-function captureFrame(videoElement) {
-    const canvas = document.createElement('canvas');
-    canvas.width = videoElement.videoWidth || 1;
-    canvas.height = videoElement.videoHeight || 1;
 
-    const ctx = canvas.getContext('2d', { alpha: false });
-    ctx.drawImage(videoElement, 0, 0);
-
-    return canvas;
-}
-
-function preprocessForDigits(sourceCanvas) {
-    const srcW = sourceCanvas.width || 1;
-    const srcH = sourceCanvas.height || 1;
-
-    const cropWidth = Math.max(1, Math.round(srcW * 0.9));
-    const cropHeight = Math.max(1, Math.round(srcH * 0.18));
-    const sx = Math.max(0, Math.round((srcW - cropWidth) / 2));
-    const sy = Math.max(0, Math.round((srcH - cropHeight) / 2 + srcH * 0.08));
-
-    const scale = 2;
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(cropWidth * scale));
-    canvas.height = Math.max(1, Math.round(cropHeight * scale));
-
-    const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: false });
-    ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(sourceCanvas, sx, sy, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
-
-    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const d = img.data;
-
-    const threshold = 165;
-    for (let i = 0; i < d.length; i += 4) {
-        const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-        const v = gray > threshold ? 255 : 0;
-        d[i] = v;
-        d[i + 1] = v;
-        d[i + 2] = v;
-        d[i + 3] = 255;
-    }
-
-    ctx.putImageData(img, 0, 0);
-    return canvas;
-}
-
-async function scanDigitsFromImage(canvasSource) {
-    const canvas = preprocessForDigits(canvasSource);
-    const worker = await initOcrWorker();
-
-    let result = await worker.recognize(canvas);
-    let code = (result?.data?.text || '').replace(/\D/g, '').trim();
-
-    if (code.length < 8) {
-        await worker.setParameters({ tessedit_pageseg_mode: '13' });
-        result = await worker.recognize(canvas);
-        code = (result?.data?.text || '').replace(/\D/g, '').trim();
-        await worker.setParameters({ tessedit_pageseg_mode: '7' });
-    }
-
-    return code;
-}
 
 // Tambahkan fungsi pembantu ini
  async function scanNative(video) {
@@ -436,26 +344,11 @@ async function scanDigitsFromImage(canvasSource) {
     }
  }
 
-async function manualOCR() {
-    const videoElement = document.getElementById('videoElement');
-    if (!videoElement || videoElement.readyState < videoElement.HAVE_ENOUGH_DATA) return;
 
-    try {
-        const captured = captureFrame(videoElement);
-        const code = await scanDigitsFromImage(captured);
-
-        if (code && code.length >= 8 && code.length <= 13) {
-            onDetected(code);
-        }
-    } catch (e) {
-        console.error('Manual OCR error:', e);
-    }
-}
 
 async function startScan(deviceId = null) {
     scanning = true; 
     document.getElementById("reader").style.display = "block";
-    document.getElementById("manualOcrBtn").style.display = "block";
     lastZxingSuccessAt = performance.now();
     
     // --- 1. Definisikan Hints (STRUKTUR ASLI ANDA) ---
@@ -536,14 +429,9 @@ async function startScan(deviceId = null) {
         // ==========================================
         // TAMBAHAN LOGIKA HYBRID OCR (TIDAK MERUBAH ATAS)
         // ==========================================
-        if (!ocrWorker) {
-            await initOcrWorker();
-        }
-        
-        const checkOCR = async () => {
-            if (!scanning) return;
 
-            requestAnimationFrame(checkOCR);
+        
+       
 
             const nativeCode = await scanNative(videoElement);
             if (nativeCode) {
@@ -639,7 +527,6 @@ function stopScan() {
     scanning = false; 
     document.getElementById("reader").style.display = "none"; 
     document.getElementById("cameraControl").style.display = "none"; 
-    document.getElementById("manualOcrBtn").style.display = "none";
 }
 
 let isProcessingScan = false; // Tambahkan variabel pengunci

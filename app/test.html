@@ -324,18 +324,19 @@ let lastDetectedAt = 0;
 
 
 // Tambahkan fungsi pembantu ini
- async function scanNative(video) {
+async function scanNative(video) {
     if (!('BarcodeDetector' in window)) return null;
-    const detector = new BarcodeDetector({ 
-        formats: ['code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e']
-    });
     try {
-       const barcodes = await detector.detect(video);
+        const detector = new BarcodeDetector({ 
+            formats: ['ean_13', 'ean_8', 'code_128', 'upc_a', 'upc_e']
+        });
+        const barcodes = await detector.detect(video);
         return barcodes.length > 0 ? barcodes[0].rawValue : null;
     } catch (e) {
-        return null;
+        console.error("Native Detector Error:", e);
+        return null; // Pastikan tetap return null agar loop tidak mati
     }
- }
+}
 
 
 
@@ -361,15 +362,30 @@ async function startScan(deviceId = null) {
 
         // Loop Pemindaian Murni Native
         const scanLoop = async () => {
-            if (!scanning) return;
+    if (!scanning) return;
 
-            const code = await scanNative(video);
-            if (code) {
-                onDetected(code);
-                return; // Berhenti jika barcode terdeteksi
-            }
-            requestAnimationFrame(scanLoop);
-        };
+    if (isProcessingScan) {
+        // Jika macet lebih dari 5 detik, paksa buka kunci (Self-Reset)
+        if (performance.now() - lastDetectedAt > 5000) {
+            isProcessingScan = false;
+        }
+        requestAnimationFrame(scanLoop);
+        return;
+    }
+
+    try {
+        const code = await scanNative(video);
+        if (code) {
+            lastDetectedAt = performance.now(); // Catat waktu deteksi terakhir
+            onDetected(code);
+        }
+    } catch (err) {
+        console.error("Loop Error:", err);
+    }
+
+    // PENTING: Selalu panggil frame berikutnya apapun yang terjadi
+    requestAnimationFrame(scanLoop);
+};
         
         scanLoop();
 
@@ -532,28 +548,30 @@ async function onDetected(code) {
     isProcessingScan = true;
 
     try {
-    const cachedData = getLocalCache(code);
-    if (cachedData) {
-        document.getElementById("beepOk").play(); 
-        stopScan(); 
-        document.getElementById("searchInput").blur(); 
-        document.getElementById("searchInput").value = code; 
-        showDetail(code);
-        return;
-    }
-
-    const { data } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
-    if(data) { 
-        saveToLocalCache(code, data);
-        document.getElementById("beepOk").play(); 
-        stopScan(); 
-        document.getElementById("searchInput").blur(); 
-        document.getElementById("searchInput").value = code; 
-        showDetail(code);
-    }
-} finally {
-        // Lepaskan kunci setelah proses selesai (baik berhasil maupun gagal)
-        isProcessingScan = false;
+        const cachedData = getLocalCache(code);
+        if (cachedData) {
+            document.getElementById("beepOk").play(); 
+            showDetail(code);
+            // Jangan stopScan() di sini agar loop tetap jalan
+        } else {
+            const { data, error } = await _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle();
+            
+            if (data) { 
+                saveToLocalCache(code, data);
+                document.getElementById("beepOk").play(); 
+                showDetail(code);
+            } else {
+                // Jika barcode tidak ada di DB, tampilkan log tapi buka kunci lagi
+                console.warn("Barcode tidak terdaftar:", code);
+            }
+        }
+    } catch (err) {
+        console.error("Detail Error:", err);
+    } finally {
+        // Buka kembali kunci setelah 1.5 detik
+        setTimeout(() => {
+            isProcessingScan = false;
+        }, 1500);
     }
 }
 

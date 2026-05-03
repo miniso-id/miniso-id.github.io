@@ -395,7 +395,7 @@ body.fade-in {
     <!-- Bottom buttons -->
     <div class="scanner-btns">
         <button class="scanner-btn-primary" onclick="promptManualEntry()">Input Barcode Manually</button>
-        <button class="scanner-btn-secondary" onclick="window.location.href='https://miniso-id.github.io/app/product.html'">Product List Search</button>
+        <button class="scanner-btn-secondary" onclick="navigateToProductList()">Product List Search</button>
     </div>
 </div>
 
@@ -421,9 +421,47 @@ function getLocalCache(barcode) {
     return cacheEntry.payload;
 }
 
+// ── AUTH GUARD ──────────────────────────────────────────────────────────────
+// Role yang diizinkan mengakses halaman ini (selain staff)
+const ALLOWED_ROLES = ['Administrator', 'Area'];
+
+async function checkAuthAndRole() {
+    const { data: { session }, error } = await _supabase.auth.getSession();
+
+    if (error || !session) {
+        // Tidak ada sesi → redirect ke login
+        window.location.href = 'https://miniso-id.github.io/app/?app=mmsx';
+        return false;
+    }
+
+    const role = session.user?.user_metadata?.role || 
+                 session.user?.app_metadata?.role || 
+                 '';
+
+    if (!ALLOWED_ROLES.includes(role)) {
+        // Role tidak diizinkan (misal: staff) → redirect ke home
+        alert('Akses ditolak. Halaman ini hanya untuk Administrator / Area.');
+        window.location.href = 'https://miniso-id.github.io/app/?app=mmsx';
+        return false;
+    }
+
+    return true;
+}
+
+// Navigasi ke Product List hanya jika role diizinkan
+async function navigateToProductList() {
+    const allowed = await checkAuthAndRole();
+    if (allowed) {
+        window.location.href = 'https://miniso-id.github.io/app/product.html';
+    }
+}
+
 // Jalankan saat halaman dimuat
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     document.body.classList.add("fade-in");
+
+    // Guard: cek auth & role sebelum halaman bisa digunakan
+    await checkAuthAndRole();
 });
 
 function navigateTo(url) {

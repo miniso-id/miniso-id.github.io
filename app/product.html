@@ -169,7 +169,41 @@ body.fade-in {
         #lightbox img { max-width: 95%; max-height: 85vh; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(0.8) translateY(20px); transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
         #lightbox.active img { transform: scale(1) translateY(0); }
 
-        .floating-back { position: fixed; top: calc(25px + env(safe-area-inset-top)); left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 9999; cursor: pointer; border: 1px solid #eee; }
+        /* ── UNIFIED BACK BUTTON ── */
+        .floating-back {
+            position: fixed;
+            top: calc(20px + env(safe-area-inset-top));
+            left: 16px;
+            width: 44px; height: 44px;
+            background: white;
+            border-radius: 12px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            z-index: 9999;
+            cursor: pointer;
+            border: 1px solid rgba(0,0,0,0.06);
+        }
+        .floating-back:active { opacity: 0.7; transform: scale(0.95); }
+
+        /* Back button di login overlay */
+        .login-back-btn {
+            position: absolute;
+            top: calc(env(safe-area-inset-top) + 16px);
+            left: 16px;
+            width: 44px; height: 44px;
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            cursor: pointer;
+            border: 1px solid rgba(0,0,0,0.06);
+            z-index: 20001;
+        }
+        .login-back-btn:active { opacity: 0.7; transform: scale(0.95); }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes spin {
     0% { transform: rotate(0deg); }
@@ -184,6 +218,9 @@ body.fade-in {
 </div>
 
 <div id="loginOverlay">
+    <button class="login-back-btn" onclick="window.location.href='https://miniso-id.github.io/app/?app=mmsx'" title="Back to Home">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </button>
     <div class="login-box">
         <h2>MMS-X</h2>
         <p>Silakan masuk ke akun Anda</p>

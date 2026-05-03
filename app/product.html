@@ -499,8 +499,6 @@ if(localStorage.getItem('mms_auth') === 'true') {
         // AUTO-DIRECT untuk 13 digit barcode
         if (q.length === 13 && /^\d+$/.test(q)) {
             showDetail(q);
-            document.getElementById("searchInput").value = "";
-            document.getElementById("searchInput").blur();
             list.innerHTML = "";
             return;
         }
@@ -874,7 +872,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
 
     async function queryWithTimeout(code) {
         return Promise.race([
-            _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle(),
+            _supabase.from('export').select('*').eq('Barcode', code).maybeSingle(),
             new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), SUPABASE_TIMEOUT))
         ]);
     }

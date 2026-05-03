@@ -90,24 +90,171 @@ body.fade-in {
         #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
         #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
-        #reader { 
-            display:none; width:100%; max-width:340px; aspect-ratio:1/1; 
-            margin:15px auto; background:#000; border-radius:20px; 
-            overflow:hidden; position:relative; border: 4px solid white; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
+        /* ── SCANNER OVERLAY FULLSCREEN ── */
+        #scannerOverlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #0f0f0f;
+            z-index: 8000;
+            flex-direction: column;
+            align-items: center;
         }
-        /* Cari bagian ini di dalam tag <style> */
-#reader video { 
-    width: 100%; 
-    height: 100%; 
-    object-fit: cover;
-}
-        /*
-        .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
-        */
-        .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; transition: all 0.3s ease; }
-        .tap-hint.warn { color: #FFD600; font-size: 12px; }
-        #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
+        #scannerOverlay.active { display: flex; }
+
+        /* Top bar scanner */
+        .scanner-topbar {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: calc(env(safe-area-inset-top) + 16px) 20px 16px;
+            flex-shrink: 0;
+        }
+        .scanner-back-btn {
+            position: absolute;
+            left: 20px;
+            top: calc(env(safe-area-inset-top) + 12px);
+            width: 40px; height: 40px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+        }
+        .scanner-back-btn:active { opacity: 0.6; }
+        .scanner-topbar-title {
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        /* Instruction text */
+        .scanner-instruction {
+            color: rgba(255,255,255,0.55);
+            font-size: 13px;
+            text-align: center;
+            line-height: 1.6;
+            padding: 0 32px;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+
+        /* Viewfinder */
+        #reader {
+            width: calc(100% - 48px);
+            max-width: 340px;
+            aspect-ratio: 16/9;
+            position: relative;
+            background: #000;
+            flex-shrink: 0;
+        }
+        #reader video { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+        /* Corner brackets — putih dengan aksen merah Miniso */
+        .vf-corner {
+            position: absolute;
+            width: 24px; height: 24px;
+            z-index: 3; pointer-events: none;
+        }
+        .vf-corner.tl { top: -1px; left: -1px; border-top: 3px solid var(--miniso-red); border-left: 3px solid var(--miniso-red); border-radius: 3px 0 0 0; }
+        .vf-corner.tr { top: -1px; right: -1px; border-top: 3px solid var(--miniso-red); border-right: 3px solid var(--miniso-red); border-radius: 0 3px 0 0; }
+        .vf-corner.bl { bottom: -1px; left: -1px; border-bottom: 3px solid var(--miniso-red); border-left: 3px solid var(--miniso-red); border-radius: 0 0 0 3px; }
+        .vf-corner.br { bottom: -1px; right: -1px; border-bottom: 3px solid var(--miniso-red); border-right: 3px solid var(--miniso-red); border-radius: 0 0 3px 0; }
+        /* Sisi tipis putih */
+        .vf-side {
+            position: absolute;
+            background: rgba(255,255,255,0.25);
+            z-index: 2; pointer-events: none;
+        }
+        .vf-side.top    { top: 0; left: 24px; right: 24px; height: 1px; }
+        .vf-side.bottom { bottom: 0; left: 24px; right: 24px; height: 1px; }
+        .vf-side.left   { left: 0; top: 24px; bottom: 24px; width: 1px; }
+        .vf-side.right  { right: 0; top: 24px; bottom: 24px; width: 1px; }
+
+        /* Scan line merah */
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 4px; right: 4px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent 0%, var(--miniso-red) 30%, rgba(230,21,35,0.9) 50%, var(--miniso-red) 70%, transparent 100%);
+            box-shadow: 0 0 8px rgba(230,21,35,0.6);
+            will-change: transform;
+            transform: translateY(0);
+            animation: scanMove 2s ease-in-out infinite;
+            z-index: 3;
+        }
+        @keyframes scanMove {
+            0%   { transform: translateY(0px); opacity: 0; }
+            8%   { opacity: 1; }
+            92%  { opacity: 1; }
+            100% { transform: translateY(calc(var(--vf-h, 191px) - 4px)); opacity: 0; }
+        }
+
+        /* Tap hint */
+        .tap-hint {
+            margin-top: 10px;
+            color: rgba(255,255,255,0.35);
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.8px;
+            text-align: center;
+            text-transform: uppercase;
+            transition: color 0.3s;
+            flex-shrink: 0;
+        }
+        .tap-hint.warn { color: #FFD600; }
+
+        /* Camera selector */
+        #cameraControl { display:none; text-align:center; margin-top: 8px; width: 100%; flex-shrink: 0; }
+        #cameraControl select {
+            padding: 8px 14px; width: calc(100% - 48px); max-width: 340px;
+            border-radius: 10px; background: #1e1e1e; color: white;
+            border: 1px solid rgba(255,255,255,0.15); font-size: 13px;
+        }
+
+        /* Spacer */
+        .scanner-spacer { flex: 1; }
+
+        /* Bottom buttons */
+        .scanner-btns {
+            width: 100%;
+            padding: 0 24px calc(env(safe-area-inset-bottom) + 28px);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .scanner-btn-primary {
+            width: 100%;
+            padding: 16px;
+            border-radius: 14px;
+            border: none;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            background: var(--miniso-red);
+            color: white;
+            letter-spacing: 0.2px;
+        }
+        .scanner-btn-secondary {
+            width: 100%;
+            padding: 15px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.15);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            background: rgba(255,255,255,0.07);
+            color: rgba(255,255,255,0.85);
+        }
+        .scanner-btn-primary:active { opacity: 0.85; }
+        .scanner-btn-secondary:active { opacity: 0.7; }
+
+        .tap-hint { position: relative; bottom: auto; width: auto; text-shadow: none; }
 
         .main-content { flex: 1; overflow-y: auto; overflow-x: hidden; width: 100%; padding: 0 16px; }
         #listContainer { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 16px 0 80px 0; width: 100%; }
@@ -146,7 +293,23 @@ body.fade-in {
         #lightbox img { max-width: 95%; max-height: 85vh; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(0.8) translateY(20px); transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
         #lightbox.active img { transform: scale(1) translateY(0); }
 
-        .floating-back { position: fixed; top: calc(25px + env(safe-area-inset-top)); left: 20px; width: 45px; height: 45px; background: #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 9999; cursor: pointer; border: 1px solid #eee; }
+        /* ── UNIFIED BACK BUTTON ── */
+        .floating-back {
+            position: fixed;
+            top: calc(20px + env(safe-area-inset-top));
+            left: 16px;
+            width: 44px; height: 44px;
+            background: white;
+            border-radius: 12px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            z-index: 9999;
+            cursor: pointer;
+            border: 1px solid rgba(0,0,0,0.06);
+        }
+        .floating-back:active { opacity: 0.7; transform: scale(0.95); }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
@@ -183,21 +346,57 @@ body.fade-in {
                 </button>
             </div>
         </div>
-        <div id="reader">
-    <video id="videoElement"></video>
-    <canvas id="cropCanvas" style="display:none;"></canvas>
-    <div class="focus-guide"></div>
-    <div class="tap-hint">ARAHKAN BARCODE KE TENGAH KOTAK</div>
-</div>
-        <div id="cameraControl">
-            <select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select>
-        </div>
     </header>
 
     <main class="main-content" id="scrollContainer">
         <div id="listContainer"></div>
         <div id="detailContainer"></div>
     </main>
+</div>
+
+<!-- ═══ FULLSCREEN SCANNER OVERLAY ═══ -->
+<div id="scannerOverlay">
+    <!-- Top bar -->
+    <div class="scanner-topbar">
+        <button class="scanner-back-btn" onclick="window.location.href='https://miniso-id.github.io/app/?app=mmsx'">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <span class="scanner-topbar-title">Scan Barcode</span>
+    </div>
+
+    <!-- Instruction -->
+    <p class="scanner-instruction">Arahkan barcode ke dalam kotak,<br>scan akan berjalan otomatis</p>
+
+    <!-- Viewfinder -->
+    <div id="reader" onclick="triggerFocus()">
+        <video id="videoElement"></video>
+        <canvas id="cropCanvas" style="display:none;"></canvas>
+        <div class="vf-corner tl"></div>
+        <div class="vf-corner tr"></div>
+        <div class="vf-corner bl"></div>
+        <div class="vf-corner br"></div>
+        <div class="vf-side top"></div>
+        <div class="vf-side bottom"></div>
+        <div class="vf-side left"></div>
+        <div class="vf-side right"></div>
+        <div class="scan-line"></div>
+    </div>
+
+    <!-- Tap hint -->
+    <p class="tap-hint">TAP TO FOCUS</p>
+
+    <!-- Camera selector -->
+    <div id="cameraControl">
+        <select id="videoSource"></select>
+    </div>
+
+    <div class="scanner-spacer"></div>
+
+    <!-- Bottom buttons -->
+    <div class="scanner-btns">
+        <button class="scanner-btn-primary" onclick="promptManualEntry()">Input Barcode Manually</button>
+        <button class="scanner-btn-secondary" onclick="window.location.href='https://miniso-id.github.io/app/product.html'">Product List Search</button>
+    </div>
 </div>
 
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
@@ -620,11 +819,11 @@ let _cachedDevices = null; // Cache device list agar tidak query ulang tiap star
 
 async function startScan(deviceId = null) {
     scanning = true; 
-    document.getElementById("reader").style.display = "block";
+    document.getElementById("scannerOverlay").classList.add("active");
 
     // Reset hint ke default
     const tapHint = document.querySelector('.tap-hint');
-    const HINT_DEFAULT = 'POINT BARCODE HERE • TAP TO FOCUS';
+    const HINT_DEFAULT = 'TAP TO FOCUS';
     const HINTS_STRUGGLE = [
         'Try a flatter side of the package',
         'Avoid curved edges',
@@ -641,7 +840,7 @@ async function startScan(deviceId = null) {
     }
 
     function startStruggleHints() {
-        if (hintTimer) return; // Sudah jalan
+        if (hintTimer) return;
         hintIndex = 0;
         hintTimer = setInterval(() => {
             if (!scanning) { clearInterval(hintTimer); return; }
@@ -650,7 +849,7 @@ async function startScan(deviceId = null) {
                 tapHint.classList.add('warn');
             }
             hintIndex++;
-        }, 2500); // Ganti hint tiap 2.5 detik
+        }, 2500);
     }
 
     // Mulai hint struggle setelah 4 detik tidak terbaca
@@ -666,8 +865,8 @@ async function startScan(deviceId = null) {
     const constraints = {
         video: {
             deviceId: deviceId ? { exact: deviceId } : undefined,
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
             frameRate: { ideal: 30 },
             facingMode: "environment",
             focusMode: { ideal: "continuous" },
@@ -711,43 +910,79 @@ async function startScan(deviceId = null) {
         if (capabilities.exposureMode?.includes('continuous')) advanced.exposureMode = 'continuous';
         if (Object.keys(advanced).length > 0) await videoTrack.applyConstraints({ advanced: [advanced] });
 
-        // Loop Native — pakai setTimeout bukan rAF agar tidak terikat 60fps
+        // Loop Native CEPAT — hanya Layer 1 direct dari video (100ms)
+        // Ini yang handle 95% barcode normal dengan cepat
         if (useNative) {
-            const NATIVE_INTERVAL = 100;
-            const checkNative = async () => {
+            const FAST_INTERVAL = 100;
+            const HARD_INTERVAL = 600; // Layer berat jauh lebih jarang
+            let hardLoopRunning = false;
+
+            const checkNativeFast = async () => {
                 if (!scanning) return;
 
-                // Layer 1: Native langsung dari video (tercepat)
-                const nativeCode = await scanNative(videoElement);
+                // Layer 1: Native langsung dari video — paling cepat, tanpa preprocessing
+                const nativeCode = await nativeDetector.detect(videoElement).then(b => b.length > 0 ? b[0].rawValue : null).catch(() => null);
                 if (nativeCode && !isProcessingScan) {
                     onDetected(nativeCode);
-                    setTimeout(checkNative, NATIVE_INTERVAL);
-                    return;
                 }
 
-                // Layer 2: ZXing TRY_HARDER dari canvas preprocessed (untuk barcode sulit)
-                if (!isProcessingScan) {
-                    const hardCode = await scanZxingHard(videoElement);
-                    if (hardCode && !isProcessingScan) {
-                        onDetected(hardCode);
+                setTimeout(checkNativeFast, FAST_INTERVAL);
+            };
+
+            // Loop berat — hanya jalan jika barcode belum terbaca dalam 2 detik
+            let lastDetectedTime = Date.now();
+            const origOnDetected = onDetected;
+            const _wrappedOnDetected = async (code) => {
+                lastDetectedTime = Date.now();
+                return origOnDetected(code);
+            };
+
+            const checkHeavy = async () => {
+                if (!scanning) return;
+
+                // Hanya jalankan layer berat jika sudah >2 detik tidak terbaca
+                const timeSinceLast = Date.now() - lastDetectedTime;
+                if (!isProcessingScan && timeSinceLast > 2000) {
+                    // Layer 2: Native dari frame preprocessed
+                    const processed = preprocessFrame(videoElement, 1.5);
+                    if (processed) {
+                        const r = await nativeDetector.detect(processed).catch(() => []);
+                        if (r.length > 0 && !isProcessingScan) { onDetected(r[0].rawValue); }
+                    }
+
+                    // Layer 3: ZXing TRY_HARDER dari preprocessed (tanpa Sobel)
+                    if (!isProcessingScan) {
+                        try {
+                            const lum = new ZXing.HTMLCanvasElementLuminanceSource(processed || _canvas);
+                            const result = codeReaderHard.decodeBitmap(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum)));
+                            if (result && !isProcessingScan) onDetected(result.text);
+                        } catch(e) {}
                     }
                 }
 
-                setTimeout(checkNative, NATIVE_INTERVAL);
+                setTimeout(checkHeavy, HARD_INTERVAL);
             };
-            checkNative();
+
+            checkNativeFast();
+            setTimeout(checkHeavy, 2000); // Hard loop baru mulai setelah 2 detik
         } else {
-            // Tanpa Native: ZXing loop internal + ZXing Hard sebagai lapisan kedua
-            const HARD_INTERVAL = 200;
-            const checkHard = async () => {
+            // Tanpa Native: ZXing loop internal sudah cukup
+            // Tambah ZXing preprocessed ringan sebagai bantuan
+            const checkZxing = async () => {
                 if (!scanning) return;
                 if (!isProcessingScan) {
-                    const hardCode = await scanZxingHard(videoElement);
-                    if (hardCode && !isProcessingScan) onDetected(hardCode);
+                    try {
+                        const processed = preprocessFrame(videoElement, 1.5);
+                        if (processed) {
+                            const lum = new ZXing.HTMLCanvasElementLuminanceSource(processed);
+                            const result = codeReaderHard.decodeBitmap(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum)));
+                            if (result) onDetected(result.text);
+                        }
+                    } catch(e) {}
                 }
-                setTimeout(checkHard, HARD_INTERVAL);
+                setTimeout(checkZxing, 400);
             };
-            checkHard();
+            checkZxing();
         }
 
     } catch (err) {
@@ -778,32 +1013,44 @@ document.getElementById("videoSource").onchange = (e) => {
     startScan(lastSelectedDeviceId); 
 };
 
-document.getElementById("reader").onclick = async () => {
+function triggerFocus() {
     const videoTrack = document.getElementById('videoElement').srcObject?.getVideoTracks()[0];
     if (videoTrack) {
-        try {
-            const capabilities = videoTrack.getCapabilities();
-            if (capabilities.focusMode) {
-                await videoTrack.applyConstraints({
-                    advanced: [{ focusMode: 'continuous' }]
-                });
-                console.log("Fokus dipicu ulang");
-            }
-        } catch (e) {
-            console.warn("Fokus manual tidak didukung pada perangkat ini.");
-        }
+        try { videoTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch(e) {}
     }
-};
+}
+
+// Set tinggi viewfinder ke CSS variable agar animasi scan line akurat
+function updateScanLineHeight() {
+    const reader = document.getElementById('reader');
+    if (reader) {
+        reader.style.setProperty('--vf-h', reader.offsetHeight + 'px');
+    }
+}
+window.addEventListener('resize', updateScanLineHeight);
+document.addEventListener('DOMContentLoaded', updateScanLineHeight);
+setTimeout(updateScanLineHeight, 300);
 
 function stopScan() { 
     codeReader.reset(); 
     scanning = false; 
-    document.getElementById("reader").style.display = "none"; 
+    document.getElementById("scannerOverlay").classList.remove("active");
     document.getElementById("cameraControl").style.display = "none";
-    // Reset hint state
     const tapHint = document.querySelector('.tap-hint');
-    if (tapHint) { tapHint.textContent = 'POINT BARCODE HERE • TAP TO FOCUS'; tapHint.classList.remove('warn'); }
+    if (tapHint) { tapHint.textContent = 'TAP TO FOCUS'; tapHint.classList.remove('warn'); }
     if (window._resetScanHint) window._resetScanHint();
+}
+
+function promptManualEntry() {
+    stopScan();
+    // Tampilkan header & fokus ke searchInput agar user bisa langsung ketik
+    document.getElementById("ui-header").style.display = "block";
+    document.getElementById("listContainer").style.display = "grid";
+    setTimeout(() => {
+        const inp = document.getElementById("searchInput");
+        inp.focus();
+        inp.placeholder = "Type barcode digits...";
+    }, 100);
 }
 
 let isProcessingScan = false;
@@ -813,7 +1060,7 @@ const SUPABASE_TIMEOUT = 3000;
 
 async function queryWithTimeout(code) {
     return Promise.race([
-        _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle(),
+        _supabase.from('export').select('*').eq('Barcode', code).maybeSingle(),
         new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), SUPABASE_TIMEOUT))
     ]);
 }

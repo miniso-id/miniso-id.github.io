@@ -1060,7 +1060,7 @@ const SUPABASE_TIMEOUT = 3000;
 
 async function queryWithTimeout(code) {
     return Promise.race([
-        _supabase.from('export').select('*').ilike('Barcode', `%${code}%`).maybeSingle(),
+        _supabase.from('export').select('*').eq('Barcode', code).maybeSingle(),
         new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), SUPABASE_TIMEOUT))
     ]);
 }

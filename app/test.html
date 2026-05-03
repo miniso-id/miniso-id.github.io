@@ -90,36 +90,109 @@ body.fade-in {
         #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
         #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
-        #reader { 
-            display:none; width:100%; max-width:340px; aspect-ratio:1/1; 
-            margin:15px auto; background:#000; border-radius:20px; 
-            overflow:hidden; position:relative; border: 4px solid white; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
-        }
-#reader video { 
-    width: 100%; 
-    height: 100%; 
-    object-fit: cover;
-}
-        /*
-        .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
-        */
-        .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; transition: all 0.3s ease; }
-        .tap-hint.warn { color: #FFD600; font-size: 12px; }
-        #manualBtn {
+        /* FULLSCREEN SCANNER OVERLAY */
+        #scannerOverlay {
             display: none;
-            margin: 8px auto 0 auto;
-            padding: 8px 20px;
-            background: var(--miniso-red);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            width: fit-content;
+            position: fixed;
+            inset: 0;
+            background: #1a1a1a;
+            z-index: 8000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: calc(env(safe-area-inset-top) + 20px) 24px calc(env(safe-area-inset-bottom) + 30px);
         }
-        #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
+        #scannerOverlay.active { display: flex; }
+
+        .scanner-top {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+        .scanner-title {
+            color: white;
+            font-size: 15px;
+            font-weight: 500;
+            text-align: center;
+            line-height: 1.5;
+            opacity: 0.9;
+        }
+
+        /* Viewfinder box */
+        #reader {
+            width: 100%;
+            max-width: 360px;
+            aspect-ratio: 16/9;
+            position: relative;
+            background: #000;
+        }
+        #reader video {
+            width: 100%; height: 100%; object-fit: cover;
+        }
+        /* Corner brackets */
+        .vf-corner {
+            position: absolute;
+            width: 28px; height: 28px;
+            border-color: white;
+            border-style: solid;
+            z-index: 2;
+        }
+        .vf-corner.tl { top: 0; left: 0; border-width: 3px 0 0 3px; }
+        .vf-corner.tr { top: 0; right: 0; border-width: 3px 3px 0 0; }
+        .vf-corner.bl { bottom: 0; left: 0; border-width: 0 0 3px 3px; }
+        .vf-corner.br { bottom: 0; right: 0; border-width: 0 3px 3px 0; }
+        /* Scan line animation */
+        .scan-line {
+            position: absolute;
+            left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+            animation: scanMove 2s linear infinite;
+            z-index: 2;
+        }
+        @keyframes scanMove {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        .tap-hint {
+            position: absolute;
+            bottom: 8px; width: 100%;
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+            font-size: 10px; font-weight: 600;
+            letter-spacing: 0.5px;
+            z-index: 3;
+            transition: all 0.3s ease;
+        }
+        .tap-hint.warn { color: #FFD600; }
+
+        #cameraControl { display:none; text-align:center; margin-top: 8px; width: 100%; }
+        #cameraControl select { padding: 8px; width: 100%; max-width: 300px; border-radius: 8px; background: #2a2a2a; color: white; border: 1px solid #444; }
+
+        /* Bottom buttons */
+        .scanner-btns {
+            width: 100%;
+            max-width: 360px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .scanner-btn {
+            width: 100%;
+            padding: 16px;
+            border-radius: 50px;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            background: #3a3a3a;
+            color: white;
+            letter-spacing: 0.2px;
+        }
+        .scanner-btn:active { opacity: 0.8; }
 
         .main-content { flex: 1; overflow-y: auto; overflow-x: hidden; width: 100%; padding: 0 16px; }
         #listContainer { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 16px 0 80px 0; width: 100%; }
@@ -195,21 +268,36 @@ body.fade-in {
                 </button>
             </div>
         </div>
-        <div id="reader">
-    <video id="videoElement"></video>
-    <canvas id="cropCanvas" style="display:none;"></canvas>
-    <div class="tap-hint">POINT BARCODE HERE • TAP TO FOCUS</div>
-</div>
-        <button id="manualBtn" onclick="promptManualEntry()">Enter digits manually</button>
-        <div id="cameraControl">
-            <select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select>
-        </div>
     </header>
 
     <main class="main-content" id="scrollContainer">
         <div id="listContainer"></div>
         <div id="detailContainer"></div>
     </main>
+</div>
+
+<!-- FULLSCREEN SCANNER OVERLAY -->
+<div id="scannerOverlay">
+    <div class="scanner-top">
+        <p class="scanner-title">Please put the barcode in the box area,<br>automatic scan will start</p>
+        <div id="reader">
+            <video id="videoElement"></video>
+            <canvas id="cropCanvas" style="display:none;"></canvas>
+            <div class="vf-corner tl"></div>
+            <div class="vf-corner tr"></div>
+            <div class="vf-corner bl"></div>
+            <div class="vf-corner br"></div>
+            <div class="scan-line"></div>
+            <div class="tap-hint">TAP TO FOCUS</div>
+        </div>
+        <div id="cameraControl">
+            <select id="videoSource"></select>
+        </div>
+    </div>
+    <div class="scanner-btns">
+        <button class="scanner-btn" onclick="promptManualEntry()">Input barcode manually</button>
+        <button class="scanner-btn" onclick="window.location.href='https://miniso-id.github.io/app/product.html'">product list search</button>
+    </div>
 </div>
 
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
@@ -543,19 +631,20 @@ async function scanNative(video) {
     }
 }
 
-// Crop zona angka — posisi disesuaikan dengan kotak digit-zone (62%-88% vertikal, 10%-90% horizontal)
+// Crop zona angka di bawah barcode — area sepertiga bawah frame, zoom 2x, kontras tinggi
 function scanDigitArea(video) {
     const vw = video.videoWidth;
     const vh = video.videoHeight;
     if (!vw || !vh) return null;
 
-    const cropX = Math.floor(vw * 0.10);
-    const cropY = Math.floor(vh * 0.62);
-    const cropW = Math.floor(vw * 0.80);
-    const cropH = Math.floor(vh * 0.26); // 62% sampai 88%
+    // Ambil sepertiga bawah dari tengah frame (zona angka barcode)
+    const cropW = Math.floor(vw / 1.5);
+    const cropH = Math.floor(vh / 4);         // Hanya sepertiga bawah
+    const cropX = Math.floor((vw - cropW) / 2);
+    const cropY = Math.floor(vh / 2);          // Mulai dari tengah ke bawah
 
     const outW = 640;
-    const outH = Math.max(60, Math.floor(outW * (cropH / cropW)));
+    const outH = Math.floor(outW * (cropH / cropW));
     _canvas.width = outW;
     _canvas.height = outH;
     _ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, outW, outH);
@@ -631,11 +720,11 @@ let _cachedDevices = null; // Cache device list agar tidak query ulang tiap star
 
 async function startScan(deviceId = null) {
     scanning = true; 
-    document.getElementById("reader").style.display = "block";
+    document.getElementById("scannerOverlay").classList.add("active");
 
     // Reset hint ke default
     const tapHint = document.querySelector('.tap-hint');
-    const HINT_DEFAULT = 'POINT BARCODE HERE • TAP TO FOCUS';
+    const HINT_DEFAULT = 'TAP TO FOCUS';
     const HINTS_STRUGGLE = [
         'Try a flatter side of the package',
         'Avoid curved edges',
@@ -651,18 +740,9 @@ async function startScan(deviceId = null) {
         hintTimer = null;
     }
 
-    function resetHint() {
-        if (tapHint) { tapHint.textContent = 'POINT BARCODE HERE • TAP TO FOCUS'; tapHint.classList.remove('warn'); }
-        document.getElementById('manualBtn').style.display = 'none';
-        clearInterval(hintTimer);
-        hintTimer = null;
-    }
-
     function startStruggleHints() {
-        if (hintTimer) return;
+        if (hintTimer) return; // Sudah jalan
         hintIndex = 0;
-        // Tampilkan tombol manual begitu struggle dimulai
-        document.getElementById('manualBtn').style.display = 'block';
         hintTimer = setInterval(() => {
             if (!scanning) { clearInterval(hintTimer); return; }
             if (tapHint) {
@@ -670,12 +750,14 @@ async function startScan(deviceId = null) {
                 tapHint.classList.add('warn');
             }
             hintIndex++;
-        }, 2500);
+        }, 2500); // Ganti hint tiap 2.5 detik
     }
 
     // Mulai hint struggle setelah 4 detik tidak terbaca
     let struggleTimeout = setTimeout(startStruggleHints, 4000);
 
+    // Patch onDetected untuk reset hint saat berhasil
+    const _origOnDetected = onDetected;
     window._resetScanHint = () => {
         clearTimeout(struggleTimeout);
         resetHint();
@@ -788,17 +870,6 @@ function updateCameraList(devices, currentId) {
     }
 }
 
-function promptManualEntry() {
-    const input = prompt('Enter barcode digits (8–13 digits):');
-    if (!input) return;
-    const digits = input.replace(/\D/g, ''); // Hanya angka
-    if (digits.length < 8 || digits.length > 13) {
-        alert('Invalid — must be 8 to 13 digits.');
-        return;
-    }
-    onDetected(digits);
-}
-
 document.getElementById("videoSource").onchange = (e) => { 
     lastSelectedDeviceId = e.target.value; 
     localStorage.setItem('preferredCameraId', lastSelectedDeviceId);
@@ -811,27 +882,29 @@ document.getElementById("reader").onclick = async () => {
     const videoTrack = document.getElementById('videoElement').srcObject?.getVideoTracks()[0];
     if (videoTrack) {
         try {
-            const capabilities = videoTrack.getCapabilities();
-            if (capabilities.focusMode) {
-                await videoTrack.applyConstraints({
-                    advanced: [{ focusMode: 'continuous' }]
-                });
-                console.log("Fokus dipicu ulang");
-            }
-        } catch (e) {
-            console.warn("Fokus manual tidak didukung pada perangkat ini.");
-        }
+            await videoTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+        } catch (e) {}
     }
 };
+
+function promptManualEntry() {
+    const input = prompt('Enter barcode digits (8–13 digits):');
+    if (!input) return;
+    const digits = input.replace(/\D/g, '');
+    if (digits.length < 8 || digits.length > 13) {
+        alert('Invalid — must be 8 to 13 digits.');
+        return;
+    }
+    onDetected(digits);
+}
 
 function stopScan() { 
     codeReader.reset(); 
     scanning = false; 
-    document.getElementById("reader").style.display = "none"; 
+    document.getElementById("scannerOverlay").classList.remove("active");
     document.getElementById("cameraControl").style.display = "none";
-    // Reset hint state
     const tapHint = document.querySelector('.tap-hint');
-    if (tapHint) { tapHint.textContent = 'POINT BARCODE HERE • TAP TO FOCUS'; tapHint.classList.remove('warn'); }
+    if (tapHint) { tapHint.textContent = 'TAP TO FOCUS'; tapHint.classList.remove('warn'); }
     if (window._resetScanHint) window._resetScanHint();
 }
 

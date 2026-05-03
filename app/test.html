@@ -177,18 +177,21 @@ body.fade-in {
         /* Scan line merah */
         .scan-line {
             position: absolute;
+            top: 0;
             left: 4px; right: 4px;
             height: 2px;
             background: linear-gradient(90deg, transparent 0%, var(--miniso-red) 30%, rgba(230,21,35,0.9) 50%, var(--miniso-red) 70%, transparent 100%);
             box-shadow: 0 0 8px rgba(230,21,35,0.6);
-            animation: scanMove 1.8s ease-in-out infinite;
+            will-change: transform;
+            transform: translateY(0);
+            animation: scanMove 2s ease-in-out infinite;
             z-index: 3;
         }
         @keyframes scanMove {
-            0%   { top: 4px; opacity: 0; }
-            10%  { opacity: 1; }
-            90%  { opacity: 1; }
-            100% { top: calc(100% - 6px); opacity: 0; }
+            0%   { transform: translateY(0px); opacity: 0; }
+            8%   { opacity: 1; }
+            92%  { opacity: 1; }
+            100% { transform: translateY(calc(var(--vf-h, 191px) - 4px)); opacity: 0; }
         }
 
         /* Tap hint */
@@ -964,6 +967,17 @@ function triggerFocus() {
         try { videoTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch(e) {}
     }
 }
+
+// Set tinggi viewfinder ke CSS variable agar animasi scan line akurat
+function updateScanLineHeight() {
+    const reader = document.getElementById('reader');
+    if (reader) {
+        reader.style.setProperty('--vf-h', reader.offsetHeight + 'px');
+    }
+}
+window.addEventListener('resize', updateScanLineHeight);
+document.addEventListener('DOMContentLoaded', updateScanLineHeight);
+setTimeout(updateScanLineHeight, 300);
 
 function stopScan() { 
     codeReader.reset(); 

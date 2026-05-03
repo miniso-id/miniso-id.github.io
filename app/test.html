@@ -910,43 +910,79 @@ async function startScan(deviceId = null) {
         if (capabilities.exposureMode?.includes('continuous')) advanced.exposureMode = 'continuous';
         if (Object.keys(advanced).length > 0) await videoTrack.applyConstraints({ advanced: [advanced] });
 
-        // Loop Native — pakai setTimeout bukan rAF agar tidak terikat 60fps
+        // Loop Native CEPAT — hanya Layer 1 direct dari video (100ms)
+        // Ini yang handle 95% barcode normal dengan cepat
         if (useNative) {
-            const NATIVE_INTERVAL = 100;
-            const checkNative = async () => {
+            const FAST_INTERVAL = 100;
+            const HARD_INTERVAL = 600; // Layer berat jauh lebih jarang
+            let hardLoopRunning = false;
+
+            const checkNativeFast = async () => {
                 if (!scanning) return;
 
-                // Layer 1: Native langsung dari video (tercepat)
-                const nativeCode = await scanNative(videoElement);
+                // Layer 1: Native langsung dari video — paling cepat, tanpa preprocessing
+                const nativeCode = await nativeDetector.detect(videoElement).then(b => b.length > 0 ? b[0].rawValue : null).catch(() => null);
                 if (nativeCode && !isProcessingScan) {
                     onDetected(nativeCode);
-                    setTimeout(checkNative, NATIVE_INTERVAL);
-                    return;
                 }
 
-                // Layer 2: ZXing TRY_HARDER dari canvas preprocessed (untuk barcode sulit)
-                if (!isProcessingScan) {
-                    const hardCode = await scanZxingHard(videoElement);
-                    if (hardCode && !isProcessingScan) {
-                        onDetected(hardCode);
+                setTimeout(checkNativeFast, FAST_INTERVAL);
+            };
+
+            // Loop berat — hanya jalan jika barcode belum terbaca dalam 2 detik
+            let lastDetectedTime = Date.now();
+            const origOnDetected = onDetected;
+            const _wrappedOnDetected = async (code) => {
+                lastDetectedTime = Date.now();
+                return origOnDetected(code);
+            };
+
+            const checkHeavy = async () => {
+                if (!scanning) return;
+
+                // Hanya jalankan layer berat jika sudah >2 detik tidak terbaca
+                const timeSinceLast = Date.now() - lastDetectedTime;
+                if (!isProcessingScan && timeSinceLast > 2000) {
+                    // Layer 2: Native dari frame preprocessed
+                    const processed = preprocessFrame(videoElement, 1.5);
+                    if (processed) {
+                        const r = await nativeDetector.detect(processed).catch(() => []);
+                        if (r.length > 0 && !isProcessingScan) { onDetected(r[0].rawValue); }
+                    }
+
+                    // Layer 3: ZXing TRY_HARDER dari preprocessed (tanpa Sobel)
+                    if (!isProcessingScan) {
+                        try {
+                            const lum = new ZXing.HTMLCanvasElementLuminanceSource(processed || _canvas);
+                            const result = codeReaderHard.decodeBitmap(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum)));
+                            if (result && !isProcessingScan) onDetected(result.text);
+                        } catch(e) {}
                     }
                 }
 
-                setTimeout(checkNative, NATIVE_INTERVAL);
+                setTimeout(checkHeavy, HARD_INTERVAL);
             };
-            checkNative();
+
+            checkNativeFast();
+            setTimeout(checkHeavy, 2000); // Hard loop baru mulai setelah 2 detik
         } else {
-            // Tanpa Native: ZXing loop internal + ZXing Hard sebagai lapisan kedua
-            const HARD_INTERVAL = 200;
-            const checkHard = async () => {
+            // Tanpa Native: ZXing loop internal sudah cukup
+            // Tambah ZXing preprocessed ringan sebagai bantuan
+            const checkZxing = async () => {
                 if (!scanning) return;
                 if (!isProcessingScan) {
-                    const hardCode = await scanZxingHard(videoElement);
-                    if (hardCode && !isProcessingScan) onDetected(hardCode);
+                    try {
+                        const processed = preprocessFrame(videoElement, 1.5);
+                        if (processed) {
+                            const lum = new ZXing.HTMLCanvasElementLuminanceSource(processed);
+                            const result = codeReaderHard.decodeBitmap(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum)));
+                            if (result) onDetected(result.text);
+                        }
+                    } catch(e) {}
                 }
-                setTimeout(checkHard, HARD_INTERVAL);
+                setTimeout(checkZxing, 400);
             };
-            checkHard();
+            checkZxing();
         }
 
     } catch (err) {

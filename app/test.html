@@ -101,74 +101,24 @@ body.fade-in {
     height: 100%; 
     object-fit: cover;
 }
-        /* Kotak panduan barcode — area tengah atas */
-        .scan-zone {
-            position: absolute;
-            left: 10%; right: 10%;
-            top: 10%; bottom: 42%;
-            border: 2px solid rgba(255,255,255,0.6);
-            border-radius: 10px;
-            pointer-events: none;
-            z-index: 2;
-        }
-        .scan-zone::before, .scan-zone::after,
-        .scan-zone .corner-br, .scan-zone .corner-bl {
-            content: '';
-            position: absolute;
-            width: 18px; height: 18px;
-            border-color: white;
-            border-style: solid;
-        }
-        .scan-zone::before { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-radius: 6px 0 0 0; }
-        .scan-zone::after  { top: -2px; right: -2px; border-width: 3px 3px 0 0; border-radius: 0 6px 0 0; }
-        .scan-zone .corner-br { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-radius: 0 0 6px 0; }
-        .scan-zone .corner-bl { bottom: -2px; left: -2px; border-width: 0 0 3px 3px; border-radius: 0 0 0 6px; }
-        .scan-zone-label {
-            position: absolute;
-            top: -20px; left: 0; right: 0;
-            text-align: center;
-            color: rgba(255,255,255,0.7);
-            font-size: 9px; font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        /* Kotak panduan digit — area bawah */
-        .digit-zone {
-            position: absolute;
-            left: 10%; right: 10%;
-            top: 62%; bottom: 12%;
-            border: 2px solid rgba(255, 214, 0, 0.7);
-            border-radius: 8px;
-            pointer-events: none;
-            z-index: 2;
-        }
-        .digit-zone::before, .digit-zone::after,
-        .digit-zone .corner-br, .digit-zone .corner-bl {
-            content: '';
-            position: absolute;
-            width: 14px; height: 14px;
-            border-color: #FFD600;
-            border-style: solid;
-        }
-        .digit-zone::before { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-radius: 5px 0 0 0; }
-        .digit-zone::after  { top: -2px; right: -2px; border-width: 3px 3px 0 0; border-radius: 0 5px 0 0; }
-        .digit-zone .corner-br { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-radius: 0 0 5px 0; }
-        .digit-zone .corner-bl { bottom: -2px; left: -2px; border-width: 0 0 3px 3px; border-radius: 0 0 0 5px; }
-        .digit-zone-label {
-            position: absolute;
-            bottom: -20px; left: 0; right: 0;
-            text-align: center;
-            color: #FFD600;
-            font-size: 9px; font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
         /*
         .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
         */
         .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; transition: all 0.3s ease; }
         .tap-hint.warn { color: #FFD600; font-size: 12px; }
+        #manualBtn {
+            display: none;
+            margin: 8px auto 0 auto;
+            padding: 8px 20px;
+            background: var(--miniso-red);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            width: fit-content;
+        }
         #cameraControl { display:none; text-align:center; margin-bottom: 20px; }
 
         .main-content { flex: 1; overflow-y: auto; overflow-x: hidden; width: 100%; padding: 0 16px; }
@@ -248,18 +198,9 @@ body.fade-in {
         <div id="reader">
     <video id="videoElement"></video>
     <canvas id="cropCanvas" style="display:none;"></canvas>
-    <div class="scan-zone">
-        <span class="scan-zone-label">Barcode</span>
-        <span class="corner-br"></span>
-        <span class="corner-bl"></span>
-    </div>
-    <div class="digit-zone">
-        <span class="digit-zone-label">Digits</span>
-        <span class="corner-br"></span>
-        <span class="corner-bl"></span>
-    </div>
     <div class="tap-hint">POINT BARCODE HERE • TAP TO FOCUS</div>
 </div>
+        <button id="manualBtn" onclick="promptManualEntry()">Enter digits manually</button>
         <div id="cameraControl">
             <select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select>
         </div>
@@ -710,9 +651,18 @@ async function startScan(deviceId = null) {
         hintTimer = null;
     }
 
+    function resetHint() {
+        if (tapHint) { tapHint.textContent = 'POINT BARCODE HERE • TAP TO FOCUS'; tapHint.classList.remove('warn'); }
+        document.getElementById('manualBtn').style.display = 'none';
+        clearInterval(hintTimer);
+        hintTimer = null;
+    }
+
     function startStruggleHints() {
-        if (hintTimer) return; // Sudah jalan
+        if (hintTimer) return;
         hintIndex = 0;
+        // Tampilkan tombol manual begitu struggle dimulai
+        document.getElementById('manualBtn').style.display = 'block';
         hintTimer = setInterval(() => {
             if (!scanning) { clearInterval(hintTimer); return; }
             if (tapHint) {
@@ -720,14 +670,12 @@ async function startScan(deviceId = null) {
                 tapHint.classList.add('warn');
             }
             hintIndex++;
-        }, 2500); // Ganti hint tiap 2.5 detik
+        }, 2500);
     }
 
     // Mulai hint struggle setelah 4 detik tidak terbaca
     let struggleTimeout = setTimeout(startStruggleHints, 4000);
 
-    // Patch onDetected untuk reset hint saat berhasil
-    const _origOnDetected = onDetected;
     window._resetScanHint = () => {
         clearTimeout(struggleTimeout);
         resetHint();
@@ -838,6 +786,17 @@ function updateCameraList(devices, currentId) {
             `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>${d.label || 'Kamera'}</option>`
         ).join("");
     }
+}
+
+function promptManualEntry() {
+    const input = prompt('Enter barcode digits (8–13 digits):');
+    if (!input) return;
+    const digits = input.replace(/\D/g, ''); // Hanya angka
+    if (digits.length < 8 || digits.length > 13) {
+        alert('Invalid — must be 8 to 13 digits.');
+        return;
+    }
+    onDetected(digits);
 }
 
 document.getElementById("videoSource").onchange = (e) => { 

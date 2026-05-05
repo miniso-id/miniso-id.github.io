@@ -208,13 +208,37 @@ body.fade-in {
         }
         .tap-hint.warn { color: #FFD600; }
 
-        /* Camera selector */
-        #cameraControl { display:none; text-align:center; margin-top: 8px; width: 100%; flex-shrink: 0; }
-        #cameraControl select {
-            padding: 8px 14px; width: calc(100% - 48px); max-width: 340px;
-            border-radius: 10px; background: #1e1e1e; color: white;
-            border: 1px solid rgba(255,255,255,0.15); font-size: 13px;
+        /* Camera selector — icon buttons */
+        #cameraControl { display: none; text-align: center; margin-top: 6px; width: 100%; flex-shrink: 0; }
+        .cam-btn-row {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 0 24px;
         }
+        .cam-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            width: 56px; height: 56px;
+            border-radius: 14px;
+            border: 1.5px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.07);
+            color: rgba(255,255,255,0.7);
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .cam-btn.active {
+            background: var(--miniso-red);
+            border-color: var(--miniso-red);
+            color: white;
+        }
+        .cam-btn:active { opacity: 0.75; transform: scale(0.93); }
 
         /* Spacer */
         .scanner-spacer { flex: 1; }
@@ -385,9 +409,9 @@ body.fade-in {
     <!-- Tap hint -->
     <p class="tap-hint">TAP TO FOCUS</p>
 
-    <!-- Camera selector -->
+    <!-- Camera selector — icon buttons -->
     <div id="cameraControl">
-        <select id="videoSource"></select>
+        <div class="cam-btn-row" id="camBtnRow"></div>
     </div>
 
     <div class="scanner-spacer"></div>
@@ -395,7 +419,7 @@ body.fade-in {
     <!-- Bottom buttons -->
     <div class="scanner-btns">
         <button class="scanner-btn-primary" onclick="promptManualEntry()">Input Barcode Manually</button>
-        <button class="scanner-btn-secondary" onclick="navigateToProductList()">Product List Search</button>
+
     </div>
 </div>
 
@@ -421,47 +445,9 @@ function getLocalCache(barcode) {
     return cacheEntry.payload;
 }
 
-// ── AUTH GUARD ──────────────────────────────────────────────────────────────
-// Role yang diizinkan mengakses halaman ini (selain staff)
-const ALLOWED_ROLES = ['Administrator', 'Area'];
-
-async function checkAuthAndRole() {
-    const { data: { session }, error } = await _supabase.auth.getSession();
-
-    if (error || !session) {
-        // Tidak ada sesi → redirect ke login
-        window.location.href = 'https://miniso-id.github.io/app/?app=mmsx';
-        return false;
-    }
-
-    const role = session.user?.user_metadata?.role || 
-                 session.user?.app_metadata?.role || 
-                 '';
-
-    if (!ALLOWED_ROLES.includes(role)) {
-        // Role tidak diizinkan (misal: staff) → redirect ke home
-        alert('Akses ditolak. Halaman ini hanya untuk Administrator / Area.');
-        window.location.href = 'https://miniso-id.github.io/app/?app=mmsx';
-        return false;
-    }
-
-    return true;
-}
-
-// Navigasi ke Product List hanya jika role diizinkan
-async function navigateToProductList() {
-    const allowed = await checkAuthAndRole();
-    if (allowed) {
-        window.location.href = 'https://miniso-id.github.io/app/product.html';
-    }
-}
-
 // Jalankan saat halaman dimuat
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.add("fade-in");
-
-    // Guard: cek auth & role sebelum halaman bisa digunakan
-    await checkAuthAndRole();
 });
 
 function navigateTo(url) {
@@ -1030,26 +1016,31 @@ async function startScan(deviceId = null) {
 }
     
 function updateCameraList(devices, currentId) {
-    const source = document.getElementById("videoSource");
     const control = document.getElementById("cameraControl");
-    
-    if (devices.length <= 1) {
-        control.style.display = "none";
-    } else {
-        control.style.display = "block";
-        source.innerHTML = devices.map(d => 
-            `<option value="${d.deviceId}" ${d.deviceId === currentId ? 'selected' : ''}>${d.label || 'Kamera'}</option>`
-        ).join("");
-    }
+    const row = document.getElementById("camBtnRow");
+
+    control.style.display = "block";
+    row.innerHTML = devices.map((d, i) => `
+        <button class="cam-btn ${d.deviceId === currentId ? 'active' : ''}"
+                onclick="switchCamera('${d.deviceId}')"
+                title="${d.label || 'Kamera ' + (i + 1)}">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+            </svg>
+            ${i + 1}
+        </button>
+    `).join("");
 }
 
-document.getElementById("videoSource").onchange = (e) => { 
-    lastSelectedDeviceId = e.target.value; 
-    localStorage.setItem('preferredCameraId', lastSelectedDeviceId);
-    _cachedDevices = null; // Reset cache saat user ganti kamera manual
-    stopScan(); 
-    startScan(lastSelectedDeviceId); 
-};
+function switchCamera(deviceId) {
+    if (deviceId === lastSelectedDeviceId) return; // sudah aktif
+    lastSelectedDeviceId = deviceId;
+    localStorage.setItem('preferredCameraId', deviceId);
+    _cachedDevices = null;
+    stopScan();
+    startScan(deviceId);
+}
 
 function triggerFocus() {
     const videoTrack = document.getElementById('videoElement').srcObject?.getVideoTracks()[0];

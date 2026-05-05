@@ -899,32 +899,7 @@ async function startScan(deviceId = null) {
     };
 
     try {
-        // Enumerate semua kamera SEKALI — cepat, tanpa buka stream per device
-        if (!_cachedDevices) {
-            const allDevices = await navigator.mediaDevices.enumerateDevices();
-            const videoDevices = allDevices.filter(d => d.kind === 'videoinput');
-
-            // Filter kamera depan berdasarkan label
-            const frontKeywords = ['front', 'facing front', 'user', 'selfie', 'facetime'];
-            const backCams = videoDevices.filter(d => {
-                const lbl = d.label.toLowerCase();
-                return !frontKeywords.some(k => lbl.includes(k));
-            });
-
-            // Jika semua label kosong (sebelum permission) → ambil semua, browser akan pilih environment
-            _cachedDevices = backCams.length > 0 ? backCams : videoDevices;
-        }
-
-        const backCameras = _cachedDevices;
-        let selectedId = deviceId || lastSelectedDeviceId || (backCameras.length > 0 ? backCameras[0].deviceId : null);
-
-        // Pastikan selectedId valid
-        if (selectedId && !backCameras.find(d => d.deviceId === selectedId)) {
-            selectedId = backCameras[0]?.deviceId || null;
-        }
-
-        updateCameraList(backCameras, selectedId);
-
+        // Mulai stream dulu dengan facingMode environment (tidak perlu deviceId spesifik untuk pertama kali)
         const useNative = !!nativeDetector;
 
         if (useNative) {
@@ -949,6 +924,26 @@ async function startScan(deviceId = null) {
         if (capabilities.focusMode?.includes('continuous')) advanced.focusMode = 'continuous';
         if (capabilities.exposureMode?.includes('continuous')) advanced.exposureMode = 'continuous';
         if (Object.keys(advanced).length > 0) await videoTrack.applyConstraints({ advanced: [advanced] });
+
+        // Enumerate device SETELAH stream aktif — label sudah tersedia karena permission sudah granted
+        if (!_cachedDevices) {
+            const allDevices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = allDevices.filter(d => d.kind === 'videoinput');
+            const frontKeywords = ['front', 'facing front', 'user', 'selfie', 'facetime'];
+            const backCams = videoDevices.filter(d => {
+                const lbl = d.label.toLowerCase();
+                return !frontKeywords.some(k => lbl.includes(k));
+            });
+            _cachedDevices = backCams.length > 0 ? backCams : videoDevices;
+        }
+
+        // Cari deviceId yang sedang aktif dari stream
+        const activeTrack = document.getElementById('videoElement').srcObject?.getVideoTracks()[0];
+        const activeLabel = activeTrack?.label || '';
+        const activeDevice = _cachedDevices.find(d => d.label === activeLabel);
+        const activeId = activeDevice?.deviceId || deviceId || lastSelectedDeviceId || _cachedDevices[0]?.deviceId;
+
+        updateCameraList(_cachedDevices, activeId);
 
         // Loop Native CEPAT — hanya Layer 1 direct dari video (100ms)
         // Ini yang handle 95% barcode normal dengan cepat

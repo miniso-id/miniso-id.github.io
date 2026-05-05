@@ -899,14 +899,30 @@ async function startScan(deviceId = null) {
     };
 
     try {
-        // Gunakan cache device list jika sudah ada
+        // Enumerate semua kamera SEKALI — cepat, tanpa buka stream per device
         if (!_cachedDevices) {
-            const videoDevices = await codeReader.listVideoInputDevices();
-            _cachedDevices = videoDevices.filter(d => !d.label.toLowerCase().includes('front'));
+            const allDevices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = allDevices.filter(d => d.kind === 'videoinput');
+
+            // Filter kamera depan berdasarkan label
+            const frontKeywords = ['front', 'facing front', 'user', 'selfie', 'facetime'];
+            const backCams = videoDevices.filter(d => {
+                const lbl = d.label.toLowerCase();
+                return !frontKeywords.some(k => lbl.includes(k));
+            });
+
+            // Jika semua label kosong (sebelum permission) → ambil semua, browser akan pilih environment
+            _cachedDevices = backCams.length > 0 ? backCams : videoDevices;
         }
+
         const backCameras = _cachedDevices;
         let selectedId = deviceId || lastSelectedDeviceId || (backCameras.length > 0 ? backCameras[0].deviceId : null);
-        
+
+        // Pastikan selectedId valid
+        if (selectedId && !backCameras.find(d => d.deviceId === selectedId)) {
+            selectedId = backCameras[0]?.deviceId || null;
+        }
+
         updateCameraList(backCameras, selectedId);
 
         const useNative = !!nativeDetector;
@@ -1034,12 +1050,15 @@ function updateCameraList(devices, currentId) {
 }
 
 function switchCamera(deviceId) {
-    if (deviceId === lastSelectedDeviceId) return; // sudah aktif
+    if (deviceId === lastSelectedDeviceId) return;
     lastSelectedDeviceId = deviceId;
     localStorage.setItem('preferredCameraId', deviceId);
     _cachedDevices = null;
-    stopScan();
-    startScan(deviceId);
+    // Hanya reset scanner tanpa tutup overlay
+    codeReader.reset();
+    scanning = false;
+    if (window._resetScanHint) window._resetScanHint();
+    setTimeout(() => startScan(deviceId), 500);
 }
 
 function triggerFocus() {

@@ -1034,12 +1034,15 @@ function updateCameraList(devices, currentId) {
 }
 
 function switchCamera(deviceId) {
-    if (deviceId === lastSelectedDeviceId) return; // sudah aktif
+    if (deviceId === lastSelectedDeviceId) return;
     lastSelectedDeviceId = deviceId;
     localStorage.setItem('preferredCameraId', deviceId);
     _cachedDevices = null;
-    stopScan();
-    startScan(deviceId);
+    // Hanya reset scanner tanpa tutup overlay
+    codeReader.reset();
+    scanning = false;
+    if (window._resetScanHint) window._resetScanHint();
+    setTimeout(() => startScan(deviceId), 500);
 }
 
 function triggerFocus() {

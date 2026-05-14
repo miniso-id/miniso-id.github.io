@@ -1077,9 +1077,9 @@ if(localStorage.getItem('mms_auth') === 'true') {
         console.log('Stock proxy response:', text);
 
         if (!text || text.trim() === '') {
-            box.innerHTML = `<div class="stock-empty-msg">📦 Tidak ada data stock untuk barcode ini di toko <b>${STOCK_STORE}</b>.</div>`;
-            return;
-        }
+    box.innerHTML = `<div class="stock-empty-msg">📦 Tidak ada data stock untuk barcode ini di toko <b>${getStoreCode()}</b>.</div>`;
+    return;
+}
 
         const json = JSON.parse(text);
         renderStockResult(json, barcode, getStoreCode());
@@ -1104,13 +1104,13 @@ if(localStorage.getItem('mms_auth') === 'true') {
         box.innerHTML = `
             <div class="stock-header">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                STOCK TOKO <span class="store-badge">${STOCK_STORE}</span>
+                STOCK TOKO <span class="store-badge">${storeCode}</span>
                 <span style="margin-left:auto; font-size:10px; opacity:0.7;">${total} SKU ditemukan</span>
             </div>
         `;
 
         if (!items.length) {
-            box.innerHTML += `<div class="stock-empty-msg">📦 Tidak ada data stock untuk barcode ini di toko <b>${STOCK_STORE}</b>.</div>`;
+            box.innerHTML += `<div class="stock-empty-msg">📦 Tidak ada data stock untuk barcode ini di toko <b>${storeCode}</b>.</div>`;
             return;
         }
 

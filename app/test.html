@@ -1068,7 +1068,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
                 barCodeOrGoodsName: barcode,
                 pageSize: 20,
                 pageNum: 1,
-                storeCode: STOCK_STORE,
+                storeCode: getStoreCode(),
                 brandCode: 30,
             }),
         });
@@ -1082,7 +1082,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
         }
 
         const json = JSON.parse(text);
-        renderStockResult(json, barcode);
+        renderStockResult(json, barcode, getStoreCode());
 
     } catch (err) {
         console.error('Stock error:', err);
@@ -1093,7 +1093,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
     }
 }
 
-    function renderStockResult(json, barcode) {
+    function renderStockResult(json, barcode, storeCode) {
         const box = document.getElementById('stockResult');
         if (!box) return;
 

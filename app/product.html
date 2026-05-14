@@ -981,6 +981,10 @@ if(localStorage.getItem('mms_auth') === 'true') {
             : "";
         const firstBarcode = p.Barcode ? p.Barcode.split('/')[0].trim() : "";
 
+        // Ambil bahasa untuk terjemahan stok
+        const lang = localStorage.getItem('mms_lang') || 'id';
+        const t = prodTranslations[lang]; // seluruh terjemahan termasuk stok
+
         const det = document.getElementById("detailContainer");
         det.innerHTML = `
             <div class="product-card">
@@ -995,11 +999,11 @@ if(localStorage.getItem('mms_auth') === 'true') {
                     <p class="p-desc">${p.Description || ''}</p>
                     <div class="price-comparison-grid">
                         <div class="price-item reg">
-                            <span class="price-label">Regular Store</span>
+                            <span class="price-label">${t.regStoreLabel}</span>
                             <span class="price-val">Rp${regPrice.toLocaleString('id-ID')}</span>
                         </div>
                         <div class="price-item str">
-                            <span class="price-label">Street Store</span>
+                            <span class="price-label">${t.strStoreLabel}</span>
                             <span class="price-val">Rp${strPrice.toLocaleString('id-ID')}</span>
                         </div>
                     </div>
@@ -1009,16 +1013,16 @@ if(localStorage.getItem('mms_auth') === 'true') {
                             <svg id="barcodeCanvas" style="max-height:60px; width:auto; max-width:100%; background:white; padding:5px; border-radius:4px; border:1px solid #eee;"></svg>
                         </div>
                         <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px;">
-                            <span style="color:#888; font-weight:600;">REG PROMO</span><span style="font-weight:700; color:var(--promo-blue)">${p["Regular Store Promo"] || '-'}</span>
+                            <span style="color:#888; font-weight:600;">${t.regPromoLabel}</span><span style="font-weight:700; color:var(--promo-blue)">${p["Regular Store Promo"] || '-'}</span>
                         </div>
                         <div style="display:flex; justify-content:space-between; font-size:12px;">
-                            <span style="color:#888; font-weight:600;">STR PROMO</span><span style="font-weight:700; color:var(--promo-green)">${p["Street Store Promo"] || '-'}</span>
+                            <span style="color:#888; font-weight:600;">${t.strPromoLabel}</span><span style="font-weight:700; color:var(--promo-green)">${p["Street Store Promo"] || '-'}</span>
                         </div>
 
                         <!-- STOCK CHECK -->
                         <button class="btn-stock" id="btnCekStock" onclick="checkStock('${firstBarcode}')">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                            CEK STOCK TOKO
+                            ${t.stockCheckBtn}
                         </button>
                         <div id="stockResult"></div>
                     </div>
@@ -1037,95 +1041,113 @@ if(localStorage.getItem('mms_auth') === 'true') {
     }
 
     // ============================================================
-    // CEK STOCK — via Supabase Edge Function Proxy
+    // CEK STOCK — via Supabase Edge Function Proxy (MULTILANG)
     // ============================================================
     const STOCK_PROXY_URL = `https://uesupubktkxfjsylcwwr.supabase.co/functions/v1/stock-proxy`;
     const STOCK_TOKEN    = '6ce941ee73098fea535a13a61a4b5d66';
     
     function getStoreCode() {
-    return localStorage.getItem('mmsx_store_code') || 'ID00'; // fallback
-}
-
-let stockAbortController = null; // simpan controller global
-
-async function checkStock(barcode) {
-    const btn = document.getElementById('btnCekStock');
-    const box = document.getElementById('stockResult');
-    if (!btn || !box) return;
-
-    // Batalkan request sebelumnya jika masih berjalan
-    if (stockAbortController) {
-        stockAbortController.abort();
+        return localStorage.getItem('mmsx_store_code') || 'ID00';
     }
-    stockAbortController = new AbortController();
 
-    btn.disabled = true;
-    btn.innerHTML = `<div class="mini-spin" style="border-top-color:white;"></div> Mengambil Data...`;
-    box.style.display = 'block';
-    box.innerHTML = `<div class="stock-loading"><div class="mini-spin"></div> Menghubungi server MINISO...</div>`;
-
-    try {
-        const resp = await fetch(STOCK_PROXY_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${SUPABASE_KEY}`,
-            },
-            body: JSON.stringify({
-                barCodeOrGoodsName: barcode,
-                pageSize: 20,
-                pageNum: 1,
-                storeCode: getStoreCode(),
-                brandCode: 30,
-            }),
-            signal: stockAbortController.signal, // pasang sinyal abort
-        });
-
-        const text = await resp.text();
-        console.log('Stock proxy response:', text);
-
-        if (!text || text.trim() === '') {
-            box.innerHTML = `<div class="stock-empty-msg">📦 Tidak ada data stock untuk barcode ini di toko <b>${getStoreCode()}</b>.</div>`;
-            return;
-        }
-
-        const json = JSON.parse(text);
-        renderStockResult(json, barcode, getStoreCode());
-
-    } catch (err) {
-        if (err.name === 'AbortError') {
-            console.log('Request stok dibatalkan');
-            return; // jangan tampilkan error jika sengaja dibatalkan
-        }
-        console.error('Stock error:', err);
-        box.innerHTML = `<div class="stock-error">⚠️ Gagal mengambil data stock.<br><small style="font-weight:400; color:#666;">${err.message}</small></div>`;
-    } finally {
-        if (stockAbortController?.signal.aborted === false) {
-            btn.disabled = false;
-            btn.innerHTML = `<svg width="18" height="18"...> REFRESH STOCK`;
-        }
-        stockAbortController = null;
+    // Fungsi pembantu untuk mendapatkan terjemahan stok
+    function getStockTranslation() {
+        const lang = localStorage.getItem('mms_lang') || 'id';
+        const t = prodTranslations[lang];
+        return {
+            loading: t.stockLoading || 'Menghubungi server MINISO...',
+            fetching: t.stockFetching || 'Mengambil Data...',
+            empty: t.stockEmpty || 'Tidak ada data stock untuk barcode ini di toko',
+            error: t.stockError || 'Gagal mengambil data stock.',
+            headerSku: t.stockHeaderSku || 'SKU ditemukan',
+            totalLabel: t.stockTotalLabel || 'Total',
+            availableLabel: t.stockAvailableLabel || 'Tersedia',
+            onOrderLabel: t.stockOnOrderLabel || 'On Order',
+            refreshBtn: t.stockRefreshBtn || 'REFRESH STOCK',
+            storeLabel: t.stockStoreLabel || 'STOCK TOKO'
+        };
     }
-}
 
-    function renderStockResult(json, barcode, storeCode) {
+    let stockAbortController = null;
+
+    async function checkStock(barcode) {
+        const btn = document.getElementById('btnCekStock');
+        const box = document.getElementById('stockResult');
+        if (!btn || !box) return;
+
+        // Batalkan request sebelumnya jika masih berjalan
+        if (stockAbortController) {
+            stockAbortController.abort();
+        }
+        stockAbortController = new AbortController();
+
+        const s = getStockTranslation();
+        btn.disabled = true;
+        btn.innerHTML = `<div class="mini-spin" style="border-top-color:white;"></div> ${s.fetching}`;
+        box.style.display = 'block';
+        box.innerHTML = `<div class="stock-loading"><div class="mini-spin"></div> ${s.loading}</div>`;
+
+        try {
+            const resp = await fetch(STOCK_PROXY_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                },
+                body: JSON.stringify({
+                    barCodeOrGoodsName: barcode,
+                    pageSize: 20,
+                    pageNum: 1,
+                    storeCode: getStoreCode(),
+                    brandCode: 30,
+                }),
+                signal: stockAbortController.signal,
+            });
+
+            const text = await resp.text();
+            console.log('Stock proxy response:', text);
+
+            if (!text || text.trim() === '') {
+                box.innerHTML = `<div class="stock-empty-msg">📦 ${s.empty} <b>${getStoreCode()}</b>.</div>`;
+                return;
+            }
+
+            const json = JSON.parse(text);
+            renderStockResult(json, barcode, getStoreCode(), s);
+
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                console.log('Request stok dibatalkan');
+                return;
+            }
+            console.error('Stock error:', err);
+            box.innerHTML = `<div class="stock-error">⚠️ ${s.error}<br><small style="font-weight:400; color:#666;">${err.message}</small></div>`;
+        } finally {
+            if (stockAbortController?.signal.aborted === false) {
+                btn.disabled = false;
+                btn.innerHTML = `<svg width="18" height="18"...> ${s.refreshBtn}`;
+            }
+            stockAbortController = null;
+        }
+    }
+
+    function renderStockResult(json, barcode, storeCode, s) {
         const box = document.getElementById('stockResult');
         if (!box) return;
 
-        // Ambil list dari struktur response Miniso: json.data.list
         const items = json?.data?.list || [];
         const total = json?.data?.total ?? 0;
 
         box.innerHTML = `
             <div class="stock-header">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                STOCK TOKO <span class="store-badge">${storeCode}</span>
-                <span style="margin-left:auto; font-size:10px; opacity:0.7;">${total} SKU ditemukan</span>
+                ${s.storeLabel} <span class="store-badge">${storeCode}</span>
+                <span style="margin-left:auto; font-size:10px; opacity:0.7;">${total} ${s.headerSku}</span>
             </div>
         `;
 
         if (!items.length) {
-            box.innerHTML += `<div class="stock-empty-msg">📦 Tidak ada data stock untuk barcode ini di toko <b>${storeCode}</b>.</div>`;
+            box.innerHTML += `<div class="stock-empty-msg">📦 ${s.empty} <b>${storeCode}</b>.</div>`;
             return;
         }
 
@@ -1138,14 +1160,12 @@ async function checkStock(barcode) {
             const inTransitInv  = parseInt(item.inTransitInvent ?? 0);
             const imgUrl        = item.picList?.[0]?.materialPictureUrl || '';
 
-            // Warna badge available
             let avClass = 'ok';
             if (availableInv <= 0)     avClass = 'empty';
             else if (availableInv < 5) avClass = 'low';
 
             box.innerHTML += `
                 <div style="background:white; padding:14px 16px; border-bottom:1px solid #f0f0f0;">
-                    <!-- Baris atas: gambar + nama + harga -->
                     <div style="display:flex; gap:12px; align-items:flex-start; margin-bottom:12px;">
                         ${imgUrl ? `<img src="${imgUrl}" style="width:56px; height:56px; object-fit:contain; border-radius:10px; border:1px solid #eee; flex-shrink:0;" onerror="this.style.display='none'">` : ''}
                         <div style="flex:1; min-width:0;">
@@ -1154,18 +1174,17 @@ async function checkStock(barcode) {
                             <div style="font-size:13px; font-weight:800; color:var(--miniso-red);">Rp${retailPrice.toLocaleString('id-ID')}</div>
                         </div>
                     </div>
-                    <!-- Baris bawah: 3 kotak stok -->
                     <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
                         <div style="background:#f9f9f9; border-radius:10px; padding:10px; text-align:center; border-bottom:3px solid #ddd;">
-                            <div style="font-size:10px; font-weight:800; color:#999; text-transform:uppercase; margin-bottom:4px;">Total</div>
+                            <div style="font-size:10px; font-weight:800; color:#999; text-transform:uppercase; margin-bottom:4px;">${s.totalLabel}</div>
                             <div style="font-size:20px; font-weight:800; color:#333;">${totalInv < 0 ? '—' : totalInv}</div>
                         </div>
                         <div style="background:#f9f9f9; border-radius:10px; padding:10px; text-align:center; border-bottom:3px solid ${availableInv <= 0 ? '#dc2626' : availableInv < 5 ? '#d97706' : '#16a34a'};">
-                            <div style="font-size:10px; font-weight:800; color:#999; text-transform:uppercase; margin-bottom:4px;">Tersedia</div>
+                            <div style="font-size:10px; font-weight:800; color:#999; text-transform:uppercase; margin-bottom:4px;">${s.availableLabel}</div>
                             <div style="font-size:20px; font-weight:800; color:${availableInv <= 0 ? '#dc2626' : availableInv < 5 ? '#d97706' : '#16a34a'};">${availableInv < 0 ? '—' : availableInv}</div>
                         </div>
                         <div style="background:#f9f9f9; border-radius:10px; padding:10px; text-align:center; border-bottom:3px solid #3b82f6;">
-                            <div style="font-size:10px; font-weight:800; color:#999; text-transform:uppercase; margin-bottom:4px;">On Order</div>
+                            <div style="font-size:10px; font-weight:800; color:#999; text-transform:uppercase; margin-bottom:4px;">${s.onOrderLabel}</div>
                             <div style="font-size:20px; font-weight:800; color:#3b82f6;">${inTransitInv}</div>
                         </div>
                     </div>
@@ -1291,6 +1310,7 @@ async function captureAi() {
 </script>
 
 <script>
+// Terjemahan lengkap (termasuk stok)
 const prodTranslations = {
     id: {
         loginTitle: "MMS-X",
@@ -1307,7 +1327,19 @@ const prodTranslations = {
         strStoreLabel: "Toko Ruko",
         barcodeLabel: "BARCODE",
         regPromoLabel: "PROMO REGULER",
-        strPromoLabel: "PROMO RUKO"
+        strPromoLabel: "PROMO RUKO",
+        // Stok
+        stockCheckBtn: "CEK STOCK TOKO",
+        stockLoading: "Menghubungi server MINISO...",
+        stockFetching: "Mengambil Data...",
+        stockEmpty: "Tidak ada data stock untuk barcode ini di toko",
+        stockError: "Gagal mengambil data stock.",
+        stockHeaderSku: "SKU ditemukan",
+        stockTotalLabel: "Total",
+        stockAvailableLabel: "Tersedia",
+        stockOnOrderLabel: "On Order",
+        stockRefreshBtn: "REFRESH STOCK",
+        stockStoreLabel: "STOCK TOKO"
     },
     en: {
         loginTitle: "MMS-X",
@@ -1324,7 +1356,19 @@ const prodTranslations = {
         strStoreLabel: "Street Store",
         barcodeLabel: "BARCODE",
         regPromoLabel: "REGULAR STORE PROMO",
-        strPromoLabel: "STREET STORE PROMO"
+        strPromoLabel: "STREET STORE PROMO",
+        // Stok
+        stockCheckBtn: "CHECK STOCK",
+        stockLoading: "Connecting to MINISO server...",
+        stockFetching: "Fetching Data...",
+        stockEmpty: "No stock data for this barcode in store",
+        stockError: "Failed to retrieve stock data.",
+        stockHeaderSku: "SKUs found",
+        stockTotalLabel: "Total",
+        stockAvailableLabel: "Available",
+        stockOnOrderLabel: "On Order",
+        stockRefreshBtn: "REFRESH STOCK",
+        stockStoreLabel: "STOCK STORE"
     },
     cn: {
         loginTitle: "MMS-X",
@@ -1341,7 +1385,19 @@ const prodTranslations = {
         strStoreLabel: "街边店价格",
         barcodeLabel: "条码",
         regPromoLabel: "常规促销",
-        strPromoLabel: "街边店促销"
+        strPromoLabel: "街边店促销",
+        // Stok
+        stockCheckBtn: "检查库存",
+        stockLoading: "正在连接MINISO服务器...",
+        stockFetching: "获取数据中...",
+        stockEmpty: "该商品在门店无库存数据",
+        stockError: "获取库存数据失败。",
+        stockHeaderSku: "个SKU",
+        stockTotalLabel: "总库存",
+        stockAvailableLabel: "可用",
+        stockOnOrderLabel: "在途",
+        stockRefreshBtn: "刷新库存",
+        stockStoreLabel: "门店库存"
     }
 };
 
@@ -1373,23 +1429,7 @@ function applyProductLanguage() {
         allChip.innerText = t.allCat;
     }
 
-    const originalShowDetail = window.showDetail;
-    window.showDetail = async function(fullBarcode) {
-        await originalShowDetail(fullBarcode);
-        
-        const labels = document.querySelectorAll('.price-label');
-        if (labels.length >= 2) {
-            labels[0].innerText = t.regStoreLabel;
-            labels[1].innerText = t.strStoreLabel;
-        }
-
-        const infoLabels = document.querySelectorAll('#detailContainer span[style*="color:#888"]');
-        if (infoLabels.length >= 3) {
-            infoLabels[0].innerText = t.barcodeLabel;
-            infoLabels[1].innerText = t.regPromoLabel;
-            infoLabels[2].innerText = t.strPromoLabel;
-        }
-    };
+    // Tombol stok akan diperbarui saat renderDetailView, jadi tidak perlu di sini
 }
 
 document.addEventListener('DOMContentLoaded', applyProductLanguage);

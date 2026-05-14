@@ -1036,115 +1036,56 @@ if(localStorage.getItem('mms_auth') === 'true') {
     }
 
     // ============================================================
-    // CEK STOCK — MINISO OVERSEAS MOBILE ADMIN API
+    // CEK STOCK — via Supabase Edge Function Proxy
     // ============================================================
-    const STOCK_API_URL  = 'https://overseasmobileadminapp.miniso.com/cashelf/app/goodsQuery/getSkuListByCtg';
+    const STOCK_PROXY_URL = `https://uesupubktkxfjsylcwwr.supabase.co/functions/v1/stock-proxy`;
     const STOCK_TOKEN    = '6ce941ee73098fea535a13a61a4b5d66';
     const STOCK_STORE    = 'ID12';
 
     async function checkStock(barcode) {
-        const btn     = document.getElementById('btnCekStock');
-        const box     = document.getElementById('stockResult');
+        const btn = document.getElementById('btnCekStock');
+        const box = document.getElementById('stockResult');
         if (!btn || !box) return;
 
         btn.disabled = true;
         btn.innerHTML = `<div class="mini-spin" style="border-top-color:white;"></div> Mengambil Data...`;
         box.style.display = 'block';
-        box.innerHTML     = `<div class="stock-loading"><div class="mini-spin"></div> Menghubungi server MINISO...</div>`;
+        box.innerHTML = `<div class="stock-loading"><div class="mini-spin"></div> Menghubungi server MINISO...</div>`;
 
-        const body = JSON.stringify({
-            barCodeOrGoodsName: barcode,
-            pageSize          : 20,
-            pageNum           : 1,
-            storeCode         : STOCK_STORE,
-            brandCode         : 30,
-        });
-
-        const bodyNoBrand = JSON.stringify({
-            barCodeOrGoodsName: barcode,
-            pageSize          : 20,
-            pageNum           : 1,
-            storeCode         : STOCK_STORE,
-        });
-
-        const headers = {
-            'Content-Type': 'application/json',
-            'token'        : STOCK_TOKEN,
-        };
-
-        let json = null;
-        let lastErr = '';
-
-        // Percobaan 1: Direct request
         try {
-            const resp = await fetch(STOCK_API_URL, { method: 'POST', headers, body });
+            const resp = await fetch(STOCK_PROXY_URL, {
+                method : 'POST',
+                headers: {
+                    'Content-Type' : 'application/json',
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                },
+                body: JSON.stringify({
+                    barCodeOrGoodsName: barcode,
+                    pageSize          : 20,
+                    pageNum           : 1,
+                    storeCode         : STOCK_STORE,
+                    brandCode         : 30,
+                }),
+            });
+
             const text = await resp.text();
-            console.log('Stock API raw response:', text);
+            console.log('Stock proxy response:', text);
+
             if (!text || text.trim() === '') {
-                box.innerHTML = `
-                    <div class="stock-error">
-                        ⚠️ Server merespons 200 tapi data kosong.<br>
-                        <small style="font-weight:400; color:#666; display:block; margin-top:6px;">
-                            Kemungkinan barcode tidak ditemukan di toko <b>${STOCK_STORE}</b>, atau parameter perlu dicek kembali.
-                        </small>
-                        <div style="margin-top:10px; background:#f9f9f9; border-radius:8px; padding:10px; text-align:left; font-size:11px; color:#555; font-family:monospace;">
-                            storeCode: ${STOCK_STORE}<br>
-                            barCode: ${barcode}<br>
-                            brandCode: 30
-                        </div>
-                    </div>`;
-                btn.disabled = false;
-                btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> REFRESH STOCK`;
+                box.innerHTML = `<div class="stock-empty-msg">📦 Tidak ada data stock untuk barcode ini di toko <b>${STOCK_STORE}</b>.</div>`;
                 return;
             }
-            json = JSON.parse(text);
-        } catch (err) {
-            lastErr = err.message;
-            console.warn('Direct request gagal, coba proxy...', err);
-        }
 
-        // Percobaan 2: Tanpa brandCode (fallback)
-        if (!json) {
-            try {
-                box.innerHTML = `<div class="stock-loading"><div class="mini-spin"></div> Mencoba tanpa brandCode...</div>`;
-                const resp2 = await fetch(STOCK_API_URL, { method: 'POST', headers, body: bodyNoBrand });
-                const text2 = await resp2.text();
-                console.log('Stock API (no brandCode) raw response:', text2);
-                if (text2 && text2.trim() !== '') json = JSON.parse(text2);
-            } catch (err2) {
-                lastErr += ' | NoBrand: ' + err2.message;
-                console.warn('Percobaan tanpa brandCode juga gagal:', err2);
-            }
-        }
-
-        // Percobaan 3: CORS Proxy (corsproxy.io)
-        if (!json) {
-            try {
-                box.innerHTML = `<div class="stock-loading"><div class="mini-spin"></div> Mencoba via proxy...</div>`;
-                const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(STOCK_API_URL)}`;
-                const resp3 = await fetch(proxyUrl, { method: 'POST', headers, body });
-                const text3 = await resp3.text();
-                console.log('Proxy response:', text3);
-                if (text3 && text3.trim() !== '') json = JSON.parse(text3);
-            } catch (err3) {
-                lastErr += ' | Proxy: ' + err3.message;
-                console.error('Proxy juga gagal:', err3);
-            }
-        }
-
-        if (json) {
+            const json = JSON.parse(text);
             renderStockResult(json, barcode);
-        } else {
-            box.innerHTML = `
-                <div class="stock-error">
-                    ⚠️ Gagal mengambil data stock<br>
-                    <small style="font-weight:500; color:#555; display:block; margin-top:6px; line-height:1.5; text-align:left; padding: 0 4px;">${lastErr}</small>
-                    <small style="font-weight:400; color:#888; display:block; margin-top:6px;">Kemungkinan CORS atau jaringan tidak terjangkau.</small>
-                </div>`;
-        }
 
-        btn.disabled = false;
-        btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> REFRESH STOCK`;
+        } catch (err) {
+            console.error('Stock error:', err);
+            box.innerHTML = `<div class="stock-error">⚠️ Gagal mengambil data stock.<br><small style="font-weight:400; color:#666;">${err.message}</small></div>`;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> REFRESH STOCK`;
+        }
     }
 
     function renderStockResult(json, barcode) {

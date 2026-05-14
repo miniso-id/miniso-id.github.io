@@ -270,7 +270,7 @@ body.fade-in {
 </div>
 
 <div id="loginOverlay">
-    <button class="login-back-btn" onclick="window.location.href='https://miniso-id.github.io/app/?app=mmsx'" title="Back to Home">
+    <button class="login-back-btn" onclick="goToHomeWithoutSession()" title="Back to Home">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
     </button>
     <div class="login-box">
@@ -297,7 +297,7 @@ body.fade-in {
 
 <div id="sidebar" class="sidebar">
     <h2>MMS-X</h2>
-    <a href="https://miniso-id.github.io/app/?app=mmsx" onclick="toggleSidebar()">Home</a>
+    <a href="#" onclick="goToHomeWithoutSession(); return false;">Home</a>
     <a href="#" onclick="logout()" style="background:rgba(0,0,0,0.2); margin-top:20px;">Logout</a>
 </div>
 <div id="overlay" onclick="toggleSidebar()"></div>
@@ -479,8 +479,14 @@ if(localStorage.getItem('mms_auth') === 'true') {
 }
     function logout() {
     localStorage.clear(); 
-    window.location.href = "index.html"; 
+    window.location.href = "https://miniso-id.github.io/app/?app=mmsx"; 
 }
+
+    function goToHomeWithoutSession() {
+    localStorage.clear();
+    window.location.href = "https://miniso-id.github.io/app/?app=mmsx";
+}
+
 
     /* --- INISIALISASI ZXING --- */
     const codeReader = new ZXing.BrowserMultiFormatReader();

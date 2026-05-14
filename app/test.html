@@ -444,12 +444,11 @@ function navigateTo(url) {
                 .maybeSingle();
 
             if (data) {
-    localStorage.setItem('mmsx_auth', 'true');
-    localStorage.setItem('mmsx_role', role);
-    // Simpan store code dari kolom username
-    localStorage.setItem('mmsx_store_code', data.username); 
-    document.getElementById('loginOverlay').style.display = 'none';
-} else {
+                localStorage.setItem('mmsx_auth', 'true');
+                localStorage.setItem('mmsx_role', role); 
+                
+                document.getElementById('loginOverlay').style.display = 'none';
+            } else {
                 err.style.display = 'block';
             }
         } catch (e) {
@@ -1041,10 +1040,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
     // ============================================================
     const STOCK_PROXY_URL = `https://uesupubktkxfjsylcwwr.supabase.co/functions/v1/stock-proxy`;
     const STOCK_TOKEN    = '6ce941ee73098fea535a13a61a4b5d66';
-    
-    function getStoreCode() {
-    return localStorage.getItem('mmsx_store_code') || 'ID12'; // fallback
-}
+    const STOCK_STORE    = 'ID12';
 
     async function checkStock(barcode) {
     const btn = document.getElementById('btnCekStock');
@@ -1068,7 +1064,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
                 barCodeOrGoodsName: barcode,
                 pageSize: 20,
                 pageNum: 1,
-                storeCode: getStoreCode(),
+                storeCode: STOCK_STORE,
                 brandCode: 30,
             }),
         });
@@ -1077,12 +1073,12 @@ if(localStorage.getItem('mms_auth') === 'true') {
         console.log('Stock proxy response:', text);
 
         if (!text || text.trim() === '') {
-    box.innerHTML = `<div class="stock-empty-msg">📦 Tidak ada data stock untuk barcode ini di toko <b>${getStoreCode()}</b>.</div>`;
-    return;
-}
+            box.innerHTML = `<div class="stock-empty-msg">📦 Tidak ada data stock untuk barcode ini di toko <b>${STOCK_STORE}</b>.</div>`;
+            return;
+        }
 
         const json = JSON.parse(text);
-        renderStockResult(json, barcode, getStoreCode());
+        renderStockResult(json, barcode);
 
     } catch (err) {
         console.error('Stock error:', err);
@@ -1093,7 +1089,7 @@ if(localStorage.getItem('mms_auth') === 'true') {
     }
 }
 
-    function renderStockResult(json, barcode, storeCode) {
+    function renderStockResult(json, barcode) {
         const box = document.getElementById('stockResult');
         if (!box) return;
 
@@ -1104,13 +1100,13 @@ if(localStorage.getItem('mms_auth') === 'true') {
         box.innerHTML = `
             <div class="stock-header">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                STOCK TOKO <span class="store-badge">${storeCode}</span>
+                STOCK TOKO <span class="store-badge">${STOCK_STORE}</span>
                 <span style="margin-left:auto; font-size:10px; opacity:0.7;">${total} SKU ditemukan</span>
             </div>
         `;
 
         if (!items.length) {
-            box.innerHTML += `<div class="stock-empty-msg">📦 Tidak ada data stock untuk barcode ini di toko <b>${storeCode}</b>.</div>`;
+            box.innerHTML += `<div class="stock-empty-msg">📦 Tidak ada data stock untuk barcode ini di toko <b>${STOCK_STORE}</b>.</div>`;
             return;
         }
 

@@ -444,11 +444,12 @@ function navigateTo(url) {
                 .maybeSingle();
 
             if (data) {
-                localStorage.setItem('mmsx_auth', 'true');
-                localStorage.setItem('mmsx_role', role); 
-                
-                document.getElementById('loginOverlay').style.display = 'none';
-            } else {
+    localStorage.setItem('mmsx_auth', 'true');
+    localStorage.setItem('mmsx_role', role);
+    // Simpan store code dari kolom username
+    localStorage.setItem('mmsx_store_code', data.username); 
+    document.getElementById('loginOverlay').style.display = 'none';
+} else {
                 err.style.display = 'block';
             }
         } catch (e) {
@@ -1040,7 +1041,10 @@ if(localStorage.getItem('mms_auth') === 'true') {
     // ============================================================
     const STOCK_PROXY_URL = `https://uesupubktkxfjsylcwwr.supabase.co/functions/v1/stock-proxy`;
     const STOCK_TOKEN    = '6ce941ee73098fea535a13a61a4b5d66';
-    const STOCK_STORE    = 'ID12';
+    
+    function getStoreCode() {
+    return localStorage.getItem('mmsx_store_code') || 'ID12'; // fallback
+}
 
     async function checkStock(barcode) {
     const btn = document.getElementById('btnCekStock');

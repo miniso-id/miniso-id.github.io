@@ -99,7 +99,7 @@
             overflow:hidden; position:relative; border: 4px solid white;
             box-shadow: 0 10px 25px rgba(0,0,0,0.15);
         }
-        #reader video { width: 100%; height: 100%; object-fit: cover; image-rendering: crisp-edges; }
+        #reader video { width: 100%; height: 100%; object-fit: cover; }
         .focus-guide { position: absolute; inset: 20%; border: 2.5px solid var(--miniso-red); border-radius: 15px; pointer-events: none; z-index: 2; box-shadow: 0 0 0 1000px rgba(0,0,0,0.4); }
         .tap-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 3; }
         .tap-hint.warn { color: #FFD600; font-size: 12px; }
@@ -129,7 +129,7 @@
 
         #stockResult {
             margin-top: 14px; border-radius: 16px; overflow: hidden;
-            border: 1px solid #eee; display: none; /* Default hidden, akan diubah via JS */
+            border: 1px solid #eee; display: none; /* akan ditampilkan via JS */
         }
         .stock-header {
             background: #111; color: white; padding: 12px 16px;
@@ -220,7 +220,6 @@
         </div>
         <div id="reader">
             <video id="videoElement"></video>
-            <canvas id="cropCanvas" style="display:none;"></canvas>
             <div class="tap-hint">ARAHKAN BARCODE KE TENGAH KOTAK</div>
         </div>
         <div id="cameraControl"><select id="videoSource" style="padding: 10px; width: 100%; max-width: 300px; border-radius: 8px; margin: 10px auto; display:block;"></select></div>
@@ -235,32 +234,14 @@
 <audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
 
 <script>
-    // --- KONFIGURASI ---
+    // === KONFIGURASI ===
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const USER_SUPABASE_URL = SUPABASE_URL;
-    const USER_SUPABASE_KEY = SUPABASE_KEY;
-    const _userSupabase = supabase.createClient(USER_SUPABASE_URL, USER_SUPABASE_KEY);
+    const _userSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const STOCK_PROXY_URL = `${SUPABASE_URL}/functions/v1/stock-proxy`;
 
-    const CACHE_EXPIRATION = 86400000;
-    function saveToLocalCache(barcode, data) {
-        const cacheEntry = { timestamp: Date.now(), payload: data };
-        localStorage.setItem(`cache_${barcode}`, JSON.stringify(cacheEntry));
-    }
-    function getLocalCache(barcode) {
-        const rawData = localStorage.getItem(`cache_${barcode}`);
-        if (!rawData) return null;
-        const cacheEntry = JSON.parse(rawData);
-        if ((Date.now() - cacheEntry.timestamp) > CACHE_EXPIRATION) {
-            localStorage.removeItem(`cache_${barcode}`);
-            return null;
-        }
-        return cacheEntry.payload;
-    }
-
-    // --- LOGIN ---
+    // === LOGIN ===
     async function checkLogin() {
         const role = document.getElementById('loginAs').value;
         const user = document.getElementById('username').value;
@@ -279,21 +260,21 @@
             } else {
                 err.style.display = 'block';
             }
-        } catch (e) { alert("Error Koneksi Database User"); }
+        } catch (e) { alert("Error koneksi database user"); }
         finally { btn.innerText = "MASUK"; }
     }
 
-    (function autoLoginCheck() {
-        if (localStorage.getItem('mms_auth') === 'true' && localStorage.getItem('mms_role') !== 'Staff') {
-            document.addEventListener("DOMContentLoaded", () => {
-                const overlay = document.getElementById('loginOverlay');
-                if(overlay) overlay.style.display = 'none';
-            });
-        }
-    })();
+    // Auto-login (perbaiki key)
+    if (localStorage.getItem('mmsx_auth') === 'true') {
+        document.addEventListener("DOMContentLoaded", () => {
+            const overlay = document.getElementById('loginOverlay');
+            if(overlay) overlay.style.display = 'none';
+        });
+    }
+
     function logout() { localStorage.clear(); window.location.href = "index.html"; }
 
-    // --- SIDEBAR & UTILITAS ---
+    // === SIDEBAR & UTILITAS ===
     function toggleSidebar() {
         document.getElementById("sidebar").classList.toggle("active");
         document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none";
@@ -305,30 +286,38 @@
     }
     function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
 
-    // --- KATEGORI & PENCARIAN ---
+    // === KATEGORI & PENCARIAN ===
     let currentCategory = 'All';
     async function fetchCategories() {
-        const { data } = await _supabase.rpc('get_unique_categories');
-        if (data) {
-            const container = document.getElementById('catFilterContainer');
-            container.innerHTML = '<div class="cat-chip active" onclick="filterCat(\'All\', this)">All</div>';
-            data.forEach(item => {
-                const chip = document.createElement('div');
-                chip.className = 'cat-chip';
-                chip.innerText = item.category;
-                chip.onclick = () => filterCat(item.category, chip);
-                container.appendChild(chip);
-            });
-        }
+        try {
+            const { data } = await _supabase.rpc('get_unique_categories');
+            if (data) {
+                const container = document.getElementById('catFilterContainer');
+                container.innerHTML = '<div class="cat-chip active" onclick="filterCat(\'All\', this)">All</div>';
+                data.forEach(item => {
+                    const chip = document.createElement('div');
+                    chip.className = 'cat-chip';
+                    chip.innerText = item.category;
+                    chip.onclick = () => filterCat(item.category, chip);
+                    container.appendChild(chip);
+                });
+            }
+        } catch (e) { console.error("Gagal fetch kategori:", e); }
     }
     fetchCategories();
+
     function filterCat(cat, el) {
         document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
         el.classList.add('active');
         currentCategory = cat;
         search();
     }
-    document.getElementById("searchInput").oninput = () => { clearTimeout(window._searchTimer); window._searchTimer = setTimeout(search, 400); };
+
+    document.getElementById("searchInput").oninput = () => {
+        clearTimeout(window._searchTimer);
+        window._searchTimer = setTimeout(search, 400);
+    };
+
     async function search() {
         const q = document.getElementById("searchInput").value.trim();
         const list = document.getElementById("listContainer");
@@ -359,53 +348,45 @@
         }
     }
 
-    // --- SCANNER (ZXing + preprocessing) ---
+    // === SCANNER ZXING (SEDERHANA, TANPA PREPROCESSING RUMIT) ===
     const codeReader = new ZXing.BrowserMultiFormatReader();
-    let scanning = false, lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
-    const _canvas = document.getElementById('cropCanvas');
-    const _ctx = _canvas.getContext('2d', { willReadFrequently: true });
-    const _canvasWarp = document.createElement('canvas');
-    const _ctxWarp = _canvasWarp.getContext('2d', { willReadFrequently: true });
-    const nativeDetector = ('BarcodeDetector' in window) ? new BarcodeDetector({ formats: ['code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e'] }) : null;
-
-    function applyContrastGrayscale(imageData, contrast = 60) {
-        const d = imageData.data;
-        const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
-        for (let i = 0; i < d.length; i += 4) {
-            const gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
-            const v = Math.min(255, Math.max(0, factor * (gray - 128) + 128));
-            d[i] = d[i+1] = d[i+2] = v;
-        }
-        return imageData;
-    }
-    // ... (fungsi preprocessing lainnya tetap sama seperti kode sebelumnya, disingkat untuk fokus)
-    function preprocessFrame(video, zoomFactor = 1.5) {
-        const vw = video.videoWidth, vh = video.videoHeight;
-        if (!vw || !vh) return null;
-        const cropW = Math.floor(vw / zoomFactor), cropH = Math.floor(vh / zoomFactor);
-        const cropX = Math.floor((vw - cropW) / 2), cropY = Math.floor((vh - cropH) / 2);
-        const outW = 640, outH = Math.floor(outW * (cropH / cropW));
-        _canvas.width = outW; _canvas.height = outH;
-        _ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, outW, outH);
-        const imageData = _ctx.getImageData(0, 0, outW, outH);
-        applyContrastGrayscale(imageData, 60); _ctx.putImageData(imageData, 0, 0);
-        return _canvas;
-    }
+    let scanning = false;
+    let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
 
     document.getElementById("scanBtn").onclick = () => scanning ? stopScan() : startScan(lastSelectedDeviceId);
+
     async function startScan(deviceId = null) {
         scanning = true;
         document.getElementById("reader").style.display = "block";
-        // ... (kode startScan sama persis dengan sebelumnya, hanya bagian onDetected diubah panggil loadProductDetail)
-        const constraints = { video: { deviceId: deviceId ? { exact: deviceId } : undefined, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 }, facingMode: "environment" } };
+        const constraints = {
+            video: {
+                deviceId: deviceId ? { exact: deviceId } : undefined,
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                facingMode: "environment"
+            }
+        };
         try {
             await codeReader.decodeFromConstraints(constraints, 'videoElement', (result, err) => {
-                if (result && !isProcessingScan) onDetected(result.text);
+                if (result) onDetected(result.text);
             });
-            // ... native detector loop
-        } catch (e) { console.error(e); if (deviceId) { codeReader.reset(); startScan(null); } }
+        } catch (e) {
+            console.error("Gagal memulai scanner:", e);
+            stopScan();
+            if (deviceId) {
+                // coba lagi tanpa deviceId spesifik
+                lastSelectedDeviceId = null;
+                startScan(null);
+            }
+        }
     }
-    function stopScan() { codeReader.reset(); scanning = false; document.getElementById("reader").style.display = "none"; }
+
+    function stopScan() {
+        codeReader.reset();
+        scanning = false;
+        document.getElementById("reader").style.display = "none";
+    }
+
     let isProcessingScan = false;
     async function onDetected(code) {
         if (isProcessingScan) return;
@@ -417,8 +398,9 @@
         isProcessingScan = false;
     }
 
-    // --- DETAIL PRODUK + STOCK ---
+    // === DETAIL PRODUK + STOK ===
     function getStoreCode() { return localStorage.getItem('mmsx_store_code') || 'ID00'; }
+
     const prodTranslations = {
         id: {
             stockLoading: "Menghubungi server MINISO...",
@@ -518,7 +500,9 @@
         </div>`;
         det.innerHTML = html;
 
-        JsBarcode("#barcodeCanvas", barcode, { format: "CODE128", lineColor: "#000", width: 2, height: 40, displayValue: false });
+        JsBarcode("#barcodeCanvas", barcode, {
+            format: "CODE128", lineColor: "#000", width: 2, height: 40, displayValue: false
+        });
 
         renderStockSection(items, barcode, getStoreCode(), t);
     }
@@ -580,7 +564,7 @@
         });
 
         box.innerHTML = stockHtml;
-        box.style.display = 'block'; // PENTING: tampilkan elemen yang sebelumnya display:none
+        box.style.display = 'block';
     }
 
     function back() {
@@ -591,10 +575,13 @@
         document.getElementById("searchInput").value = "";
     }
 
-    // AI Vision (disederhanakan)
+    // AI Vision (placeholder)
     document.getElementById('aiSearchBtn').onclick = async () => {
         alert("Fitur AI Vision belum tersedia di demo ini.");
     };
+
+    // Tampilkan body setelah semua siap
+    document.body.classList.add('fade-in');
 </script>
 </body>
 </html>

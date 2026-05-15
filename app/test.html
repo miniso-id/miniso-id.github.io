@@ -8,7 +8,7 @@
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     
     <style>
         :root {
@@ -21,47 +21,21 @@
             --sidebar-width: 280px;
         }
 
-/* Animasi Masuk Halaman */
-body {
-    opacity: 0;
-    transition: opacity 0.2s ease-in;
-}
+        /* Animasi Masuk Halaman */
+        body {
+            opacity: 0;
+            transition: opacity 0.2s ease-in;
+        }
 
-body.fade-in {
-    opacity: 1;
-}
+        body.fade-in {
+            opacity: 1;
+        }
 
-/* Animasi Keluar Halaman */
-.fade-out {
-    opacity: 0 !important;
-    transition: opacity 0.2s ease-out;
-}
-
-/* Kotak Fokus yang Lebih Responsif */
-/*
-.focus-guide {
-    position: absolute;
-    inset: 15%; 
-    border: 2px solid rgba(255, 255, 255, 0.5);
-    border-radius: 15px;
-    z-index: 2;
-    box-shadow: 0 0 0 1000px rgba(0,0,0,0.5);
-}
-
-.focus-guide::before, .focus-guide::after {
-    content: "";
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    border: 4px solid var(--miniso-red);
-}
-
-
-
-.focus-guide::before { top: -2px; left: -2px; border-right: 0; border-bottom: 0; border-top-left-radius: 12px; }
-.focus-guide::after { bottom: -2px; right: -2px; border-left: 0; border-top: 0; border-bottom-right-radius: 12px; }
-        
-*/
+        /* Animasi Keluar Halaman */
+        .fade-out {
+            opacity: 0 !important;
+            transition: opacity 0.2s ease-out;
+        }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
@@ -486,15 +460,14 @@ function mapStockToProduct(stockItem) {
         Barcode: stockItem.barCode || '',
         Name: stockItem.name || '',
         Description: stockItem.name || '',
-        Category: stockItem.category || 'GENERAL',
-        "Detail Category": stockItem.detailCategory || '',
+        Category: stockItem.bigCatName || 'GENERAL',
+        "Detail Category": stockItem.scName || '',
         Image: stockItem.picList?.[0]?.materialPictureUrl || '',
         "Regular Store Price": stockItem.retailPrice || '0',
         "Street Store Price": stockItem.retailPrice || '0',
-        "Regular Store Promo": "NORMAL",
+        "Regular Store Promo": stockItem.lifecycleName || "NORMAL",
         "Street Store Promo": "NORMAL",
         "Extra Promo": "",
-        // Stock info
         totalInvent: parseInt(stockItem.totalInvent ?? 0),
         availableInvent: parseInt(stockItem.availableInvent ?? 0),
         inTransitInvent: parseInt(stockItem.inTransitInvent ?? 0)
@@ -533,6 +506,50 @@ async function queryStockAPI(barcode) {
         console.error('Stock API error:', error);
         return null;
     }
+}
+
+// Ambil data promo dari tabel export berdasarkan barcode
+async function fetchPromoFromExport(barcode) {
+    try {
+        const { data, error } = await _supabase
+            .from('export')
+            .select('"Regular Store Promo", "Street Store Promo", "Extra Promo"')
+            .eq('Barcode', barcode)
+            .maybeSingle();
+
+        if (data && !error) {
+            return {
+                regularPromo: data["Regular Store Promo"] || null,
+                streetPromo: data["Street Store Promo"] || null,
+                extraPromo: data["Extra Promo"] || null
+            };
+        }
+    } catch (e) {
+        console.warn('Gagal ambil promo dari export:', e);
+    }
+    return null;
+}
+
+// Gabungkan data Miniso + promo dari Supabase
+async function enrichProductWithPromo(product) {
+    if (!product || !product.Barcode) return product;
+
+    const promoData = await fetchPromoFromExport(product.Barcode);
+    
+    if (promoData) {
+        // Jangan timpa jika promo dari Miniso lebih baik (misal tidak "NORMAL")
+        if (!product["Regular Store Promo"] || product["Regular Store Promo"] === "NORMAL") {
+            product["Regular Store Promo"] = promoData.regularPromo || product["Regular Store Promo"] || "NORMAL";
+        }
+        if (!product["Street Store Promo"] || product["Street Store Promo"] === "NORMAL") {
+            product["Street Store Promo"] = promoData.streetPromo || product["Street Store Promo"] || "NORMAL";
+        }
+        if (!product["Extra Promo"]) {
+            product["Extra Promo"] = promoData.extraPromo || "";
+        }
+    }
+
+    return product;
 }
 
 let scanning = false, lastScroll = 0, timer;
@@ -613,7 +630,6 @@ async function search() {
                     const barcode = item.barCode || '';
                     const name = item.name || '';
                     const price = parseInt(item.retailPrice || 0);
-                    const imgUrl = item.picList?.[0]?.materialPictureUrl || '';
                     
                     return `
                         <div class="list-item" onclick="showDetail('${barcode}'); document.getElementById('searchInput').value=''">
@@ -1213,7 +1229,7 @@ async function onDetected(code) {
         isProcessingScan = true;
         try {
             stopScan();
-            renderDetailView(cachedData); // Langsung render, tidak perlu query lagi
+            renderDetailView(cachedData);
             document.getElementById("beepOk").play();
             document.getElementById("searchInput").blur();
             document.getElementById("searchInput").value = code;
@@ -1223,19 +1239,20 @@ async function onDetected(code) {
         return;
     }
 
-    // Cek cooldown barcode yang sudah terbukti tidak ada di DB
     const failedAt = failedBarcodes.get(code);
     if (failedAt && (Date.now() - failedAt) < FAILED_COOLDOWN) return;
-
     if (isProcessingScan) return;
     isProcessingScan = true;
 
     try {
-        const data = await queryWithTimeout(code);
-        if (data) {
-            saveToLocalCache(code, data);
+        let product = await queryStockAPI(code);
+        
+        if (product) {
+            // Perkaya data promo dari Supabase export table
+            product = await enrichProductWithPromo(product);
+            saveToLocalCache(code, product);
             stopScan();
-            renderDetailView(data); // Langsung render dari data yang baru diambil
+            renderDetailView(product);
             document.getElementById("beepOk").play();
             document.getElementById("searchInput").blur();
             document.getElementById("searchInput").value = code;
@@ -1339,13 +1356,14 @@ function renderDetailView(p) {
 async function showDetail(fullBarcode) {
     lastScroll = document.getElementById("scrollContainer").scrollTop;
     
-    // Cek cache dulu — tidak perlu query jika sudah ada
     let p = getLocalCache(fullBarcode);
     
     if (!p) {
-        const data = await queryStockAPI(fullBarcode);
-        if (!data) return;
-        p = data;
+        p = await queryStockAPI(fullBarcode);
+        if (!p) return;
+        
+        // Perkaya data promo dari Supabase export table
+        p = await enrichProductWithPromo(p);
         saveToLocalCache(fullBarcode, p);
     }
     

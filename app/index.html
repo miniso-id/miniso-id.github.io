@@ -354,15 +354,7 @@ body.fade-in {
         <div class="login-title">Welcome Back!</div>
         <p class="login-subtitle">Silakan login untuk mengakses MMS-X</p>
         
-        <div class="input-group">
-            <label>LOGIN AS</label>
-            <select id="loginAs" class="custom-input">
-                <option value="Administrator">Administrator</option>
-                <option value="Area">Area</option>
-                <option value="Store">Store</option>
-                <option value="Staff">Staff</option>
-            </select>
-        </div>
+
         <div class="input-group">
             <label>USERNAME</label>
             <input type="text" id="username" class="custom-input" placeholder="Masukkan username" autocomplete="username">
@@ -411,7 +403,7 @@ body.fade-in {
                 <div class="banner-left">
                     <img src="https://miniso-id.github.io/app/user512.png" class="banner-logo-img">
                     <div class="banner-text">
-                        <h2>MMS-X<span class="app-version">v3.0.0.6 • AI Vision</span></h2>
+                        <h2>MMS-X<span class="app-version">v3.0.0.7 • AI Vision</span></h2>
                         <p>User: <span id="displayUsername">Guest</span></p>
                     </div>
                 </div>
@@ -634,32 +626,31 @@ document.addEventListener('DOMContentLoaded', updateOnlineStatus);
         else { menuGallery.style.display = 'flex'; }
     }
 
-    async function attemptLogin() {
-    const role = document.getElementById('loginAs').value;
+async function attemptLogin() {
     const user = document.getElementById('username').value;
     const pass = document.getElementById('password').value;
     const errorMsg = document.getElementById('loginError');
     const loginBtn = document.querySelector('.btn-primary');
     
-    // Ambil bahasa aktif
     const currentLang = localStorage.getItem('mms_lang') || 'id';
     const t = translations[currentLang];
 
-    // Mulai Loading
     loginBtn.disabled = true;
     loginBtn.innerHTML = `<span class="spinner"></span> ${t.loading}`;
     loginBtn.style.opacity = "0.8";
     errorMsg.style.display = 'none';
 
     try {
+        // Query tanpa kolom 'login as', cukup username & password
         const { data, error } = await _supabase.from('users')
             .select('*')
-            .eq('login as', role)
             .eq('username', user)
             .eq('password', pass)
             .maybeSingle();
 
         if (data) {
+            // Ambil peran dari kolom 'login as' di database
+            const role = data['login as']; // pastikan nama kolom persis
             localStorage.setItem('mms_auth', 'true');
             localStorage.setItem('mms_role', role);
             localStorage.setItem('mms_user', user);
@@ -668,16 +659,13 @@ document.addEventListener('DOMContentLoaded', updateOnlineStatus);
             localStorage.setItem('mmsx_store_code', user);
             showApp();
         } else {
-            // Pesan error sesuai bahasa
             errorMsg.innerText = t.loginFail;
             errorMsg.style.display = 'block';
         }
     } catch (err) {
-        // Pesan gangguan koneksi sesuai bahasa
         errorMsg.innerText = t.connError;
         errorMsg.style.display = 'block';
     } finally {
-        // Kembalikan tombol ke teks awal sesuai bahasa
         loginBtn.disabled = false;
         loginBtn.innerHTML = t.btnLog;
         loginBtn.style.opacity = "1";
@@ -735,7 +723,6 @@ const translations = {
     id: {
         loginTitle: "Selamat Datang Kembali!",
         loginSubtitle: "Silakan masuk untuk mengakses sistem MMS-X",
-        labelLoginAs: "MASUK SEBAGAI",
         labelUser: "NAMA PENGGUNA",
         labelPass: "KATA SANDI",
         placeholderUser: "Ketik nama pengguna",
@@ -764,7 +751,6 @@ const translations = {
     en: {
         loginTitle: "Welcome Back!",
         loginSubtitle: "Please login to access MMS-X system",
-        labelLoginAs: "LOGIN AS",
         labelUser: "USERNAME",
         labelPass: "PASSWORD",
         placeholderUser: "Enter username",
@@ -793,7 +779,6 @@ const translations = {
     cn: {
         loginTitle: "欢迎回来！",
         loginSubtitle: "请登录以访问 MMS-X 系统",
-        labelLoginAs: "登录身份",
         labelUser: "用户名",
         labelPass: "密码",
         placeholderUser: "输入用户名",
@@ -830,9 +815,10 @@ function applyLanguage(lang) {
     document.querySelector('.login-title').innerText = t.loginTitle;
     document.querySelector('.login-subtitle').innerText = t.loginSubtitle;
     const labels = document.querySelectorAll('.input-group label');
-    labels[0].innerText = t.labelLoginAs;
-    labels[1].innerText = t.labelUser;
-    labels[2].innerText = t.labelPass;
+if (labels.length >= 2) {
+    labels[0].innerText = t.labelUser;
+    labels[1].innerText = t.labelPass;
+}
     document.getElementById('username').placeholder = t.placeholderUser;
     document.querySelector('.btn-primary').innerText = t.btnLog;
 

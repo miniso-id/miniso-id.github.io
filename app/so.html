@@ -14,36 +14,69 @@
       overflow: hidden;
       font-family: system-ui, -apple-system, BlinkMacSystemFont;
       background: #f4f6f9;
-
-      /* Menghormati safe area (status bar & nav bar) */
-      padding-top: env(safe-area-inset-top);
-      padding-bottom: env(safe-area-inset-bottom);
     }
 
-    iframe {
+    /* Bilah atas untuk tombol kembali */
+    #topBar {
+      width: 100%;
+      height: 44px; /* tinggi pas untuk jari */
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      padding-left: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      z-index: 100;
+      position: relative;
+      /* Aman dari notch */
+      padding-top: env(safe-area-inset-top);
+      box-sizing: content-box; /* agar padding-top menambah tinggi total */
+    }
+
+    #backButton {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.05);
+      border: 1px solid #ddd;
+      font-size: 20px;
+      font-weight: bold;
+      color: #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    #backButton:active {
+      background: rgba(0,0,0,0.15);
+    }
+
+    /* Judul kecil di samping tombol (opsional) */
+    #titleHint {
+      margin-left: 12px;
+      font-size: 14px;
+      color: #666;
+      font-weight: 500;
+    }
+
+    /* Iframe mengisi sisa tinggi di bawah bilah atas */
+    #stockFrame {
       border: none;
       width: 100%;
-      height: 100%;  /* Mengikuti tinggi area konten setelah padding */
+      height: calc(100% - 44px - env(safe-area-inset-top));
       display: block;
-    }
-
-    #warning {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(255,0,0,0.2);
-      color: #900;
-      font-size: 18px;
-      font-weight: bold;
-      text-align: center;
-      padding-top: 40vh;
-      z-index: 9999;
     }
   </style>
 </head>
 <body>
-  <div id="warning">⚠️ Halaman ini optimal di WebView / iframe. Di browser biasa, layout mungkin kurang pas.</div>
+  <!-- Bilah atas dengan tombol kembali -->
+  <div id="topBar">
+    <div id="backButton" onclick="goToMMSX()" title="Kembali ke MMS-X">←</div>
+    <div id="titleHint">Kembali ke Menu Utama</div>
+  </div>
 
   <iframe id="stockFrame"
     src="https://script.google.com/macros/s/AKfycbyT3PRoqiv_epPOPQtQKOFukkA-SVFsO4twJUfPGs8-CZ8QJSHxgyBnCttwRVmhi2W-bg/exec"
@@ -53,12 +86,15 @@
   </iframe>
 
   <script>
-    // Tidak perlu resize manual, CSS sudah menangani 100% secara responsif.
-    // Fungsi ini hanya sebagai fallback untuk browser lama.
+    function goToMMSX() {
+      // Arahkan ke halaman MMS-X
+      window.location.href = "https://miniso-id.github.io/app/?app=mmsx";
+    }
+
+    // Sesuaikan tinggi iframe saat orientasi berubah
     function resizeIframe() {
       const iframe = document.getElementById('stockFrame');
-      iframe.style.width = '100%';
-      iframe.style.height = '100%';
+      iframe.style.height = (window.innerHeight - 44 - (window.safeAreaInsets?.top || 0)) + 'px';
     }
 
     window.addEventListener('resize', resizeIframe);

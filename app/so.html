@@ -11,7 +11,8 @@ html, body {
   padding:0;
   width:100%;
   height:100%;
-  overflow:hidden;
+  overflow-x:hidden;
+  overflow-y:auto;
   font-family: system-ui, -apple-system, BlinkMacSystemFont;
   background:#f4f6f9;
 }
@@ -19,8 +20,10 @@ html, body {
 iframe {
   border:none;
   width:100%;
-  height:100%;
+  height:calc(100% - 30px);
   display:block;
+  margin-top:30px;
+  padding-top:env(safe-area-inset-top, 0);
 }
 
 /* Opsional: warning jika iframe dibuka di browser mobile biasa */
@@ -47,7 +50,7 @@ iframe {
   src="https://script.google.com/macros/s/AKfycbwbaTsgm0Ai8lmkHLFcA1cqtWujOusIA-jDpnlxTGy34MEH1hwDgom63VSexLYY7W1bPw/exec"
   loading="lazy"
   allowfullscreen
-  scrolling="no">
+  scrolling="yes">
 </iframe>
 
 <script>
@@ -69,7 +72,7 @@ function inIframe() {
 function resizeIframe(){
   const iframe = document.getElementById('stockFrame');
   iframe.style.width = window.innerWidth + 'px';
-  iframe.style.height = window.innerHeight + 'px';
+  iframe.style.height = (window.innerHeight - 30) + 'px';
 }
 
 // Event resize

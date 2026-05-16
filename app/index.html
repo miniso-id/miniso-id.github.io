@@ -642,7 +642,7 @@
                 </svg>
             </div>
             <h2>Versi Baru Tersedia</h2>
-            <p>Klik tombol di bawah untuk memperbarui aplikasi</p>
+            <p id="updateDescription">Klik tombol di bawah untuk memperbarui aplikasi</p>
             <button id="forceUpdateBtn" class="btn-force-update">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                 UPDATE SEKARANG
@@ -748,7 +748,7 @@
         let isForceUpdateActive = false;
         const forceOverlay = document.getElementById('forceUpdateOverlay');
         const forceUpdateBtn = document.getElementById('forceUpdateBtn');
-        const APP_VERSION = "3.1.0.12";
+        const APP_VERSION = "3.1.0.15";
 
         function showForceUpdateBlocker(worker) {
             if (isForceUpdateActive) return;
@@ -770,7 +770,7 @@
                 return;
             }
             const btn = forceUpdateBtn;
-            btn.innerHTML = '<span class="spinner"></span> MENGUPDATE...';
+            btn.innerHTML = '<span class="spinner"></span> UPDATING...';
             btn.classList.add('disabled');
             pendingWorker.postMessage('skipWaiting');
         }
@@ -992,6 +992,7 @@
                 feishuTitle: "Grup Feishu", feishuDesc: "Komunikasi Tim",
                 updateTitle: "Pembaruan", updateDesc: "Muat Ulang Sistem",
                 logoutBtn: "KELUAR", loginFail: "Username atau Password salah!",
+                verDesc: "Klik tombol di bawah untuk memperbarui aplikasi",
                 connError: "Gangguan koneksi ke server.", verTitle: "Versi Baru Tersedia!",
                 offTitle: "Koneksi Terputus", offDesc: "MMS-X memerlukan internet. Menu telah dinonaktifkan hingga kamu terhubung kembali.",
                 helpBtn: "BANTUAN LOGIN (GRUP FEISHU)", verBtn: "PERBARUI"
@@ -1008,6 +1009,7 @@
                 logoutBtn: "LOGOUT", loginFail: "Invalid Username or Password!",
                 connError: "Connection error to server.", verTitle: "New Version Available!",
                 offTitle: "Connection Lost", offDesc: "MMS-X requires internet. Menu has been disabled until you are reconnected.",
+                verDesc: "Click the button below to update the application",
                 helpBtn: "LOGIN HELP (FEISHU GROUP)", verBtn: "UPDATE NOW"
             },
             cn: {
@@ -1022,6 +1024,7 @@
                 logoutBtn: "登出", loginFail: "用户名或密码错误！",
                 connError: "连接服务器失败。", verTitle: "新版本可用！",
                 offTitle: "连接已断开", offDesc: "MMS-X 需要互联网连接。菜单已禁用，直到您重新连接。",
+                verDesc: "点击下方按钮更新应用",
                 helpBtn: "登录帮助 (飞书群)", verBtn: "立即更新"
             }
         };
@@ -1037,6 +1040,8 @@
                 labels[1].innerText = t.labelPass;
             }
             document.getElementById('username').placeholder = t.placeholderUser;
+            const overlayDesc = document.getElementById('updateDescription');
+            if (overlayDesc) overlayDesc.innerText = t.verDesc;
             const loginBtn = document.querySelector('.btn-primary');
             if (loginBtn && !loginBtn.disabled) loginBtn.innerText = t.btnLog;
             const offCard = document.querySelector('.offline-card');

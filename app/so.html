@@ -32,23 +32,11 @@
       box-sizing: content-box; /* agar padding-top menambah tinggi total */
     }
 
-    #backButton {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: rgba(0,0,0,0.05);
-      border: 1px solid #ddd;
-      font-size: 20px;
-      font-weight: bold;
-      color: #333;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: background 0.2s;
-      line-height: 1;
-      flex-shrink: 0;
-    }
+#backBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
     #backButton:active {
       background: rgba(0,0,0,0.15);
@@ -73,10 +61,12 @@
 </head>
 <body>
   <!-- Bilah atas dengan tombol kembali -->
-  <div id="topBar">
-    <div id="backButton" onclick="goToMMSX()" title="Kembali ke MMS-X">←</div>
-    <div id="titleHint">Kembali ke Menu Utama</div>
-  </div>
+
+  <div id="backBtn" onclick="goBack()" title="Kembali">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 12H5M12 19l-7-7 7-7"/>
+  </svg>
+</div>
 
   <iframe id="stockFrame"
     src="https://script.google.com/macros/s/AKfycbyT3PRoqiv_epPOPQtQKOFukkA-SVFsO4twJUfPGs8-CZ8QJSHxgyBnCttwRVmhi2W-bg/exec"

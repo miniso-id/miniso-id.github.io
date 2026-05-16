@@ -716,7 +716,6 @@
             </div>
             <h2>Versi Baru Tersedia</h2>
             <p>Update diperlukan untuk melanjutkan operasional. Klik tombol di bawah untuk memperbarui aplikasi secara instan.</p>
-            <div class="update-version">🚀 MMS-X v3.2.0</div>
             <button id="forceUpdateBtn" class="btn-force-update">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                 UPDATE SEKARANG
@@ -770,7 +769,6 @@
                     <div class="banner-left">
                         <img src="https://miniso-id.github.io/app/user512.png" class="banner-logo-img" alt="logo">
                         <div class="banner-text">
-                            <h2>MMS-X<span class="app-version">v3.1.0.3 • AI Vision</span></h2>
                             <p>User: <span id="displayUsername">Guest</span></p>
                         </div>
                     </div>
@@ -830,6 +828,7 @@
         let isForceUpdateActive = false;
         const forceOverlay = document.getElementById('forceUpdateOverlay');
         const forceUpdateBtn = document.getElementById('forceUpdateBtn');
+        const APP_VERSION = "3.1.0.4";   // 🚀 cukup ubah angka ini
 
         function showForceUpdateBlocker(worker) {
             if (isForceUpdateActive) return;
@@ -906,6 +905,14 @@
             }
         }
 
+        function setVersionTexts() {
+    const v = APP_VERSION;
+    const bannerSpan = document.querySelector('.app-version');
+    const updateDiv = document.querySelector('.update-version');
+    if (bannerSpan) bannerSpan.textContent = `v${v} • AI Vision`;
+    if (updateDiv) updateDiv.textContent = `🚀 MMS-X v${v}`;
+}
+
         // ========== LOGIN ==========
         async function attemptLogin() {
             const user = document.getElementById('username').value.trim();
@@ -968,6 +975,7 @@
             document.getElementById('loginOverlay').style.display = 'none';
             document.getElementById('appContent').style.display = 'flex';
             document.getElementById('displayUsername').innerText = localStorage.getItem('mms_user') || 'User';
+            setVersionTexts();
             checkPermissions();
             fetchIndonesianHoliday();
         }
@@ -1210,6 +1218,7 @@
         // ========== INIT ==========
         window.onload = () => {
             document.body.classList.add('fade-in');
+            setVersionTexts();
             if (localStorage.getItem('mms_auth') === 'true') showApp();
             injectLangSwitcher();
             updateOnlineStatus();

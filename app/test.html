@@ -217,19 +217,21 @@
 
         /* ---------- LOGIN ---------- */
         #loginOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: #ffffff;
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            transition: opacity 0.25s ease; /* transisi login */
-        }
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #ffffff;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        transition: opacity 0.35s cubic-bezier(0.4, 0.0, 0.2, 1), 
+                    transform 0.35s cubic-bezier(0.4, 0.0, 0.2, 1);
+        transform: scale(1);
+    }
 
         .login-card {
             width: 100%;
@@ -345,13 +347,15 @@
 
         /* ---------- APP CONTENT ---------- */
         #appContent {
-            display: none;
-            height: 100vh;
-            flex-direction: column;
-            background: #fafafa;
-            opacity: 0;
-            transition: opacity 0.25s ease; /* transisi app */
-        }
+        display: none;
+        height: 100vh;
+        flex-direction: column;
+        background: #fafafa;
+        opacity: 0;
+        transform: scale(0.98) translateY(10px); /* mulai dari sedikit mengecil & turun */
+        transition: opacity 0.35s cubic-bezier(0.4, 0.0, 0.2, 1), 
+                    transform 0.35s cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
 
         .main-content {
             flex: 1;
@@ -893,33 +897,38 @@
 
         // ========== TRANSISI LOGIN & APP ==========
         function showApp(instant = false) {
-            const loginOverlay = document.getElementById('loginOverlay');
-            const appContent = document.getElementById('appContent');
-            document.getElementById('displayUsername').innerText = localStorage.getItem('mms_user') || 'User';
-            setVersionTexts();
-            checkPermissions();
+        const loginOverlay = document.getElementById('loginOverlay');
+        const appContent = document.getElementById('appContent');
+        document.getElementById('displayUsername').innerText = localStorage.getItem('mms_user') || 'User';
+        setVersionTexts();
+        checkPermissions();
 
-            if (instant) {
-                loginOverlay.style.display = 'none';
-                appContent.style.display = 'flex';
-                appContent.style.opacity = '1';
-                fetchIndonesianHoliday();
-                return;
-            }
-
-            // Transisi login -> app
-            loginOverlay.style.opacity = '0';
-            setTimeout(() => {
-                loginOverlay.style.display = 'none';
-                appContent.style.display = 'flex';
-                appContent.style.opacity = '0';
-                // Trigger reflow lalu fade in
-                requestAnimationFrame(() => {
-                    appContent.style.opacity = '1';
-                });
-                fetchIndonesianHoliday();
-            }, 250);
+        if (instant) {
+            loginOverlay.style.display = 'none';
+            appContent.style.display = 'flex';
+            appContent.style.opacity = '1';
+            appContent.style.transform = 'scale(1) translateY(0)';
+            fetchIndonesianHoliday();
+            return;
         }
+
+        // Login memudar & sedikit membesar (efek menguap)
+        loginOverlay.style.opacity = '0';
+        loginOverlay.style.transform = 'scale(1.03)';
+
+        setTimeout(() => {
+            loginOverlay.style.display = 'none';
+            appContent.style.display = 'flex';
+            
+            // Trigger reflow
+            requestAnimationFrame(() => {
+                appContent.style.opacity = '1';
+                appContent.style.transform = 'scale(1) translateY(0)';
+            });
+
+            fetchIndonesianHoliday();
+        }, 350); // sama dengan durasi transisi
+    }
 
         function doLogout() {
             localStorage.removeItem('mms_auth');

@@ -15,10 +15,8 @@
     }
     </script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js">
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
         :root {
@@ -74,9 +72,7 @@
         }
 
         @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
+            to { transform: rotate(360deg); }
         }
 
         /* ---------- OFFLINE OVERLAY ---------- */
@@ -106,14 +102,8 @@
         }
 
         @keyframes popIn {
-            from {
-                transform: scale(0.85);
-                opacity: 0;
-            }
-            to {
-                transform: scale(1);
-                opacity: 1;
-            }
+            from { transform: scale(0.85); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
 
         /* ---------- FORCE UPDATE OVERLAY ---------- */
@@ -153,14 +143,8 @@
         }
 
         @keyframes floatIn {
-            0% {
-                transform: scale(0.9) translateY(24px);
-                opacity: 0;
-            }
-            100% {
-                transform: scale(1) translateY(0);
-                opacity: 1;
-            }
+            0% { transform: scale(0.9) translateY(24px); opacity: 0; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
         }
 
         .update-icon {
@@ -225,10 +209,7 @@
             box-shadow: 0 12px 22px rgba(230, 21, 35, 0.2);
         }
 
-        .btn-force-update:active {
-            transform: scale(0.96);
-        }
-
+        .btn-force-update:active { transform: scale(0.96); }
         .btn-force-update.disabled {
             opacity: 0.6;
             pointer-events: none;
@@ -236,18 +217,21 @@
 
         /* ---------- LOGIN ---------- */
         #loginOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: #ffffff;
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #ffffff;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        transition: opacity 0.35s cubic-bezier(0.4, 0.0, 0.2, 1), 
+                    transform 0.35s cubic-bezier(0.4, 0.0, 0.2, 1);
+        transform: scale(1);
+    }
 
         .login-card {
             width: 100%;
@@ -257,14 +241,8 @@
         }
 
         @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(18px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(18px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .login-logo {
@@ -340,9 +318,7 @@
             justify-content: center;
         }
 
-        .btn-primary:active {
-            opacity: 0.85;
-        }
+        .btn-primary:active { opacity: 0.85; }
 
         .btn-feishu-login {
             width: 100%;
@@ -371,11 +347,15 @@
 
         /* ---------- APP CONTENT ---------- */
         #appContent {
-            display: none;
-            height: 100vh;
-            flex-direction: column;
-            background: #fafafa;
-        }
+        display: none;
+        height: 100vh;
+        flex-direction: column;
+        background: #fafafa;
+        opacity: 0;
+        transform: scale(0.98) translateY(10px); /* mulai dari sedikit mengecil & turun */
+        transition: opacity 0.35s cubic-bezier(0.4, 0.0, 0.2, 1), 
+                    transform 0.35s cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
 
         .main-content {
             flex: 1;
@@ -458,9 +438,7 @@
             transition: background 0.2s;
         }
 
-        .btn-logout:active {
-            background: rgba(255, 255, 255, 0.3);
-        }
+        .btn-logout:active { background: rgba(255, 255, 255, 0.3); }
 
         /* ---------- HOLIDAY BANNER ---------- */
         .holiday-banner {
@@ -478,23 +456,9 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
         }
 
-        .holiday-icon {
-            font-size: 32px;
-            line-height: 1;
-        }
-
-        .holiday-text h4 {
-            margin: 0;
-            font-size: 15px;
-            font-weight: 700;
-            color: #1a1a1a;
-        }
-
-        .holiday-text p {
-            margin: 2px 0 0;
-            font-size: 12px;
-            color: #888;
-        }
+        .holiday-icon { font-size: 32px; line-height: 1; }
+        .holiday-text h4 { margin: 0; font-size: 15px; font-weight: 700; color: #1a1a1a; }
+        .holiday-text p { margin: 2px 0 0; font-size: 12px; color: #888; }
 
         /* ---------- DASHBOARD GRID ---------- */
         #dashboard {
@@ -567,16 +531,8 @@
             flex-shrink: 0;
         }
 
-        .top-bar {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .search-container {
-            position: relative;
-            flex: 1;
-        }
+        .top-bar { display: flex; gap: 10px; align-items: center; }
+        .search-container { position: relative; flex: 1; }
 
         #searchInput {
             width: 100%;
@@ -633,20 +589,10 @@
                 padding: 18px 10px 16px;
                 min-height: 140px;
             }
-            .icon-box {
-                width: 52px;
-                height: 52px;
-                border-radius: 16px;
-            }
-            .menu-card h3 {
-                font-size: 14px;
-            }
-            .menu-card p {
-                font-size: 11px;
-            }
-            .banner-card {
-                padding: 14px 16px;
-            }
+            .icon-box { width: 52px; height: 52px; border-radius: 16px; }
+            .menu-card h3 { font-size: 14px; }
+            .menu-card p { font-size: 11px; }
+            .banner-card { padding: 14px 16px; }
         }
     </style>
 </head>
@@ -656,8 +602,7 @@
     <script>
         (function() {
             const LOGO = "https://miniso-id.github.io/app/user512.png";
-            const APK_LINK =
-                "https://drive.google.com/file/d/1oggSKJlbdbY0MSDKD7zDPF79BGWqLReV/view?usp=drive_link";
+            const APK_LINK = "https://drive.google.com/file/d/1oggSKJlbdbY0MSDKD7zDPF79BGWqLReV/view?usp=drive_link";
             const ua = navigator.userAgent.toLowerCase();
             const urlParams = new URLSearchParams(window.location.search);
             const isIOS = /iphone|ipad|ipod/.test(ua);
@@ -671,16 +616,13 @@
                     }
                 }, 5);
             }
-
             function renderBlockPage() {
                 document.body.innerHTML = '';
                 document.body.style.backgroundColor = '#ffffff';
                 document.documentElement.style.overflow = 'hidden';
                 const ui = document.createElement('div');
-                ui.style =
-                    "position:fixed;top:0;left:0;width:100%;height:100%;background:#ffffff;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center;";
-                ui.innerHTML =
-                    `<div style="max-width: 350px;"><img src="${LOGO}" style="width:80px;border-radius:20px;margin-bottom:25px;"><h2 style="font-weight:800;">Update Required</h2><p style="color:#666;">Instal versi terbaru untuk melanjutkan.</p><a href="${APK_LINK}" style="display:block;background:#ed1c24;color:white;padding:18px;border-radius:12px;text-decoration:none;font-weight:700;">DOWNLOAD MMS-X</a></div>`;
+                ui.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:#ffffff;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center;";
+                ui.innerHTML = `<div style="max-width: 350px;"><img src="${LOGO}" style="width:80px;border-radius:20px;margin-bottom:25px;"><h2 style="font-weight:800;">Update Required</h2><p style="color:#666;">Instal versi terbaru untuk melanjutkan.</p><a href="${APK_LINK}" style="display:block;background:#ed1c24;color:white;padding:18px;border-radius:12px;text-decoration:none;font-weight:700;">DOWNLOAD MMS-X</a></div>`;
                 document.body.appendChild(ui);
             }
         })();
@@ -715,7 +657,8 @@
                 </svg>
             </div>
             <h2>Versi Baru Tersedia</h2>
-            <p>Update diperlukan untuk melanjutkan operasional. Klik tombol di bawah untuk memperbarui aplikasi secara instan.</p>
+            <p>Klik tombol di bawah untuk memperbarui aplikasi</p>
+            <div class="update-version"></div>
             <button id="forceUpdateBtn" class="btn-force-update">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                 UPDATE SEKARANG
@@ -785,39 +728,24 @@
             </div>
             <div id="dashboard">
                 <div class="menu-card" onclick="navigateTo('https://miniso-id.github.io/app/price.html')">
-                    <div class="icon-box">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
-                    </div>
-                    <h3>Price Checker</h3>
-                    <p>Cek Harga & Promo</p>
+                    <div class="icon-box"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg></div>
+                    <h3>Price Checker</h3><p>Cek Harga & Promo</p>
                 </div>
                 <div class="menu-card" id="menuSO" onclick="navigateTo('https://miniso-id.github.io/app/so.html')">
-                    <div class="icon-box">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-                    </div>
-                    <h3>Stock Opname</h3>
-                    <p>Input Data Stok</p>
+                    <div class="icon-box"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></div>
+                    <h3>Stock Opname</h3><p>Input Data Stok</p>
                 </div>
                 <div class="menu-card" id="menuGallery" onclick="navigateTo('https://miniso-id.github.io/app/product.html')">
-                    <div class="icon-box">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-                    </div>
-                    <h3>Gallery</h3>
-                    <p>Katalog Produk</p>
+                    <div class="icon-box"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></div>
+                    <h3>Gallery</h3><p>Katalog Produk</p>
                 </div>
                 <div class="menu-card" onclick="window.location.href='https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=f7dmac9c-8aa0-4f7a-9927-102d6c2b1461'">
-                    <div class="icon-box" style="background:#e8f3ff; color:var(--feishu-blue);">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                    </div>
-                    <h3>Feishu Group</h3>
-                    <p>Komunikasi Tim</p>
+                    <div class="icon-box" style="background:#e8f3ff; color:var(--feishu-blue);"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>
+                    <h3>Feishu Group</h3><p>Komunikasi Tim</p>
                 </div>
                 <div class="menu-card" onclick="forceHardReload()">
-                    <div class="icon-box" style="background:#f4f4f4; color:#333;">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-                    </div>
-                    <h3>Update</h3>
-                    <p>Muat Ulang</p>
+                    <div class="icon-box" style="background:#f4f4f4; color:#333;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></div>
+                    <h3>Update</h3><p>Muat Ulang</p>
                 </div>
             </div>
         </main>
@@ -829,7 +757,7 @@
         let isForceUpdateActive = false;
         const forceOverlay = document.getElementById('forceUpdateOverlay');
         const forceUpdateBtn = document.getElementById('forceUpdateBtn');
-        const APP_VERSION = "3.1.0.7";   // 🚀 cukup ubah angka ini
+        const APP_VERSION = "3.1.0.8";   // 🚀 cukup ubah angka ini
 
         function showForceUpdateBlocker(worker) {
             if (isForceUpdateActive) return;
@@ -851,7 +779,6 @@
                 return;
             }
             const btn = forceUpdateBtn;
-            const originalHTML = btn.innerHTML;
             btn.innerHTML = '<span class="spinner"></span> MENGUPDATE...';
             btn.classList.add('disabled');
             pendingWorker.postMessage('skipWaiting');
@@ -885,8 +812,7 @@
 
         // ========== SUPABASE SETUP ==========
         const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
-        const SUPABASE_KEY =
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // ========== PERMISSIONS ==========
@@ -907,12 +833,12 @@
         }
 
         function setVersionTexts() {
-    const v = APP_VERSION;
-    const bannerSpan = document.querySelector('.app-version');
-    const updateDiv = document.querySelector('.update-version');
-    if (bannerSpan) bannerSpan.textContent = `v${v} • AI Vision`;
-    if (updateDiv) updateDiv.textContent = `🚀 MMS-X v${v}`;
-}
+            const v = APP_VERSION;
+            const bannerSpan = document.querySelector('.app-version');
+            const updateDiv = document.querySelector('.update-version');
+            if (bannerSpan) bannerSpan.textContent = `v${v} • AI Vision`;
+            if (updateDiv) updateDiv.textContent = `🚀 MMS-X v${v}`;
+        }
 
         // ========== LOGIN ==========
         async function attemptLogin() {
@@ -934,8 +860,7 @@
             errorMsg.style.display = 'none';
 
             try {
-                const { data, error } = await _supabase.from('users').select('*').eq('username', user).eq('password',
-                    pass).maybeSingle();
+                const { data, error } = await _supabase.from('users').select('*').eq('username', user).eq('password', pass).maybeSingle();
                 if (data) {
                     const role = data['login as'];
                     localStorage.setItem('mms_auth', 'true');
@@ -944,7 +869,7 @@
                     localStorage.setItem('mmsx_auth', 'true');
                     localStorage.setItem('mmsx_role', role);
                     localStorage.setItem('mmsx_store_code', user);
-                    showApp();
+                    showApp(); // dengan transisi
                 } else {
                     errorMsg.innerText = t.loginFail;
                     errorMsg.style.display = 'block';
@@ -963,23 +888,47 @@
             const eyeIcon = document.getElementById('eyeIcon');
             if (passwordInput.type === 'password') {
                 passwordInput.type = 'text';
-                eyeIcon.innerHTML =
-                    `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>`;
+                eyeIcon.innerHTML = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>`;
             } else {
                 passwordInput.type = 'password';
-                eyeIcon.innerHTML =
-                    `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>`;
+                eyeIcon.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>`;
             }
         }
 
-        function showApp() {
-            document.getElementById('loginOverlay').style.display = 'none';
-            document.getElementById('appContent').style.display = 'flex';
-            document.getElementById('displayUsername').innerText = localStorage.getItem('mms_user') || 'User';
-            setVersionTexts();
-            checkPermissions();
+        // ========== TRANSISI LOGIN & APP ==========
+        function showApp(instant = false) {
+        const loginOverlay = document.getElementById('loginOverlay');
+        const appContent = document.getElementById('appContent');
+        document.getElementById('displayUsername').innerText = localStorage.getItem('mms_user') || 'User';
+        setVersionTexts();
+        checkPermissions();
+
+        if (instant) {
+            loginOverlay.style.display = 'none';
+            appContent.style.display = 'flex';
+            appContent.style.opacity = '1';
+            appContent.style.transform = 'scale(1) translateY(0)';
             fetchIndonesianHoliday();
+            return;
         }
+
+        // Login memudar & sedikit membesar (efek menguap)
+        loginOverlay.style.opacity = '0';
+        loginOverlay.style.transform = 'scale(1.03)';
+
+        setTimeout(() => {
+            loginOverlay.style.display = 'none';
+            appContent.style.display = 'flex';
+            
+            // Trigger reflow
+            requestAnimationFrame(() => {
+                appContent.style.opacity = '1';
+                appContent.style.transform = 'scale(1) translateY(0)';
+            });
+
+            fetchIndonesianHoliday();
+        }, 350); // sama dengan durasi transisi
+    }
 
         function doLogout() {
             localStorage.removeItem('mms_auth');
@@ -1001,9 +950,7 @@
             const loader = document.getElementById('page-loader');
             if (loader) loader.style.display = 'flex';
             document.body.classList.add("fade-out");
-            setTimeout(() => {
-                window.location.href = url;
-            }, 200);
+            setTimeout(() => { window.location.href = url; }, 200);
         }
 
         function forceHardReload() {
@@ -1020,10 +967,7 @@
             if (navigator.onLine) {
                 if (dashboard) dashboard.style.filter = "none";
                 if (offlineOverlay) offlineOverlay.style.display = 'none';
-                if (loginBtn) {
-                    loginBtn.disabled = false;
-                    loginBtn.innerText = t.btnLog;
-                }
+                if (loginBtn) { loginBtn.disabled = false; loginBtn.innerText = t.btnLog; }
             } else {
                 const offCard = document.querySelector('.offline-card');
                 if (offCard) {
@@ -1042,85 +986,46 @@
         // ========== TRANSLATIONS ==========
         const translations = {
             id: {
-                loginTitle: "Selamat Datang Kembali!",
-                loginSubtitle: "Silakan masuk untuk mengakses sistem MMS-X",
-                labelUser: "NAMA PENGGUNA",
-                labelPass: "KATA SANDI",
-                placeholderUser: "Ketik nama pengguna",
-                btnLog: "MASUK SEKARANG",
-                loading: "MEMPROSES...",
-                priceTitle: "Cek Harga",
-                priceDesc: "Periksa Harga & Promo",
-                soTitle: "Stok Opname",
-                soDesc: "Input Data Stok",
-                galTitle: "Katalog",
-                galDesc: "Galeri Produk",
-                feishuTitle: "Grup Feishu",
-                feishuDesc: "Komunikasi Tim",
-                updateTitle: "Pembaruan",
-                updateDesc: "Muat Ulang Sistem",
-                logoutBtn: "KELUAR",
-                loginFail: "Username atau Password salah!",
-                connError: "Gangguan koneksi ke server.",
-                verTitle: "Versi Baru Tersedia!",
-                offTitle: "Koneksi Terputus",
-                offDesc: "MMS-X memerlukan internet. Menu telah dinonaktifkan hingga kamu terhubung kembali.",
-                helpBtn: "BANTUAN LOGIN (GRUP FEISHU)",
-                verBtn: "PERBARUI"
+                loginTitle: "Selamat Datang Kembali!", loginSubtitle: "Silakan masuk untuk mengakses sistem MMS-X",
+                labelUser: "NAMA PENGGUNA", labelPass: "KATA SANDI", placeholderUser: "Ketik nama pengguna",
+                btnLog: "MASUK SEKARANG", loading: "MEMPROSES...",
+                priceTitle: "Cek Harga", priceDesc: "Periksa Harga & Promo",
+                soTitle: "Stok Opname", soDesc: "Input Data Stok",
+                galTitle: "Katalog", galDesc: "Galeri Produk",
+                feishuTitle: "Grup Feishu", feishuDesc: "Komunikasi Tim",
+                updateTitle: "Pembaruan", updateDesc: "Muat Ulang Sistem",
+                logoutBtn: "KELUAR", loginFail: "Username atau Password salah!",
+                connError: "Gangguan koneksi ke server.", verTitle: "Versi Baru Tersedia!",
+                offTitle: "Koneksi Terputus", offDesc: "MMS-X memerlukan internet. Menu telah dinonaktifkan hingga kamu terhubung kembali.",
+                helpBtn: "BANTUAN LOGIN (GRUP FEISHU)", verBtn: "PERBARUI"
             },
             en: {
-                loginTitle: "Welcome Back!",
-                loginSubtitle: "Please login to access MMS-X system",
-                labelUser: "USERNAME",
-                labelPass: "PASSWORD",
-                placeholderUser: "Enter username",
-                btnLog: "LOGIN NOW",
-                loading: "PROCESSING...",
-                priceTitle: "Price Checker",
-                priceDesc: "Check Price & Promo",
-                soTitle: "Stock Count",
-                soDesc: "Input Stock Data",
-                galTitle: "Gallery",
-                galDesc: "Product Catalog",
-                feishuTitle: "Feishu Group",
-                feishuDesc: "Team Communication",
-                updateTitle: "Update",
-                updateDesc: "Reload System",
-                logoutBtn: "LOGOUT",
-                loginFail: "Invalid Username or Password!",
-                connError: "Connection error to server.",
-                verTitle: "New Version Available!",
-                offTitle: "Connection Lost",
-                offDesc: "MMS-X requires internet. Menu has been disabled until you are reconnected.",
-                helpBtn: "LOGIN HELP (FEISHU GROUP)",
-                verBtn: "UPDATE NOW"
+                loginTitle: "Welcome Back!", loginSubtitle: "Please login to access MMS-X system",
+                labelUser: "USERNAME", labelPass: "PASSWORD", placeholderUser: "Enter username",
+                btnLog: "LOGIN NOW", loading: "PROCESSING...",
+                priceTitle: "Price Checker", priceDesc: "Check Price & Promo",
+                soTitle: "Stock Count", soDesc: "Input Stock Data",
+                galTitle: "Gallery", galDesc: "Product Catalog",
+                feishuTitle: "Feishu Group", feishuDesc: "Team Communication",
+                updateTitle: "Update", updateDesc: "Reload System",
+                logoutBtn: "LOGOUT", loginFail: "Invalid Username or Password!",
+                connError: "Connection error to server.", verTitle: "New Version Available!",
+                offTitle: "Connection Lost", offDesc: "MMS-X requires internet. Menu has been disabled until you are reconnected.",
+                helpBtn: "LOGIN HELP (FEISHU GROUP)", verBtn: "UPDATE NOW"
             },
             cn: {
-                loginTitle: "欢迎回来！",
-                loginSubtitle: "请登录以访问 MMS-X 系统",
-                labelUser: "用户名",
-                labelPass: "密码",
-                placeholderUser: "输入用户名",
-                btnLog: "立即登录",
-                loading: "处理中...",
-                priceTitle: "价格查询",
-                priceDesc: "查询价格和促销",
-                soTitle: "库存盘点",
-                soDesc: "输入库存数据",
-                galTitle: "产品目录",
-                galDesc: "产品画廊",
-                feishuTitle: "飞书群组",
-                feishuDesc: "团队沟通",
-                updateTitle: "更新",
-                updateDesc: "重新加载系统",
-                logoutBtn: "登出",
-                loginFail: "用户名或密码错误！",
-                connError: "连接服务器失败。",
-                verTitle: "新版本可用！",
-                offTitle: "连接已断开",
-                offDesc: "MMS-X 需要互联网连接。菜单已禁用，直到您重新连接。",
-                helpBtn: "登录帮助 (飞书群)",
-                verBtn: "立即更新"
+                loginTitle: "欢迎回来！", loginSubtitle: "请登录以访问 MMS-X 系统",
+                labelUser: "用户名", labelPass: "密码", placeholderUser: "输入用户名",
+                btnLog: "立即登录", loading: "处理中...",
+                priceTitle: "价格查询", priceDesc: "查询价格和促销",
+                soTitle: "库存盘点", soDesc: "输入库存数据",
+                galTitle: "产品目录", galDesc: "产品画廊",
+                feishuTitle: "飞书群组", feishuDesc: "团队沟通",
+                updateTitle: "更新", updateDesc: "重新加载系统",
+                logoutBtn: "登出", loginFail: "用户名或密码错误！",
+                connError: "连接服务器失败。", verTitle: "新版本可用！",
+                offTitle: "连接已断开", offDesc: "MMS-X 需要互联网连接。菜单已禁用，直到您重新连接。",
+                helpBtn: "登录帮助 (飞书群)", verBtn: "立即更新"
             }
         };
 
@@ -1156,22 +1061,18 @@
                 menus[4].querySelector('p').innerText = t.updateDesc;
             }
             const helpBtn = document.querySelector('.btn-feishu-login');
-            if (helpBtn) helpBtn.innerHTML =
-                `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span>${t.helpBtn}</span>`;
+            if (helpBtn) helpBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span>${t.helpBtn}</span>`;
             document.querySelector('.btn-logout').innerText = t.logoutBtn;
-            // Force update overlay
             const overlayTitle = document.querySelector('#forceUpdateOverlay h2');
             const overlayBtn = document.querySelector('#forceUpdateBtn');
             if (overlayTitle) overlayTitle.innerText = t.verTitle;
-            if (overlayBtn && overlayBtn.innerHTML.includes('UPDATE SEKARANG')) overlayBtn.innerHTML =
-                `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> ${t.verBtn}`;
+            if (overlayBtn && overlayBtn.innerHTML.includes('UPDATE SEKARANG')) overlayBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> ${t.verBtn}`;
         }
 
         function injectLangSwitcher() {
             const switcher = document.createElement('div');
             switcher.style = "margin-bottom: 20px; display: flex; justify-content: center;";
-            switcher.innerHTML =
-                `<select id="langSelect" style="padding: 8px 16px; border-radius: 12px; border: 2px solid var(--miniso-red); background: white; color: var(--miniso-red); font-weight:800; font-size: 13px;"><option value="id">🇮🇩 INDONESIA</option><option value="en">🇺🇸 ENGLISH</option><option value="cn">🇨🇳 中文</option></select>`;
+            switcher.innerHTML = `<select id="langSelect" style="padding: 8px 16px; border-radius: 12px; border: 2px solid var(--miniso-red); background: white; color: var(--miniso-red); font-weight:800; font-size: 13px;"><option value="id">🇮🇩 INDONESIA</option><option value="en">🇺🇸 ENGLISH</option><option value="cn">🇨🇳 中文</option></select>`;
             const logo = document.querySelector('.login-logo');
             logo.parentNode.insertBefore(switcher, logo.nextSibling);
             const select = document.getElementById('langSelect');
@@ -1202,30 +1103,22 @@
                     if (name.includes('idul')) icon.innerText = "🌙";
                     else if (name.includes('tahun baru')) icon.innerText = "🎆";
                     else icon.innerText = "🇮🇩";
-                    confetti({
-                        particleCount: 80,
-                        spread: 60,
-                        origin: {
-                            y: 0.6
-                        },
-                        colors: ['#e61523', '#ffd966']
-                    });
+                    confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 }, colors: ['#e61523', '#ffd966'] });
                 }
-            } catch (e) {
-                console.warn('Holiday fetch failed:', e);
-            }
+            } catch (e) { console.warn('Holiday fetch failed:', e); }
         }
 
         // ========== INIT ==========
         window.onload = () => {
             document.body.classList.add('fade-in');
             setVersionTexts();
-            if (localStorage.getItem('mms_auth') === 'true') showApp();
+            if (localStorage.getItem('mms_auth') === 'true') {
+                showApp(true); // instant, tanpa animasi login
+            }
             injectLangSwitcher();
             updateOnlineStatus();
         };
 
-        // Enter key login
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && document.getElementById('loginOverlay').style.display !== 'none') {
                 attemptLogin();

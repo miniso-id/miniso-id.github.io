@@ -19,7 +19,6 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     
     <style>
-        /* ========== BASE STYLE ========== */
         :root {
             --miniso-red: #e61523;
             --miniso-soft: #fff1f2;
@@ -55,7 +54,7 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* Offline overlay (tetap dipertahankan) */
+        /* OFFLINE OVERLAY (tetap) */
         #offline-overlay {
             display: none;
             position: fixed;
@@ -84,14 +83,14 @@
             to { transform: scale(1); opacity: 1; }
         }
 
-        /* ========== FORCE UPDATE OVERLAY (ELEGAN + BLUR) ========== */
+        /* ========== FORCE UPDATE OVERLAY (FULLSCREEN BLOCK) ========== */
         .force-update-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.75);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             z-index: 50000;
@@ -183,7 +182,7 @@
             pointer-events: none;
         }
 
-        /* ========== LOGIN & DASHBOARD (TIDAK BERUBAH) ========== */
+        /* ========== STYLE LOGIN & DASHBOARD (tidak diubah) ========== */
         .holiday-banner {
             background: linear-gradient(135deg, #ffffff 0%, #fff5f5 100%);
             border-radius: 20px;
@@ -231,7 +230,7 @@
 </head>
 <body>
 
-<!-- SMART LOCKDOWN (tetap dipertahankan dari kode asli) -->
+<!-- SMART LOCKDOWN (tetap seperti kode asli) -->
 <script>
 (function() {
     const LOGO = "https://miniso-id.github.io/app/user512.png";
@@ -261,7 +260,7 @@
 })();
 </script>
 
-<!-- LOADER GLOBAL -->
+<!-- LOADER -->
 <div id="page-loader" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:30000; align-items:center; justify-content:center; backdrop-filter:blur(2px);">
     <div class="spinner" style="border-top-color: var(--miniso-red); width: 40px; height: 40px; border-width: 4px;"></div>
 </div>
@@ -275,7 +274,7 @@
     </div>
 </div>
 
-<!-- FORCE UPDATE OVERLAY (ELEGAN FULLSCREEN BLOCK) -->
+<!-- FORCE UPDATE OVERLAY (FULLSCREEN BLOCK) -->
 <div id="forceUpdateOverlay" class="force-update-overlay">
     <div class="update-modal">
         <div class="update-icon">
@@ -297,7 +296,7 @@
     </div>
 </div>
 
-<!-- LOGIN & APP CONTENT -->
+<!-- LOGIN & APP CONTENT (tidak diubah strukturnya) -->
 <div id="loginOverlay">
     <div class="login-card">
         <img src="https://miniso-id.github.io/app/user512.png" class="login-logo">
@@ -338,33 +337,24 @@
 </div>
 
 <script>
-    // ========== GLOBAL VARIABLES & SERVICE WORKER FORCE UPDATE ==========
+    // ========== FORCE UPDATE HANDLER (menggantikan toast) ==========
     let pendingWorker = null;
-    let isForceUpdateShowing = false;
+    let isForceUpdateActive = false;
     const forceOverlay = document.getElementById('forceUpdateOverlay');
     const forceUpdateBtn = document.getElementById('forceUpdateBtn');
 
-    // Tampilkan overlay full-block dengan blur effect (force update)
     function showForceUpdateBlocker(worker) {
-        if (isForceUpdateShowing) return;
+        if (isForceUpdateActive) return;
         pendingWorker = worker;
-        isForceUpdateShowing = true;
-        
-        // Sembunyikan toast biasa jika masih ada (tapi kita hapus toast dr HTML)
-        const oldToast = document.getElementById('update-toast');
-        if (oldToast) oldToast.style.display = 'none';
-        
-        // Aktifkan overlay elegan
+        isForceUpdateActive = true;
         if (forceOverlay) forceOverlay.classList.add('active');
-        
-        // Opsional: nonaktifkan scroll body
+        // Blokir scroll di belakang
         document.body.style.overflow = 'hidden';
     }
 
-    // Proses update: kirim skipWaiting dan reload
     function applyForceUpdate() {
         if (!pendingWorker) {
-            // Fallback: coba ambil dari service worker registration
+            // fallback: cari waiting dari registration
             navigator.serviceWorker.getRegistration().then(reg => {
                 if (reg && reg.waiting) {
                     reg.waiting.postMessage('skipWaiting');
@@ -374,54 +364,51 @@
             });
             return;
         }
-        // Tambahkan loading state pada tombol
+        // Tampilkan loading pada tombol
         const btn = forceUpdateBtn;
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<span class="spinner" style="border-top-color:white;"></span> MENGUPDATE...';
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner"></span> MENGUPDATE...';
         btn.classList.add('disabled');
-        
         pendingWorker.postMessage('skipWaiting');
         // reload akan terjadi saat controllerchange
     }
 
-    // Registrasi service worker + deteksi update -> FORCE BLOCK
+    // Registrasi Service Worker dengan deteksi force update
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').then(reg => {
-            // Cek jika sudah ada waiting (sw lama menunggu)
+            // Jika sudah ada waiting (update tertunda)
             if (reg.waiting) {
                 showForceUpdateBlocker(reg.waiting);
             }
-            
-            // Event ketika ada update terdeteksi
+            // Deteksi update baru
             reg.addEventListener('updatefound', () => {
                 const newWorker = reg.installing;
                 if (newWorker) {
                     newWorker.addEventListener('statechange', () => {
                         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            // Ada versi baru yang siap dipasang -> FORCE BLOCK
+                            // SW baru siap dipasang -> blokir layar
                             showForceUpdateBlocker(newWorker);
                         }
                     });
                 }
             });
         });
-        
-        // Ketika SW baru mengambil alih (controllerchange) -> reload halaman agar konten fresh
+        // Ketika controller berubah (SW mengambil alih) -> reload bersih
         navigator.serviceWorker.addEventListener('controllerchange', () => {
             window.location.reload(true);
         });
     }
 
-    // Tombol force update diklik
+    // Event listener tombol update
     if (forceUpdateBtn) {
         forceUpdateBtn.addEventListener('click', applyForceUpdate);
     }
 
-    // ========== FUNGSI LAINNYA (LOGIN, DASHBOARD, DLL) TETAP SAMA ==========
+    // ========== FUNGSI LAINNYA (LOGIN, DASHBOARD, DLL) TIDAK BERUBAH ==========
     const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    
+
     function checkPermissions() {
         const role = localStorage.getItem('mms_role');
         const menuSO = document.getElementById('menuSO');
@@ -437,7 +424,8 @@
         const pass = document.getElementById('password').value;
         const errorMsg = document.getElementById('loginError');
         const loginBtn = document.querySelector('.btn-primary');
-        const t = translations[localStorage.getItem('mms_lang') || 'id'];
+        const currentLang = localStorage.getItem('mms_lang') || 'id';
+        const t = translations[currentLang];
         loginBtn.disabled = true;
         loginBtn.innerHTML = `<span class="spinner"></span> ${t.loading}`;
         errorMsg.style.display = 'none';
@@ -464,7 +452,7 @@
             loginBtn.innerHTML = t.btnLog;
         }
     }
-    
+
     function togglePassword() {
         const passwordInput = document.getElementById('password');
         const eyeIcon = document.getElementById('eyeIcon');
@@ -476,7 +464,7 @@
             eyeIcon.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>`;
         }
     }
-    
+
     function showApp() {
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('appContent').style.display = 'flex';
@@ -484,7 +472,7 @@
         checkPermissions();
         fetchIndonesianHoliday();
     }
-    
+
     function doLogout() {
         localStorage.removeItem('mms_auth');
         localStorage.removeItem('mms_role');
@@ -493,32 +481,26 @@
         localStorage.removeItem('mmsx_role');
         location.reload();
     }
-    
-    window.onload = () => {
-        document.body.classList.add('fade-in');
-        if (localStorage.getItem('mms_auth') === 'true') showApp();
-        injectLangSwitcher();
-        updateOnlineStatus();
-    };
-    
+
     function showDashboard() {
         document.getElementById("dashboard").style.display = "grid";
         document.getElementById("heroSection").style.display = "block";
         document.getElementById("ui-header").style.display = "none";
         checkPermissions();
     }
-    
+
     function navigateTo(url) {
         const loader = document.getElementById('page-loader');
         if (loader) loader.style.display = 'flex';
         document.body.classList.add("fade-out");
         setTimeout(() => { window.location.href = url; }, 200);
     }
-    
+
     function forceHardReload() {
         window.location.reload(true);
     }
-    
+
+    // Update online status (tidak berubah)
     function updateOnlineStatus() {
         const dashboard = document.getElementById('dashboard');
         const offlineOverlay = document.getElementById('offline-overlay');
@@ -539,14 +521,15 @@
     }
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
-    
-    // TRANSLATIONS 
+    document.addEventListener('DOMContentLoaded', updateOnlineStatus);
+
+    // TRANSLATIONS (tetap dari kode asli)
     const translations = {
-        id: { loginTitle:"Selamat Datang Kembali!", loginSubtitle:"Silakan masuk untuk mengakses sistem MMS-X", labelUser:"NAMA PENGGUNA", labelPass:"KATA SANDI", placeholderUser:"Ketik nama pengguna", btnLog:"MASUK SEKARANG", loading:"MEMPROSES...", roles:["Administrator","Wilayah","Toko","Karyawan"], priceTitle:"Cek Harga", priceDesc:"Periksa Harga & Promo", soTitle:"Stok Opname", soDesc:"Input Data Stok", galTitle:"Katalog", galDesc:"Galeri Produk", feishuTitle:"Grup Feishu", feishuDesc:"Komunikasi Tim", updateTitle:"Pembaruan", updateDesc:"Muat Ulang Sistem", logoutBtn:"KELUAR", loginFail:"Username atau Password salah!", connError:"Gangguan koneksi ke server.", offTitle:"Koneksi Terputus", offDesc:"MMS-X memerlukan internet. Menu dinonaktifkan.", helpBtn:"BANTUAN LOGIN (GRUP FEISHU)", verBtn:"PERBARUI" },
-        en: { loginTitle:"Welcome Back!", loginSubtitle:"Please login to access MMS-X system", labelUser:"USERNAME", labelPass:"PASSWORD", placeholderUser:"Enter username", btnLog:"LOGIN NOW", loading:"PROCESSING...", roles:["Administrator","Area","Store","Staff"], priceTitle:"Price Checker", priceDesc:"Check Price & Promo", soTitle:"Stock Count", soDesc:"Input Stock Data", galTitle:"Gallery", galDesc:"Product Catalog", feishuTitle:"Feishu Group", feishuDesc:"Team Communication", updateTitle:"Update", updateDesc:"Reload System", logoutBtn:"LOGOUT", loginFail:"Invalid Username or Password!", connError:"Connection error.", offTitle:"Connection Lost", offDesc:"MMS-X requires internet. Menu disabled.", helpBtn:"LOGIN HELP (FEISHU GROUP)", verBtn:"UPDATE NOW" },
-        cn: { loginTitle:"欢迎回来！", loginSubtitle:"请登录以访问 MMS-X 系统", labelUser:"用户名", labelPass:"密码", placeholderUser:"输入用户名", btnLog:"立即登录", loading:"处理中...", roles:["管理员","区域","店铺","员工"], priceTitle:"价格查询", priceDesc:"查询价格和促销", soTitle:"库存盘点", soDesc:"输入库存数据", galTitle:"产品目录", galDesc:"产品画廊", feishuTitle:"飞书群组", feishuDesc:"团队沟通", updateTitle:"更新", updateDesc:"重新加载系统", logoutBtn:"登出", loginFail:"用户名或密码错误！", connError:"连接服务器失败。", offTitle:"连接已断开", offDesc:"MMS-X 需要互联网连接。", helpBtn:"登录帮助 (飞书群)", verBtn:"立即更新" }
+        id: { loginTitle:"Selamat Datang Kembali!", loginSubtitle:"Silakan masuk untuk mengakses sistem MMS-X", labelUser:"NAMA PENGGUNA", labelPass:"KATA SANDI", placeholderUser:"Ketik nama pengguna", btnLog:"MASUK SEKARANG", loading:"MEMPROSES...", roles:["Administrator","Wilayah","Toko","Karyawan"], priceTitle:"Cek Harga", priceDesc:"Periksa Harga & Promo", soTitle:"Stok Opname", soDesc:"Input Data Stok", galTitle:"Katalog", galDesc:"Galeri Produk", feishuTitle:"Grup Feishu", feishuDesc:"Komunikasi Tim", updateTitle:"Pembaruan", updateDesc:"Muat Ulang Sistem", logoutBtn:"KELUAR", loginFail:"Username atau Password salah!", connError:"Gangguan koneksi ke server.", verTitle:"Versi Baru Tersedia!", offTitle:"Koneksi Terputus", offDesc:"MMS-X memerlukan internet. Menu telah dinonaktifkan hingga kamu terhubung kembali.", helpBtn:"BANTUAN LOGIN (GRUP FEISHU)", verBtn:"PERBARUI" },
+        en: { loginTitle:"Welcome Back!", loginSubtitle:"Please login to access MMS-X system", labelUser:"USERNAME", labelPass:"PASSWORD", placeholderUser:"Enter username", btnLog:"LOGIN NOW", loading:"PROCESSING...", roles:["Administrator","Area","Store","Staff"], priceTitle:"Price Checker", priceDesc:"Check Price & Promo", soTitle:"Stock Count", soDesc:"Input Stock Data", galTitle:"Gallery", galDesc:"Product Catalog", feishuTitle:"Feishu Group", feishuDesc:"Team Communication", updateTitle:"Update", updateDesc:"Reload System", logoutBtn:"LOGOUT", loginFail:"Invalid Username or Password!", connError:"Connection error to server.", verTitle:"New Version Available!", offTitle:"Connection Lost", offDesc:"MMS-X requires internet. Menu has been disabled until you are reconnected.", helpBtn:"LOGIN HELP (FEISHU GROUP)", verBtn:"UPDATE NOW" },
+        cn: { loginTitle:"欢迎回来！", loginSubtitle:"请登录以访问 MMS-X 系统", labelUser:"用户名", labelPass:"密码", placeholderUser:"输入用户名", btnLog:"立即登录", loading:"处理中...", roles:["管理员","区域","店铺","员工"], priceTitle:"价格查询", priceDesc:"查询价格和促销", soTitle:"库存盘点", soDesc:"输入库存数据", galTitle:"产品目录", galDesc:"产品画廊", feishuTitle:"飞书群组", feishuDesc:"团队沟通", updateTitle:"更新", updateDesc:"重新加载系统", logoutBtn:"登出", loginFail:"用户名或密码错误！", connError:"连接服务器失败。", verTitle:"新版本可用！", offTitle:"连接已断开", offDesc:"MMS-X 需要互联网连接。菜单已禁用，直到您重新连接。", helpBtn:"登录帮助 (飞书群)", verBtn:"立即更新" }
     };
-    
+
     function applyLanguage(lang) {
         const t = translations[lang];
         localStorage.setItem('mms_lang', lang);
@@ -563,14 +546,15 @@
         const helpBtn = document.querySelector('.btn-feishu-login');
         if(helpBtn) helpBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span>${t.helpBtn}</span>`;
         document.querySelector('.btn-logout').innerText = t.logoutBtn;
-        const verSpan = document.querySelector('#forceUpdateOverlay h2');
-        if(verSpan) verSpan.innerText = t.verTitle;
-        const updateText = document.querySelector('#forceUpdateOverlay p');
-        if(updateText) updateText.innerText = "Update diperlukan untuk melanjutkan operasional. Klik tombol di bawah untuk memperbarui aplikasi secara instan.";
-        const forceBtn = document.querySelector('#forceUpdateBtn');
-        if(forceBtn && forceBtn.innerHTML.indexOf('UPDATE SEKARANG') !== -1) forceBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> ${t.verBtn}`;
+        // Update teks pada overlay force update
+        const overlayTitle = document.querySelector('#forceUpdateOverlay h2');
+        const overlayDesc = document.querySelector('#forceUpdateOverlay p');
+        const overlayBtn = document.querySelector('#forceUpdateBtn');
+        if(overlayTitle) overlayTitle.innerText = t.verTitle;
+        if(overlayDesc) overlayDesc.innerText = "Update diperlukan untuk melanjutkan operasional. Klik tombol di bawah untuk memperbarui aplikasi secara instan.";
+        if(overlayBtn && overlayBtn.innerHTML.includes('UPDATE SEKARANG')) overlayBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> ${t.verBtn}`;
     }
-    
+
     function injectLangSwitcher() {
         const switcher = document.createElement('div');
         switcher.style = "margin-bottom: 20px; display: flex; justify-content: center;";
@@ -583,7 +567,7 @@
         applyLanguage(savedLang);
         select.addEventListener('change', (e) => applyLanguage(e.target.value));
     }
-    
+
     async function fetchIndonesianHoliday() {
         const today = new Date(); const yyyy = today.getFullYear(); const mm = String(today.getMonth()+1).padStart(2,'0'); const dd = String(today.getDate()).padStart(2,'0');
         const todayStr = `${yyyy}-${mm}-${dd}`;
@@ -605,6 +589,13 @@
             }
         } catch(e) { console.warn(e); }
     }
+
+    window.onload = () => {
+        document.body.classList.add('fade-in');
+        if (localStorage.getItem('mms_auth') === 'true') showApp();
+        injectLangSwitcher();
+        updateOnlineStatus();
+    };
 </script>
 </body>
 </html>

@@ -748,7 +748,7 @@
         let isForceUpdateActive = false;
         const forceOverlay = document.getElementById('forceUpdateOverlay');
         const forceUpdateBtn = document.getElementById('forceUpdateBtn');
-        const APP_VERSION = "3.1.0.17";
+        const APP_VERSION = "3.1.0.18";
 
         function showForceUpdateBlocker(worker) {
             if (isForceUpdateActive) return;
@@ -758,48 +758,30 @@
             document.body.style.overflow = 'hidden';
         }
 
-        function applyForceUpdate() {
-            if (!pendingWorker) {
-                navigator.serviceWorker.getRegistration().then(reg => {
-                    if (reg && reg.waiting) {
-                        reg.waiting.postMessage('skipWaiting');
-                    } else {
-                        window.location.reload(true);
-                    }
-                });
-                return;
-            }
-            const btn = forceUpdateBtn;
-            btn.innerHTML = '<span class="spinner"></span> UPDATING...';
-            btn.classList.add('disabled');
-            pendingWorker.postMessage('skipWaiting');
-        }
-
-        // Service Worker Registration
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js').then(reg => {
-                if (reg.waiting) {
-                    showForceUpdateBlocker(reg.waiting);
-                }
-                reg.addEventListener('updatefound', () => {
-                    const newWorker = reg.installing;
-                    if (newWorker) {
-                        newWorker.addEventListener('statechange', () => {
-                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                showForceUpdateBlocker(newWorker);
-                            }
-                        });
-                    }
-                });
-            });
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-                window.location.reload(true);
-            });
-        }
-
-        if (forceUpdateBtn) {
-            forceUpdateBtn.addEventListener('click', applyForceUpdate);
-        }
+        async function applyForceUpdate() {
+  const btn = forceUpdateBtn;
+  btn.innerHTML = '<span class="spinner"></span> UPDATING...';
+  btn.classList.add('disabled');
+  
+  // 1. Hapus semua cache
+  try {
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map(name => caches.delete(name)));
+  } catch (e) {}
+  
+  // 2. Unregister semua Service Worker
+  if ('serviceWorker' in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    for (let reg of registrations) {
+      await reg.unregister();
+    }
+  }
+  
+  // 3. Reload dengan timestamp unik
+  const url = new URL(window.location.href);
+  url.searchParams.set('_t', Date.now().toString());
+  window.location.href = url.toString();
+}
 
         // ========== SUPABASE SETUP ==========
         const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";

@@ -1,9 +1,9 @@
 const CACHE_NAME = 'mms-x-v3.1.0.19'; // Pastikan versi ini sama dengan di HTML
-const OFFLINE_URL = './offline.html'; // Tentukan URL offline
+const OFFLINE_URL = './offline.html';
 const ASSETS_TO_CACHE = [
   './',
   './manifest.json',
-  './offline.html', // Tambahkan ini
+  './offline.html',
   './index.html',
   './price.html',
   './product.html',
@@ -11,10 +11,9 @@ const ASSETS_TO_CACHE = [
   'https://miniso-id.github.io/app/user512.png',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
   'https://unpkg.com/@zxing/library@latest'
-  //'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'
 ];
 
-// 1. Tahap Install - Menyimpan aset ke cache
+// ----- INSTALL: langsung aktif tanpa menunggu -----
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -22,17 +21,11 @@ self.addEventListener('install', (event) => {
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
-  // JANGAN panggil self.skipWaiting() di sini agar tidak auto-reload
+  // Kunci: panggil skipWaiting() agar worker baru segera mengaktifkan diri
+  self.skipWaiting();
 });
 
-// 2. Tahap Message - Menerima perintah dari tombol "UPDATE SEKARANG"
-self.addEventListener('message', (event) => {
-  if (event.data === 'skipWaiting') {
-    self.skipWaiting();
-  }
-});
-
-// 3. Tahap Activate - Menghapus cache versi lama
+// ----- ACTIVATE: hapus cache lama, klaim klien, lalu reload semua halaman -----
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -44,23 +37,34 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    }).then(() => self.clients.claim()) // Mengambil alih halaman seketika
+    })
+    .then(() => {
+      // Ambil alih kendali halaman yang sedang terbuka
+      return self.clients.claim();
+    })
+    .then(() => {
+      // Reload semua tab/window untuk memastikan HTML terbaru
+      return self.clients.matchAll({ type: 'window' }).then(clients => {
+        clients.forEach(client => {
+          // Navigasi ulang ke URL yang sama (memuat halaman baru)
+          client.navigate(client.url);
+        });
+      });
+    })
   );
 });
 
-// 4. Tahap Fetch - Strategi pengambilan data
+// ----- FETCH: cache-first, kecuali untuk Supabase (network only) -----
 self.addEventListener('fetch', (event) => {
-  // Pengecualian untuk Supabase: Selalu ambil dari internet (Network Only)
-  // Agar data stok/harga tidak pernah basi
+  // Supabase tidak boleh di-cache
   if (event.request.url.includes('supabase.co')) {
-    return; 
+    return;
   }
 
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      // Jika ada di cache, gunakan cache. Jika tidak, ambil dari internet.
+    caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request).then((networkResponse) => {
-        // Update cache di background jika aset ditemukan
+        // Update cache dengan respons terbaru
         if (networkResponse && networkResponse.status === 200) {
           const cacheCopy = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -69,15 +73,15 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       }).catch(() => {
-        // --- LOGIKA OFFLINE BARU DI SINI ---
-        // Jika gagal koneksi (offline) dan yang diminta adalah halaman (navigasi)
+        // Offline: untuk navigasi halaman, tampilkan offline.html
         if (event.request.mode === 'navigate') {
           return caches.match(OFFLINE_URL);
         }
-        return response; // Berikan cache yang ada (untuk gambar/js)
+        // Untuk aset lain, kembalikan dari cache jika ada
+        return cachedResponse;
       });
 
-      return response || fetchPromise;
+      return cachedResponse || fetchPromise;
     })
   );
 });

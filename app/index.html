@@ -10,10 +10,52 @@
     <meta name="author" content="MMS-X Development">
     <title>MMS-X</title>
 
+    <!-- SERVICE WORKER REGISTRATION DENGAN AUTO UPDATE (skipWaiting & claim) -->
     <script>
-    if (typeof navigator.serviceWorker !== 'undefined') {
-        navigator.serviceWorker.register('sw.js')
-    }
+        if ('serviceWorker' in navigator) {
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (refreshing) return;
+                refreshing = true;
+                console.log('SW controller change, reloading...');
+                window.location.reload();
+            });
+
+            const registerSW = async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('sw.js');
+                    console.log('SW registered:', registration);
+
+                    // Jika ada worker yang sedang menunggu (waiting), langsung kirim skipWaiting
+                    if (registration.waiting) {
+                        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                    }
+
+                    // Deteksi update
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        if (newWorker) {
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // Ada versi baru yang terinstal, paksa skip waiting
+                                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                }
+                                if (newWorker.state === 'activated') {
+                                    // Reload jika diperlukan (fallback)
+                                    if (!refreshing) {
+                                        refreshing = true;
+                                        window.location.reload();
+                                    }
+                                }
+                            });
+                        }
+                    });
+                } catch (err) {
+                    console.error('SW registration failed:', err);
+                }
+            };
+            registerSW();
+        }
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -107,7 +149,7 @@
             to { transform: scale(1); opacity: 1; }
         }
 
-        /* ---------- FORCE UPDATE OVERLAY ---------- */
+        /* ---------- FORCE UPDATE OVERLAY (tidak digunakan untuk auto update, biarkan saja) ---------- */
         .force-update-overlay {
             position: fixed;
             top: 0;
@@ -218,21 +260,21 @@
 
         /* ---------- LOGIN ---------- */
         #loginOverlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: #ffffff;
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        transition: opacity 0.35s cubic-bezier(0.4, 0.0, 0.2, 1), 
-                    transform 0.35s cubic-bezier(0.4, 0.0, 0.2, 1);
-        transform: scale(1);
-    }
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #ffffff;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: opacity 0.35s cubic-bezier(0.4, 0.0, 0.2, 1), 
+                        transform 0.35s cubic-bezier(0.4, 0.0, 0.2, 1);
+            transform: scale(1);
+        }
 
         .login-card {
             width: 100%;
@@ -348,15 +390,15 @@
 
         /* ---------- APP CONTENT ---------- */
         #appContent {
-        display: none;
-        height: 100vh;
-        flex-direction: column;
-        background: #fafafa;
-        opacity: 0;
-        transform: scale(0.98) translateY(10px); /* mulai dari sedikit mengecil & turun */
-        transition: opacity 0.35s cubic-bezier(0.4, 0.0, 0.2, 1), 
-                    transform 0.35s cubic-bezier(0.4, 0.0, 0.2, 1);
-    }
+            display: none;
+            height: 100vh;
+            flex-direction: column;
+            background: #fafafa;
+            opacity: 0;
+            transform: scale(0.98) translateY(10px);
+            transition: opacity 0.35s cubic-bezier(0.4, 0.0, 0.2, 1), 
+                        transform 0.35s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
 
         .main-content {
             flex: 1;
@@ -584,7 +626,6 @@
             border-width: 4px;
         }
 
-        /* ---------- RESPONSIVE TUNING ---------- */
         @media (max-width: 380px) {
             .menu-card {
                 padding: 18px 10px 16px;
@@ -601,17 +642,15 @@
 
     <!-- SMART LOCKDOWN (APK CHECK) -->
     <script>
-  (function() {
-    const ua = navigator.userAgent.toLowerCase();
-    const urlParams = new URLSearchParams(window.location.search);
-    const isIOS = /iphone|ipad|ipod/.test(ua);
-    const isOldTwa = ua.includes("io.github.miniso_id.twa");
-    const isAuthorized = urlParams.get('app') === 'mmsx';
-
-    // Jika bukan iOS dan tidak lolos verifikasi → kunci akses
-    window.__mmsx_locked = (!isIOS && (isOldTwa || !isAuthorized));
-  })();
-</script>
+        (function() {
+            const ua = navigator.userAgent.toLowerCase();
+            const urlParams = new URLSearchParams(window.location.search);
+            const isIOS = /iphone|ipad|ipod/.test(ua);
+            const isOldTwa = ua.includes("io.github.miniso_id.twa");
+            const isAuthorized = urlParams.get('app') === 'mmsx';
+            window.__mmsx_locked = (!isIOS && (isOldTwa || !isAuthorized));
+        })();
+    </script>
 
     <!-- PAGE LOADER -->
     <div id="page-loader">
@@ -629,7 +668,7 @@
         </div>
     </div>
 
-    <!-- FORCE UPDATE OVERLAY -->
+    <!-- FORCE UPDATE OVERLAY (tidak aktif untuk auto update) -->
     <div id="forceUpdateOverlay" class="force-update-overlay">
         <div class="update-modal">
             <div class="update-icon">
@@ -655,24 +694,23 @@
         <div class="login-card">
             <img src="https://miniso-id.github.io/app/user512.png" class="login-logo" alt="MMS-X Logo">
             <div class="login-title">Welcome Back!</div>
-            
             <div id="lockedMessage" style="display:none; color:#e61523; font-weight:700; font-size:15px; margin:0 0 20px; line-height:1.5;">
-    Please open this page via <strong>MMS-X</strong> app<br>
-    <span style="font-size:13px;color:#666;"></span>
-</div>
-            <div id="loginForm">
-            <p class="login-subtitle">Silakan login untuk mengakses MMS-X</p>
-            <div class="input-group"><label>USERNAME</label><input type="text" id="username" class="custom-input" placeholder="Masukkan username" autocomplete="username"></div>
-            <div class="input-group">
-                <label>PASSWORD</label>
-                <div style="position: relative;">
-                    <input type="password" id="password" class="custom-input" placeholder="••••••••" autocomplete="current-password" style="padding-right: 50px;">
-                    <button type="button" onclick="togglePassword()" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #999; padding: 8px;">
-                        <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                    </button>
-                </div>
+                Please open this page via <strong>MMS-X</strong> app<br>
+                <span style="font-size:13px;color:#666;"></span>
             </div>
-            <button class="btn-primary" onclick="attemptLogin()">MASUK SEKARANG</button>
+            <div id="loginForm">
+                <p class="login-subtitle">Silakan login untuk mengakses MMS-X</p>
+                <div class="input-group"><label>USERNAME</label><input type="text" id="username" class="custom-input" placeholder="Masukkan username" autocomplete="username"></div>
+                <div class="input-group">
+                    <label>PASSWORD</label>
+                    <div style="position: relative;">
+                        <input type="password" id="password" class="custom-input" placeholder="••••••••" autocomplete="current-password" style="padding-right: 50px;">
+                        <button type="button" onclick="togglePassword()" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #999; padding: 8px;">
+                            <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="attemptLogin()">MASUK SEKARANG</button>
             </div>
             <button class="btn-feishu-login" onclick="window.location.href='https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=f7dmac9c-8aa0-4f7a-9927-102d6c2b1461'">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
@@ -743,51 +781,14 @@
     </div>
 
     <script>
-        // ========== FORCE UPDATE HANDLER ==========
-        let pendingWorker = null;
-        let isForceUpdateActive = false;
-        const forceOverlay = document.getElementById('forceUpdateOverlay');
-        const forceUpdateBtn = document.getElementById('forceUpdateBtn');
-        const APP_VERSION = "3.1.0.19";
-
-        function showForceUpdateBlocker(worker) {
-            if (isForceUpdateActive) return;
-            pendingWorker = worker;
-            isForceUpdateActive = true;
-            if (forceOverlay) forceOverlay.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-
-        async function applyForceUpdate() {
-  const btn = forceUpdateBtn;
-  btn.innerHTML = '<span class="spinner"></span> UPDATING...';
-  btn.classList.add('disabled');
-  
-  // 1. Hapus semua cache
-  try {
-    const cacheNames = await caches.keys();
-    await Promise.all(cacheNames.map(name => caches.delete(name)));
-  } catch (e) {}
-  
-  // 2. Unregister semua Service Worker
-  if ('serviceWorker' in navigator) {
-    const registrations = await navigator.serviceWorker.getRegistrations();
-    for (let reg of registrations) {
-      await reg.unregister();
-    }
-  }
-  
-  // 3. Reload dengan timestamp unik
-  const url = new URL(window.location.href);
-  url.searchParams.set('_t', Date.now().toString());
-  window.location.href = url.toString();
-}
-
+        // ========== VERSI & GLOBAL ==========
+        const APP_VERSION = "3.1.0.20";
+        
         // ========== SUPABASE SETUP ==========
         const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
+        
         // ========== PERMISSIONS ==========
         function checkPermissions() {
             const role = localStorage.getItem('mms_role');
@@ -816,11 +817,11 @@
         // ========== LOGIN ==========
         async function attemptLogin() {
             if (window.__mmsx_locked) {
-        const errorMsg = document.getElementById('loginError');
-        errorMsg.innerText = 'Akses hanya melalui aplikasi MMS-X resmi.';
-        errorMsg.style.display = 'block';
-        return;
-    }
+                const errorMsg = document.getElementById('loginError');
+                errorMsg.innerText = 'Akses hanya melalui aplikasi MMS-X resmi.';
+                errorMsg.style.display = 'block';
+                return;
+            }
             const user = document.getElementById('username').value.trim();
             const pass = document.getElementById('password').value.trim();
             const errorMsg = document.getElementById('loginError');
@@ -848,7 +849,7 @@
                     localStorage.setItem('mmsx_auth', 'true');
                     localStorage.setItem('mmsx_role', role);
                     localStorage.setItem('mmsx_store_code', user);
-                    showApp(); // dengan transisi
+                    showApp();
                 } else {
                     errorMsg.innerText = t.loginFail;
                     errorMsg.style.display = 'block';
@@ -874,40 +875,34 @@
             }
         }
 
-        // ========== TRANSISI LOGIN & APP ==========
         function showApp(instant = false) {
-        const loginOverlay = document.getElementById('loginOverlay');
-        const appContent = document.getElementById('appContent');
-        document.getElementById('displayUsername').innerText = localStorage.getItem('mms_user') || 'User';
-        setVersionTexts();
-        checkPermissions();
+            const loginOverlay = document.getElementById('loginOverlay');
+            const appContent = document.getElementById('appContent');
+            document.getElementById('displayUsername').innerText = localStorage.getItem('mms_user') || 'User';
+            setVersionTexts();
+            checkPermissions();
 
-        if (instant) {
-            loginOverlay.style.display = 'none';
-            appContent.style.display = 'flex';
-            appContent.style.opacity = '1';
-            appContent.style.transform = 'scale(1) translateY(0)';
-            fetchIndonesianHoliday();
-            return;
-        }
-
-        // Login memudar & sedikit membesar (efek menguap)
-        loginOverlay.style.opacity = '0';
-        loginOverlay.style.transform = 'scale(1.03)';
-
-        setTimeout(() => {
-            loginOverlay.style.display = 'none';
-            appContent.style.display = 'flex';
-            
-            // Trigger reflow
-            requestAnimationFrame(() => {
+            if (instant) {
+                loginOverlay.style.display = 'none';
+                appContent.style.display = 'flex';
                 appContent.style.opacity = '1';
                 appContent.style.transform = 'scale(1) translateY(0)';
-            });
+                fetchIndonesianHoliday();
+                return;
+            }
 
-            fetchIndonesianHoliday();
-        }, 350); // sama dengan durasi transisi
-    }
+            loginOverlay.style.opacity = '0';
+            loginOverlay.style.transform = 'scale(1.03)';
+            setTimeout(() => {
+                loginOverlay.style.display = 'none';
+                appContent.style.display = 'flex';
+                requestAnimationFrame(() => {
+                    appContent.style.opacity = '1';
+                    appContent.style.transform = 'scale(1) translateY(0)';
+                });
+                fetchIndonesianHoliday();
+            }, 350);
+        }
 
         function doLogout() {
             localStorage.removeItem('mms_auth');
@@ -933,25 +928,20 @@
         }
 
         async function forceHardReload() {
-  // 1. Hapus semua cache yang dikelola Service Worker & Cache API
-  try {
-    const cacheNames = await caches.keys();
-    await Promise.all(cacheNames.map(name => caches.delete(name)));
-  } catch (e) {}
-
-  // 2. Unregister Service Worker yang lama
-  if ('serviceWorker' in navigator) {
-    const registrations = await navigator.serviceWorker.getRegistrations();
-    for (let reg of registrations) {
-      await reg.unregister();
-    }
-  }
-
-  // 3. Reload dengan parameter unik agar bypass cache browser
-  const url = new URL(window.location.href);
-  url.searchParams.set('_t', Date.now().toString()); // timestamp unik
-  window.location.href = url.toString();
-}
+            try {
+                const cacheNames = await caches.keys();
+                await Promise.all(cacheNames.map(name => caches.delete(name)));
+            } catch (e) {}
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (let reg of registrations) {
+                    await reg.unregister();
+                }
+            }
+            const url = new URL(window.location.href);
+            url.searchParams.set('_t', Date.now().toString());
+            window.location.href = url.toString();
+        }
 
         // ========== ONLINE / OFFLINE ==========
         function updateOnlineStatus() {
@@ -1114,39 +1104,37 @@
             document.body.classList.add('fade-in');
             setVersionTexts();
             if (localStorage.getItem('mms_auth') === 'true') {
-                showApp(true); // instant, tanpa animasi login
+                showApp(true);
             }
             injectLangSwitcher();
             updateOnlineStatus();
         };
 
         function handleLockdown() {
-  const locked = window.__mmsx_locked;
-  const loginForm = document.getElementById('loginForm');   // beri id pada div pembungkus
-  const lockedMsg = document.getElementById('lockedMessage');
-  const loginBtn = document.querySelector('.btn-primary');
-  const feishuBtn = document.querySelector('.btn-feishu-login');
-
-  if (locked) {
-    if (loginForm) loginForm.style.display = 'none';
-    if (lockedMsg) lockedMsg.style.display = 'block';
-    if (loginBtn) loginBtn.style.display = 'none';
-    // Feishu button tetap ada
-  } else {
-    if (loginForm) loginForm.style.display = 'block';
-    if (lockedMsg) lockedMsg.style.display = 'none';
-    if (loginBtn) loginBtn.style.display = 'flex';
-  }
-}
-
-// Panggil saat load
-window.addEventListener('load', handleLockdown);
+            const locked = window.__mmsx_locked;
+            const loginForm = document.getElementById('loginForm');
+            const lockedMsg = document.getElementById('lockedMessage');
+            const loginBtn = document.querySelector('.btn-primary');
+            if (locked) {
+                if (loginForm) loginForm.style.display = 'none';
+                if (lockedMsg) lockedMsg.style.display = 'block';
+                if (loginBtn) loginBtn.style.display = 'none';
+            } else {
+                if (loginForm) loginForm.style.display = 'block';
+                if (lockedMsg) lockedMsg.style.display = 'none';
+                if (loginBtn) loginBtn.style.display = 'flex';
+            }
+        }
+        window.addEventListener('load', handleLockdown);
 
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && document.getElementById('loginOverlay').style.display !== 'none') {
                 attemptLogin();
             }
         });
+        
+        // Hapus fungsi showForceUpdateBlocker karena tidak digunakan (auto update)
+        window.showForceUpdateBlocker = null;
     </script>
 </body>
 </html>

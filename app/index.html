@@ -23,7 +23,7 @@
 
             const registerSW = async () => {
                 try {
-                    const registration = await navigator.serviceWorker.register('sw.js');
+                    const registration = await navigator.serviceWorker.register('sw-v2.js');
                     console.log('SW registered:', registration);
 
                     // Jika ada worker yang sedang menunggu (waiting), langsung kirim skipWaiting
@@ -782,7 +782,7 @@
 
     <script>
         // ========== VERSI & GLOBAL ==========
-        const APP_VERSION = "3.1.0.22";
+        const APP_VERSION = "3.1.0.23";
         
         // ========== SUPABASE SETUP ==========
         const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";

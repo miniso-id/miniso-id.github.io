@@ -1312,5 +1312,47 @@ function applyPriceLanguage() {
 
 document.addEventListener('DOMContentLoaded', applyPriceLanguage);
 </script>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- PENGECEKAN STATUS AKTIF PENGGUNA (BARU) -->
+<!-- ═══════════════════════════════════════════ -->
+<script>
+(function() {
+    async function checkActiveAndLogout() {
+        const user = localStorage.getItem('mms_user');
+        if (!user) {
+            // Tidak ada user tersimpan, redirect ke halaman login
+            window.location.replace('index.html');
+            return;
+        }
+
+        try {
+            const { data, error } = await _supabase
+                .from('users')
+                .select('active')
+                .eq('username', user)
+                .maybeSingle();
+
+            if (error || !data || data.active === false) {
+                // User tidak aktif atau error, hapus semua session & redirect
+                localStorage.removeItem('mms_auth');
+                localStorage.removeItem('mms_role');
+                localStorage.removeItem('mms_user');
+                localStorage.removeItem('mmsx_auth');
+                localStorage.removeItem('mmsx_role');
+                alert('Sesi Anda telah berakhir. Silakan login kembali.');
+                window.location.replace('index.html');
+            }
+        } catch (e) {
+            // Jika gagal fetch (misal offline), biarkan tetap bisa akses (opsional)
+            console.warn('Gagal validasi status aktif:', e);
+        }
+    }
+
+    // Jalankan pengecekan setiap kali halaman dimuat
+    window.addEventListener('load', checkActiveAndLogout);
+})();
+</script>
+
 </body>
 </html>

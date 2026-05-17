@@ -782,7 +782,7 @@
 
     <script>
         // ========== VERSI & GLOBAL ==========
-        const APP_VERSION = "3.1.0.20";
+        const APP_VERSION = "3.1.0.21";
         
         // ========== SUPABASE SETUP ==========
         const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
@@ -842,6 +842,15 @@
             try {
                 const { data, error } = await _supabase.from('users').select('*').eq('username', user).eq('password', pass).maybeSingle();
                 if (data) {
+                    // NEW: Check if user is active
+                    if (data.active === false) {
+                        errorMsg.innerText = 'Akun sudah tidak aktif. Hubungi admin.';
+                        errorMsg.style.display = 'block';
+                        loginBtn.disabled = false;
+                        loginBtn.innerHTML = t.btnLog;
+                        return;
+                    }
+
                     const role = data['login as'];
                     localStorage.setItem('mms_auth', 'true');
                     localStorage.setItem('mms_role', role);
@@ -875,6 +884,28 @@
             }
         }
 
+        // ========== NEW: CHECK ACTIVE STATUS ==========
+        async function checkActiveStatus() {
+            const user = localStorage.getItem('mms_user');
+            if (!user) return; // belum login, tidak perlu dicek
+
+            try {
+                const { data, error } = await _supabase
+                    .from('users')
+                    .select('active')
+                    .eq('username', user)
+                    .maybeSingle();
+
+                if (error || !data || data.active === false) {
+                    console.warn('User dinonaktifkan, paksa logout');
+                    await doLogout();
+                }
+            } catch (e) {
+                // Jika gagal cek (offline), biarkan saja
+                console.warn('Gagal cek status aktif:', e);
+            }
+        }
+
         function showApp(instant = false) {
             const loginOverlay = document.getElementById('loginOverlay');
             const appContent = document.getElementById('appContent');
@@ -888,6 +919,7 @@
                 appContent.style.opacity = '1';
                 appContent.style.transform = 'scale(1) translateY(0)';
                 fetchIndonesianHoliday();
+                checkActiveStatus(); // NEW: cek status saat pertama kali
                 return;
             }
 
@@ -901,7 +933,24 @@
                     appContent.style.transform = 'scale(1) translateY(0)';
                 });
                 fetchIndonesianHoliday();
+                checkActiveStatus(); // NEW: cek setelah animasi
             }, 350);
+        }
+
+        // ========== NAVIGATE (dengan pengecekan aktif) ==========
+        async function navigateTo(url) {
+            // Cek status aktif sebelum berpindah halaman
+            await checkActiveStatus();
+            // Jika setelah cek masih login (tidak logout), lanjutkan navigasi
+            if (localStorage.getItem('mms_auth') !== 'true') {
+                // Pengguna sudah di-logout oleh checkActiveStatus, hentikan navigasi
+                return;
+            }
+
+            const loader = document.getElementById('page-loader');
+            if (loader) loader.style.display = 'flex';
+            document.body.classList.add("fade-out");
+            setTimeout(() => { window.location.href = url; }, 200);
         }
 
         function doLogout() {
@@ -918,13 +967,6 @@
             document.getElementById("heroSection").style.display = "block";
             document.getElementById("ui-header").style.display = "none";
             checkPermissions();
-        }
-
-        function navigateTo(url) {
-            const loader = document.getElementById('page-loader');
-            if (loader) loader.style.display = 'flex';
-            document.body.classList.add("fade-out");
-            setTimeout(() => { window.location.href = url; }, 200);
         }
 
         async function forceHardReload() {

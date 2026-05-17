@@ -748,7 +748,7 @@
         let isForceUpdateActive = false;
         const forceOverlay = document.getElementById('forceUpdateOverlay');
         const forceUpdateBtn = document.getElementById('forceUpdateBtn');
-        const APP_VERSION = "3.1.0.16";
+        const APP_VERSION = "3.1.0.17";
 
         function showForceUpdateBlocker(worker) {
             if (isForceUpdateActive) return;
@@ -950,9 +950,26 @@
             setTimeout(() => { window.location.href = url; }, 200);
         }
 
-        function forceHardReload() {
-            window.location.reload(true);
-        }
+        async function forceHardReload() {
+  // 1. Hapus semua cache yang dikelola Service Worker & Cache API
+  try {
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map(name => caches.delete(name)));
+  } catch (e) {}
+
+  // 2. Unregister Service Worker yang lama
+  if ('serviceWorker' in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    for (let reg of registrations) {
+      await reg.unregister();
+    }
+  }
+
+  // 3. Reload dengan parameter unik agar bypass cache browser
+  const url = new URL(window.location.href);
+  url.searchParams.set('_t', Date.now().toString()); // timestamp unik
+  window.location.href = url.toString();
+}
 
         // ========== ONLINE / OFFLINE ==========
         function updateOnlineStatus() {

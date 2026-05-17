@@ -1449,5 +1449,39 @@ function applyProductLanguage() {
 
 document.addEventListener('DOMContentLoaded', applyProductLanguage);
 </script>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- PENGECEKAN STATUS AKTIF PENGGUNA (BARU) -->
+<!-- ═══════════════════════════════════════════ -->
+<script>
+(function() {
+    async function checkActiveAndLogout() {
+        const user = localStorage.getItem('mms_user');
+        if (!user) {
+            window.location.replace('index.html');
+            return;
+        }
+        try {
+            const { data, error } = await _supabase
+                .from('users')
+                .select('active')
+                .eq('username', user)
+                .maybeSingle();
+            if (error || !data || data.active === false) {
+                localStorage.removeItem('mms_auth');
+                localStorage.removeItem('mms_role');
+                localStorage.removeItem('mms_user');
+                localStorage.removeItem('mmsx_auth');
+                localStorage.removeItem('mmsx_role');
+                alert('Sesi Anda telah berakhir. Silakan login kembali.');
+                window.location.replace('index.html');
+            }
+        } catch (e) {
+            console.warn('Gagal validasi status aktif:', e);
+        }
+    }
+    window.addEventListener('load', checkActiveAndLogout);
+})();
+</script>
 </body>
 </html>

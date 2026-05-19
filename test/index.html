@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cek Display Rak (Teachable Machine)</title>
+  <title>Cek Display Rak (TF.js Langsung)</title>
   <style>
     body { font-family: sans-serif; max-width: 500px; margin: 20px auto; padding: 0 15px; }
     label { display: block; margin-top: 15px; }
@@ -23,22 +23,39 @@
   <div id="result"></div>
   <div id="status">Memuat model...</div>
 
-  <!-- TensorFlow.js -->
+  <!-- Hanya TensorFlow.js -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
-  <!-- Teachable Machine Image Library -->
-  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.5/dist/teachablemachine-image.min.js"></script>
-
   <script>
-    const MODEL_URL = 'https://miniso-id.github.io/test/model.json'; // sesuaikan path di GitHub Pages
+    // ===== KONFIGURASI =====
+    const MODEL_URL = './model.json'; // Sesuaikan jika model di folder lain
+    // Nama kelas sesuai urutan saat training di Teachable Machine
+    // (ganti sesuai dengan nama kelas Anda)
+    const CLASS_NAMES = ['Lulus', 'Tidak Lulus'];
+    const CONFIDENCE_THRESHOLD = 0.7; // opsional, minimal kepercayaan
+
     let model;
 
     async function loadModel() {
       try {
-        model = await tmImage.load(MODEL_URL);
+        model = await tf.loadGraphModel(MODEL_URL);
         document.getElementById('status').textContent = 'Model siap.';
+        console.log('Model berhasil dimuat');
       } catch (err) {
+        console.error(err);
         document.getElementById('status').textContent = 'Gagal memuat model: ' + err.message;
       }
+    }
+
+    // Preprocess gambar dan dapatkan prediksi
+    async function predictImage(imgElement) {
+      const tensor = tf.browser.fromPixels(imgElement)
+        .resizeNearestNeighbor([224, 224])  // ukuran input model Teachable Machine
+        .expandDims(0)
+        .toFloat()
+        .div(255.0); // normalisasi ke 0-1
+      const predictions = await model.predict(tensor).data();
+      tensor.dispose();
+      return predictions;
     }
 
     async function submitCheck() {
@@ -49,31 +66,37 @@
       const submitBtn = document.getElementById('submitBtn');
 
       if (!storeName || !file) {
-        resultDiv.innerHTML = '<p style="color:red;">Isi nama toko dan pilih foto.</p>';
+        resultDiv.innerHTML = '<p style="color:red;">Mohon isi nama toko dan pilih foto.</p>';
         return;
       }
-
       if (!model) {
         resultDiv.innerHTML = '<p style="color:red;">Model belum dimuat.</p>';
         return;
       }
 
       submitBtn.disabled = true;
-      resultDiv.innerHTML = '<p>⏳ Mengecek...</p>';
+      resultDiv.innerHTML = '<p>⏳ Mengecek foto...</p>';
 
       try {
-        // Load gambar ke elemen Image
         const img = await loadImage(file);
-        // Klasifikasi
-        const predictions = await model.predict(img);
-        // Cari kelas dengan probabilitas tertinggi
-        const top = predictions.reduce((a, b) => a.probability > b.probability ? a : b);
-        const className = top.className;
-        const confidence = top.probability;
+        const predArray = await predictImage(img);
+        
+        // Cari indeks dengan probabilitas tertinggi
+        let maxIndex = 0;
+        let maxProb = predArray[0];
+        for (let i = 1; i < predArray.length; i++) {
+          if (predArray[i] > maxProb) {
+            maxProb = predArray[i];
+            maxIndex = i;
+          }
+        }
 
-        // Sesuaikan dengan nama kelas Anda (misal "Lulus", "Tidak Lulus")
+        const className = CLASS_NAMES[maxIndex] || `Kelas ${maxIndex}`;
+        const confidence = maxProb;
+        
+        // Tentukan status
         let status = 'Lulus';
-        if (className.includes('tidak') || className.includes('gagal')) {
+        if (className.toLowerCase().includes('tidak') || confidence < CONFIDENCE_THRESHOLD) {
           status = 'Tidak Lulus';
         }
 
@@ -100,7 +123,7 @@
       });
     }
 
-    // Preload model
+    // Preload model saat halaman selesai
     window.addEventListener('load', loadModel);
   </script>
 </body>

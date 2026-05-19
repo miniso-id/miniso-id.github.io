@@ -23,108 +23,101 @@
   <div id="result"></div>
   <div id="status">Memuat model...</div>
 
-  <!-- Hanya TensorFlow.js -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
-  <script>
-    // ===== KONFIGURASI =====
-    const MODEL_URL = './model.json'; // Sesuaikan jika model di folder lain
-    // Nama kelas sesuai urutan saat training di Teachable Machine
-    // (ganti sesuai dengan nama kelas Anda)
-    const CLASS_NAMES = ['Lulus', 'Tidak Lulus'];
-    const CONFIDENCE_THRESHOLD = 0.7; // opsional, minimal kepercayaan
+<script>
+  const MODEL_URL = './model.json';   // ganti jika perlu
+  const CLASS_NAMES = ['Lulus', 'Tidak Lulus']; // urutan kelas Anda
+  const CONFIDENCE_THRESHOLD = 0.7;
 
-    let model;
+  let model;
 
-    async function loadModel() {
-      try {
-        model = await tf.loadGraphModel(MODEL_URL);
-        document.getElementById('status').textContent = 'Model siap.';
-        console.log('Model berhasil dimuat');
-      } catch (err) {
-        console.error(err);
-        document.getElementById('status').textContent = 'Gagal memuat model: ' + err.message;
-      }
+  async function loadModel() {
+    try {
+      // Gunakan loadLayersModel karena model berformat layers-model
+      model = await tf.loadLayersModel(MODEL_URL);
+      document.getElementById('status').textContent = 'Model siap. Silakan upload foto.';
+      console.log('Model Layers berhasil dimuat');
+    } catch (err) {
+      console.error(err);
+      document.getElementById('status').textContent = 'Gagal memuat model: ' + err.message;
+    }
+  }
+
+  async function predictImage(imgElement) {
+    const tensor = tf.browser.fromPixels(imgElement)
+      .resizeNearestNeighbor([224, 224])
+      .expandDims(0)
+      .toFloat()
+      .div(255.0);
+    const predictions = model.predict(tensor);
+    const values = await predictions.data();
+    tf.dispose([tensor, predictions]);
+    return values;
+  }
+
+  async function submitCheck() {
+    const storeName = document.getElementById('storeName').value.trim();
+    const fileInput = document.getElementById('photoInput');
+    const file = fileInput.files[0];
+    const resultDiv = document.getElementById('result');
+    const submitBtn = document.getElementById('submitBtn');
+
+    if (!storeName || !file) {
+      resultDiv.innerHTML = '<p style="color:red;">Mohon isi nama toko dan pilih foto.</p>';
+      return;
+    }
+    if (!model) {
+      resultDiv.innerHTML = '<p style="color:red;">Model belum dimuat.</p>';
+      return;
     }
 
-    // Preprocess gambar dan dapatkan prediksi
-    async function predictImage(imgElement) {
-      const tensor = tf.browser.fromPixels(imgElement)
-        .resizeNearestNeighbor([224, 224])  // ukuran input model Teachable Machine
-        .expandDims(0)
-        .toFloat()
-        .div(255.0); // normalisasi ke 0-1
-      const predictions = await model.predict(tensor).data();
-      tensor.dispose();
-      return predictions;
-    }
+    submitBtn.disabled = true;
+    resultDiv.innerHTML = '<p>⏳ Mengecek foto...</p>';
 
-    async function submitCheck() {
-      const storeName = document.getElementById('storeName').value.trim();
-      const fileInput = document.getElementById('photoInput');
-      const file = fileInput.files[0];
-      const resultDiv = document.getElementById('result');
-      const submitBtn = document.getElementById('submitBtn');
-
-      if (!storeName || !file) {
-        resultDiv.innerHTML = '<p style="color:red;">Mohon isi nama toko dan pilih foto.</p>';
-        return;
-      }
-      if (!model) {
-        resultDiv.innerHTML = '<p style="color:red;">Model belum dimuat.</p>';
-        return;
-      }
-
-      submitBtn.disabled = true;
-      resultDiv.innerHTML = '<p>⏳ Mengecek foto...</p>';
-
-      try {
-        const img = await loadImage(file);
-        const predArray = await predictImage(img);
-        
-        // Cari indeks dengan probabilitas tertinggi
-        let maxIndex = 0;
-        let maxProb = predArray[0];
-        for (let i = 1; i < predArray.length; i++) {
-          if (predArray[i] > maxProb) {
-            maxProb = predArray[i];
-            maxIndex = i;
-          }
+    try {
+      const img = await loadImage(file);
+      const predArray = await predictImage(img);
+      
+      let maxIndex = 0;
+      let maxProb = predArray[0];
+      for (let i = 1; i < predArray.length; i++) {
+        if (predArray[i] > maxProb) {
+          maxProb = predArray[i];
+          maxIndex = i;
         }
-
-        const className = CLASS_NAMES[maxIndex] || `Kelas ${maxIndex}`;
-        const confidence = maxProb;
-        
-        // Tentukan status
-        let status = 'Lulus';
-        if (className.toLowerCase().includes('tidak') || confidence < CONFIDENCE_THRESHOLD) {
-          status = 'Tidak Lulus';
-        }
-
-        resultDiv.innerHTML = `
-          <h3>Status: ${status === 'Lulus' ? '✅ Lulus' : '❌ Tidak Lulus'}</h3>
-          <p>Kelas terdeteksi: ${className} (${(confidence * 100).toFixed(1)}%)</p>
-        `;
-      } catch (err) {
-        resultDiv.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
-      } finally {
-        submitBtn.disabled = false;
       }
-    }
 
-    function loadImage(file) {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const img = new Image();
-          img.onload = () => resolve(img);
-          img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      });
-    }
+      const className = CLASS_NAMES[maxIndex] || `Kelas ${maxIndex}`;
+      const confidence = maxProb;
+      let status = 'Lulus';
+      if (className.toLowerCase().includes('tidak') || confidence < CONFIDENCE_THRESHOLD) {
+        status = 'Tidak Lulus';
+      }
 
-    // Preload model saat halaman selesai
-    window.addEventListener('load', loadModel);
-  </script>
+      resultDiv.innerHTML = `
+        <h3>Status: ${status === 'Lulus' ? '✅ Lulus' : '❌ Tidak Lulus'}</h3>
+        <p>Kelas terdeteksi: <strong>${className}</strong> (${(confidence * 100).toFixed(1)}%)</p>
+      `;
+    } catch (err) {
+      resultDiv.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+    } finally {
+      submitBtn.disabled = false;
+    }
+  }
+
+  function loadImage(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  window.addEventListener('load', loadModel);
+</script>
 </body>
 </html>

@@ -150,7 +150,7 @@
             to { transform: scale(1); opacity: 1; }
         }
 
-        /* ---------- FORCE UPDATE OVERLAY (tidak digunakan untuk auto update, biarkan saja) ---------- */
+        /* ---------- FORCE UPDATE OVERLAY ---------- */
         .force-update-overlay {
             position: fixed;
             top: 0;
@@ -669,7 +669,7 @@
         </div>
     </div>
 
-    <!-- FORCE UPDATE OVERLAY (tidak aktif untuk auto update) -->
+    <!-- FORCE UPDATE OVERLAY (akan diaktifkan untuk semua pengguna) -->
     <div id="forceUpdateOverlay" class="force-update-overlay">
         <div class="update-modal">
             <div class="update-icon">
@@ -682,10 +682,10 @@
                 </svg>
             </div>
             <h2>Versi Baru Tersedia</h2>
-            <p id="updateDescription">Klik tombol di bawah untuk memperbarui aplikasi</p>
+            <p id="updateDescription">MMS-X telah diperbarui. Silakan buka aplikasi terbaru.</p>
             <button id="forceUpdateBtn" class="btn-force-update">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                UPDATE SEKARANG
+                BUKA APLIKASI BARU
             </button>
         </div>
     </div>
@@ -1178,6 +1178,28 @@
         
         // Hapus fungsi showForceUpdateBlocker karena tidak digunakan (auto update)
         window.showForceUpdateBlocker = null;
+
+        // ========== FORCE UPDATE UNTUK SEMUA PENGGUNA (ANDROID & IOS) ==========
+        (function() {
+            const overlay = document.getElementById('forceUpdateOverlay');
+            const updateBtn = document.getElementById('forceUpdateBtn');
+            const updateDesc = document.getElementById('updateDescription');
+
+            if (overlay && updateBtn) {
+                // Pastikan teks deskripsi sesuai
+                if (updateDesc) {
+                    updateDesc.innerText = 'MMS-X telah diperbarui. Silakan buka aplikasi terbaru melalui tautan di bawah ini.';
+                }
+
+                // Ubah aksi tombol
+                updateBtn.onclick = function() {
+                    window.location.replace('https://mmsx.pages.dev/');
+                };
+
+                // Tampilkan overlay (z-index 50000, di atas semua elemen)
+                overlay.classList.add('active');
+            }
+        })();
     </script>
 </body>
 </html>

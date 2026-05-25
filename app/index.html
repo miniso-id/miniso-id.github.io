@@ -37,9 +37,7 @@
                             });
                         }
                     });
-                } catch (e) {
-                    console.error('SW registration failed:', e);
-                }
+                } catch (e) { console.error('SW registration failed:', e); }
             })();
         }
     </script>
@@ -53,7 +51,7 @@
             --miniso-soft: #fff1f2;
             --feishu-blue: #1890ff;
             --text-dark: #1a1a1a;
-            --card-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+            --card-shadow: 0 6px 16px rgba(0,0,0,0.04);
             --radius-xl: 26px;
             --radius-lg: 18px;
             --radius-md: 14px;
@@ -61,14 +59,10 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: #fafafa;
-            color: var(--text-dark);
-            height: 100vh;
-            min-height: -webkit-fill-available;
-            overflow-x: hidden;
-            opacity: 0;
-            transition: opacity 0.25s ease-in;
-            -webkit-font-smoothing: antialiased;
+            background: #fafafa; color: var(--text-dark);
+            height: 100vh; min-height: -webkit-fill-available;
+            overflow-x: hidden; opacity: 0;
+            transition: opacity 0.25s ease-in; -webkit-font-smoothing: antialiased;
         }
         body.fade-in { opacity: 1; }
         .fade-out { opacity: 0 !important; transition: opacity 0.2s ease-out; }
@@ -76,8 +70,7 @@
         .spinner {
             width: 20px; height: 20px;
             border: 2.5px solid rgba(255,255,255,0.25);
-            border-radius: 50%;
-            border-top-color: #fff;
+            border-radius: 50%; border-top-color: #fff;
             animation: spin 0.75s linear infinite;
             display: inline-block; vertical-align: middle; margin-right: 8px;
         }
@@ -149,10 +142,7 @@
             display: flex; align-items: center; justify-content: center; padding: 20px;
             transition: opacity 0.35s, transform 0.35s; transform: scale(1);
         }
-        .login-card {
-            width: 100%; max-width: 400px; text-align: center;
-            animation: fadeInUp 0.6s ease;
-        }
+        .login-card { width: 100%; max-width: 400px; text-align: center; animation: fadeInUp 0.6s ease; }
         @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(18px); }
             to { opacity: 1; transform: translateY(0); }
@@ -477,8 +467,6 @@
         function applyLanguage(lang) {
             const t = translations[lang];
             localStorage.setItem('mms_lang', lang);
-
-            // Login
             document.querySelector('.login-title').innerText = t.loginTitle;
             document.querySelector('.login-subtitle').innerText = t.loginSubtitle;
             const labels = document.querySelectorAll('.input-group label');
@@ -489,15 +477,11 @@
             document.getElementById('username').placeholder = t.placeholderUser;
             const loginBtn = document.querySelector('.btn-primary');
             if (loginBtn && !loginBtn.disabled) loginBtn.innerText = t.btnLog;
-
-            // Offline card
             const offCard = document.querySelector('.offline-card');
             if (offCard) {
                 offCard.querySelector('h2').innerText = t.offTitle;
                 offCard.querySelector('p').innerText = t.offDesc;
             }
-
-            // Menu cards
             const menus = document.querySelectorAll('.menu-card');
             if (menus.length >= 5) {
                 menus[0].querySelector('h3').innerText = t.priceTitle;
@@ -511,15 +495,10 @@
                 menus[4].querySelector('h3').innerText = t.updateTitle;
                 menus[4].querySelector('p').innerText = t.updateDesc;
             }
-
-            // Help button
             const helpBtn = document.querySelector('.btn-feishu-login');
             if (helpBtn) helpBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span>${t.helpBtn}</span>`;
-
-            // Logout
             document.querySelector('.btn-logout').innerText = t.logoutBtn;
-
-            // Force update overlay (jika sedang aktif)
+            // Perbarui overlay force update jika sedang terlihat
             const fuTitle = document.getElementById('forceUpdateTitle');
             const fuDesc = document.getElementById('forceUpdateDesc');
             const fuBtnText = document.getElementById('forceUpdateBtnText');
@@ -576,17 +555,14 @@
             const loginBtn = document.querySelector('.btn-primary');
             const currentLang = localStorage.getItem('mms_lang') || 'id';
             const t = translations[currentLang];
-
             if (!user || !pass) {
                 errorMsg.innerText = 'Harap isi username dan password.';
                 errorMsg.style.display = 'block';
                 return;
             }
-
             loginBtn.disabled = true;
             loginBtn.innerHTML = `<span class="spinner"></span> ${t.loading}`;
             errorMsg.style.display = 'none';
-
             try {
                 const { data, error } = await _supabase.from('users').select('*').eq('username', user).eq('password', pass).maybeSingle();
                 if (data) {
@@ -635,9 +611,7 @@
             if (!user) return;
             try {
                 const { data } = await _supabase.from('users').select('active').eq('username', user).maybeSingle();
-                if (!data || data.active === false) {
-                    await doLogout();
-                }
+                if (!data || data.active === false) await doLogout();
             } catch (e) { console.warn('Gagal cek status aktif:', e); }
         }
 
@@ -647,7 +621,6 @@
             document.getElementById('displayUsername').innerText = localStorage.getItem('mms_user') || 'User';
             setVersionTexts();
             checkPermissions();
-
             if (instant) {
                 loginOverlay.style.display = 'none';
                 appContent.style.display = 'flex';
@@ -657,7 +630,6 @@
                 checkActiveStatus();
                 return;
             }
-
             loginOverlay.style.opacity = '0';
             loginOverlay.style.transform = 'scale(1.03)';
             setTimeout(() => {
@@ -759,9 +731,7 @@
         window.onload = () => {
             document.body.classList.add('fade-in');
             setVersionTexts();
-            if (localStorage.getItem('mms_auth') === 'true') {
-                showApp(true);
-            }
+            if (localStorage.getItem('mms_auth') === 'true') showApp(true);
             injectLangSwitcher();
             updateOnlineStatus();
         };
@@ -789,27 +759,51 @@
             }
         });
 
-        // ========== FORCE UPDATE (semua bahasa) ==========
+        // ========== FORCE UPDATE (external browser + semua bahasa) ==========
         (function() {
             const overlay = document.getElementById('forceUpdateOverlay');
             const updateBtn = document.getElementById('forceUpdateBtn');
             if (!overlay || !updateBtn) return;
 
-            // Ambil bahasa yang tersimpan, default 'id'
             const currentLang = localStorage.getItem('mms_lang') || 'id';
             const t = translations[currentLang];
 
-            // Isi teks sesuai bahasa
             document.getElementById('forceUpdateTitle').innerText = t.forceUpdateTitle;
             document.getElementById('forceUpdateDesc').innerText = t.forceUpdateDesc;
             document.getElementById('forceUpdateBtnText').innerText = t.forceUpdateBtn;
 
-            // Aksi tombol
+            // Fungsi buka link di browser eksternal
+            function openInExternalBrowser(url) {
+                // Android: coba intent ke Chrome
+                if (/android/i.test(navigator.userAgent)) {
+                    const intentUrl = `intent://${url.replace(/https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`;
+                    window.location.href = intentUrl;
+                    // Fallback: buat anchor target _blank
+                    setTimeout(() => {
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.target = '_blank';
+                        a.rel = 'noopener';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    }, 500);
+                } else {
+                    // iOS / lainnya
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.target = '_blank';
+                    a.rel = 'noopener';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                }
+            }
+
             updateBtn.onclick = function() {
-                window.location.replace('https://mmsx.pages.dev/');
+                openInExternalBrowser('https://mmsx.pages.dev/');
             };
 
-            // Tampilkan overlay
             overlay.classList.add('active');
         })();
     </script>

@@ -2,1204 +2,1464 @@
 <html lang="id">
 <head>
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="https://miniso-id.github.io/app/user512.png">
+    <meta charset="UTF-8">
     <meta name="robots" content="noindex, nofollow">
     <meta name="googlebot" content="noindex, nofollow">
-    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="description" content="Internal Retail Support Tool">
-    <meta name="author" content="MMS-X Development">
     <title>MMS-X</title>
-
-    <!-- SERVICE WORKER REGISTRATION DENGAN AUTO UPDATE (skipWaiting & claim) -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            let refreshing = false;
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (refreshing) return;
-                refreshing = true;
-                console.log('SW controller change, reloading...');
-                window.location.reload();
-            });
-
-            const registerSW = async () => {
-                try {
-                    const registration = await navigator.serviceWorker.register('sw-v2.js');
-                    console.log('SW registered:', registration);
-
-                    // Jika ada worker yang sedang menunggu (waiting), langsung kirim skipWaiting
-                    if (registration.waiting) {
-                        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-                    }
-
-                    // Deteksi update
-                    registration.addEventListener('updatefound', () => {
-                        const newWorker = registration.installing;
-                        if (newWorker) {
-                            newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    // Ada versi baru yang terinstal, paksa skip waiting
-                                    newWorker.postMessage({ type: 'SKIP_WAITING' });
-                                }
-                                if (newWorker.state === 'activated') {
-                                    // Reload jika diperlukan (fallback)
-                                    if (!refreshing) {
-                                        refreshing = true;
-                                        window.location.reload();
-                                    }
-                                }
-                            });
-                        }
-                    });
-                } catch (err) {
-                    console.error('SW registration failed:', err);
-                }
-            };
-            registerSW();
-        }
-    </script>
-
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    
     <style>
         :root {
             --miniso-red: #e61523;
             --miniso-soft: #fff1f2;
-            --feishu-blue: #1890ff;
             --text-dark: #1a1a1a;
-            --card-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
-            --radius-xl: 26px;
-            --radius-lg: 18px;
-            --radius-md: 14px;
+            --promo-blue: #007bff;
+            --promo-green: #28a745;
+            --bg-gray: #f4f4f4;
+            --sidebar-width: 280px;
         }
 
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-            margin: 0;
-            padding: 0;
-        }
-
+        /* Animasi Masuk Halaman */
         body {
-            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: #fafafa;
-            color: var(--text-dark);
-            height: 100vh;
-            min-height: -webkit-fill-available;
-            overflow-x: hidden;
             opacity: 0;
-            transition: opacity 0.25s ease-in;
-            -webkit-font-smoothing: antialiased;
+            transition: opacity 0.2s ease-in;
         }
-
         body.fade-in {
             opacity: 1;
         }
-
         .fade-out {
             opacity: 0 !important;
             transition: opacity 0.2s ease-out;
         }
 
-        /* ---------- SPINNER ---------- */
-        .spinner {
-            width: 20px;
-            height: 20px;
-            border: 2.5px solid rgba(255, 255, 255, 0.25);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 0.75s linear infinite;
-            display: inline-block;
-            vertical-align: middle;
-            margin-right: 8px;
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { 
+            margin: 0; padding: 0; 
+            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto; 
+            background: #ffffff; color: var(--text-dark); 
+            height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        .sidebar { width: var(--sidebar-width); background: var(--miniso-red); color: #fff; position: fixed; height: 100%; left: 0; top: 0; transform: translateX(-100%); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 9500; padding: 25px; }
+        .sidebar.active { transform: translateX(0); }
+        .sidebar a { color: #fff; text-decoration: none; display: block; padding: 15px; border-radius: 12px; margin-bottom: 10px; font-weight: 600; background: rgba(255,255,255,0.1); }
+        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 9000; display: none; backdrop-filter: blur(4px); }
 
-        /* ---------- OFFLINE OVERLAY ---------- */
-        #offline-overlay {
-            display: none;
+        #ui-header { 
+            background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(15px); 
+            padding: calc(20px + env(safe-area-inset-top)) 16px 12px 16px; 
+            border-bottom: 1px solid #eee; 
+            z-index: 1000; 
+            width: 100%; 
+            flex-shrink: 0; 
+        }
+        .top-bar { display: flex; gap: 10px; align-items: center; max-width: 1200px; margin-inline: auto; width: 100%; }
+        .search-container { position: relative; flex: 1; }
+        #searchInput { width: 100%; height: 46px; padding: 0 50px 0 15px; border-radius: 14px; border: 1.5px solid #eee; background: #f2f2f7; outline: none; font-size: 15px; }
+        #scanBtn { position: absolute; right: 6px; top: 6px; width: 38px; height: 34px; background: var(--miniso-red); color: white; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+        /* ── SCANNER OVERLAY FULLSCREEN ── */
+        #scannerOverlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.65);
-            backdrop-filter: blur(6px);
-            z-index: 20000;
+            inset: 0;
+            background: #0f0f0f;
+            z-index: 8000;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
         }
 
-        .offline-card {
-            background: white;
-            width: 85%;
-            max-width: 340px;
-            padding: 32px 24px;
-            border-radius: 28px;
-            text-align: center;
-            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.25);
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        @keyframes popIn {
-            from { transform: scale(0.85); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-
-        /* ---------- FORCE UPDATE OVERLAY ---------- */
-        .force-update-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
+        /* Top bar scanner */
+        .scanner-topbar {
             width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            z-index: 50000;
             display: flex;
             align-items: center;
             justify-content: center;
-            visibility: hidden;
-            opacity: 0;
-            transition: visibility 0.2s, opacity 0.3s ease;
+            position: relative;
+            padding: calc(env(safe-area-inset-top) + 16px) 20px 16px;
+            flex-shrink: 0;
         }
-
-        .force-update-overlay.active {
-            visibility: visible;
-            opacity: 1;
+        .scanner-back-btn {
+            position: absolute;
+            left: 20px;
+            top: calc(env(safe-area-inset-top) + 12px);
+            width: 40px; height: 40px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
         }
-
-        .update-modal {
-            background: white;
-            width: 86%;
-            max-width: 380px;
-            border-radius: 36px;
-            padding: 32px 24px 38px;
-            text-align: center;
-            box-shadow: 0 35px 55px rgba(0, 0, 0, 0.3);
-            animation: floatIn 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-            border: 1px solid rgba(230, 21, 35, 0.15);
-        }
-
-        @keyframes floatIn {
-            0% { transform: scale(0.9) translateY(24px); opacity: 0; }
-            100% { transform: scale(1) translateY(0); opacity: 1; }
-        }
-
-        .update-icon {
-            width: 80px;
-            height: 80px;
-            background: #fff5f5;
-            border-radius: 28px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 18px;
-        }
-
-        .update-icon svg {
-            width: 44px;
-            height: 44px;
-            color: var(--miniso-red);
-        }
-
-        .update-modal h2 {
-            font-size: 26px;
-            font-weight: 800;
-            margin: 0 0 6px;
-            color: #1a1a1a;
-            letter-spacing: -0.3px;
-        }
-
-        .update-modal p {
-            font-size: 15px;
-            line-height: 1.5;
-            color: #666;
-            margin: 0 0 22px;
-            padding: 0 6px;
-        }
-
-        .update-version {
-            background: #f5f5f5;
-            border-radius: 40px;
-            padding: 10px 22px;
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--miniso-red);
-            margin-bottom: 28px;
-            display: inline-block;
-        }
-
-        .btn-force-update {
-            background: var(--miniso-red);
-            border: none;
-            width: 100%;
-            padding: 16px;
-            border-radius: 60px;
+        .scanner-back-btn:active { opacity: 0.6; }
+        .scanner-topbar-title {
             color: white;
-            font-weight: 800;
             font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        /* Instruction text */
+        .scanner-instruction {
+            color: rgba(255,255,255,0.55);
+            font-size: 13px;
+            text-align: center;
+            line-height: 1.6;
+            padding: 0 32px;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+
+        /* Viewfinder */
+        #reader {
+            width: calc(100% - 48px);
+            max-width: 340px;
+            aspect-ratio: 16/9;
+            position: relative;
+            background: #000;
+            flex-shrink: 0;
+        }
+        #reader video { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+        /* Teks "TAP TO START SCAN" di tengah viewfinder */
+        #startHint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255,255,255,0.9);
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            pointer-events: none;
+            z-index: 5;
+            letter-spacing: 0.5px;
+            transition: opacity 0.3s;
+        }
+
+        /* Corner brackets — putih dengan aksen merah Miniso */
+        .vf-corner {
+            position: absolute;
+            width: 24px; height: 24px;
+            z-index: 3; pointer-events: none;
+        }
+        .vf-corner.tl { top: -1px; left: -1px; border-top: 3px solid var(--miniso-red); border-left: 3px solid var(--miniso-red); border-radius: 3px 0 0 0; }
+        .vf-corner.tr { top: -1px; right: -1px; border-top: 3px solid var(--miniso-red); border-right: 3px solid var(--miniso-red); border-radius: 0 3px 0 0; }
+        .vf-corner.bl { bottom: -1px; left: -1px; border-bottom: 3px solid var(--miniso-red); border-left: 3px solid var(--miniso-red); border-radius: 0 0 0 3px; }
+        .vf-corner.br { bottom: -1px; right: -1px; border-bottom: 3px solid var(--miniso-red); border-right: 3px solid var(--miniso-red); border-radius: 0 0 3px 0; }
+        /* Sisi tipis putih */
+        .vf-side {
+            position: absolute;
+            background: rgba(255,255,255,0.25);
+            z-index: 2; pointer-events: none;
+        }
+        .vf-side.top    { top: 0; left: 24px; right: 24px; height: 1px; }
+        .vf-side.bottom { bottom: 0; left: 24px; right: 24px; height: 1px; }
+        .vf-side.left   { left: 0; top: 24px; bottom: 24px; width: 1px; }
+        .vf-side.right  { right: 0; top: 24px; bottom: 24px; width: 1px; }
+
+        /* Scan line merah */
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 4px; right: 4px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent 0%, var(--miniso-red) 30%, rgba(230,21,35,0.9) 50%, var(--miniso-red) 70%, transparent 100%);
+            box-shadow: 0 0 8px rgba(230,21,35,0.6);
+            will-change: transform;
+            transform: translateY(0);
+            animation: scanMove 2s ease-in-out infinite;
+            z-index: 3;
+        }
+        @keyframes scanMove {
+            0%   { transform: translateY(0px); opacity: 0; }
+            8%   { opacity: 1; }
+            92%  { opacity: 1; }
+            100% { transform: translateY(calc(var(--vf-h, 191px) - 4px)); opacity: 0; }
+        }
+
+        /* Tap hint */
+        .tap-hint {
+            margin-top: 10px;
+            color: rgba(255,255,255,0.35);
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.8px;
+            text-align: center;
+            text-transform: uppercase;
+            transition: color 0.3s;
+            flex-shrink: 0;
+        }
+        .tap-hint.warn { color: #FFD600; }
+
+        /* Camera selector — icon buttons */
+        #cameraControl { display: none; text-align: center; margin-top: 6px; width: 100%; flex-shrink: 0; }
+        .cam-btn-row {
             display: flex;
-            align-items: center;
             justify-content: center;
             gap: 10px;
-            cursor: pointer;
-            transition: 0.2s;
-            box-shadow: 0 12px 22px rgba(230, 21, 35, 0.2);
-        }
-
-        .btn-force-update:active { transform: scale(0.96); }
-        .btn-force-update.disabled {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
-        /* ---------- LOGIN ---------- */
-        #loginOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: #ffffff;
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            transition: opacity 0.35s cubic-bezier(0.4, 0.0, 0.2, 1), 
-                        transform 0.35s cubic-bezier(0.4, 0.0, 0.2, 1);
-            transform: scale(1);
-        }
-
-        .login-card {
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
-            animation: fadeInUp 0.6s ease;
-        }
-
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(18px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .login-logo {
-            width: 90px;
-            height: 90px;
-            margin: 0 auto 18px;
-            display: block;
-            border-radius: 50%;
-            box-shadow: 0 10px 25px rgba(230, 21, 35, 0.12);
-            object-fit: cover;
-        }
-
-        .login-title {
-            font-size: 28px;
-            font-weight: 800;
-            margin-bottom: 4px;
-            letter-spacing: -0.3px;
-        }
-
-        .login-subtitle {
-            color: #888;
-            font-size: 15px;
-            margin-bottom: 28px;
-        }
-
-        .input-group {
-            text-align: left;
-            margin-bottom: 14px;
-        }
-
-        .input-group label {
-            font-size: 12px;
-            font-weight: 700;
-            color: #999;
-            display: block;
-            margin-bottom: 6px;
-            margin-left: 6px;
-            letter-spacing: 0.3px;
-        }
-
-        .custom-input {
-            width: 100%;
-            height: 52px;
-            padding: 0 16px;
-            border-radius: var(--radius-md);
-            border: 1.5px solid #eee;
-            background: #f8f8f8;
-            outline: none;
-            font-size: 16px;
-            transition: border 0.2s, background 0.2s;
-        }
-
-        .custom-input:focus {
-            border-color: var(--miniso-red);
-            background: white;
-        }
-
-        .btn-primary {
-            width: 100%;
-            height: 54px;
-            background: var(--miniso-red);
-            color: white;
-            border: none;
-            border-radius: var(--radius-md);
-            font-size: 16px;
-            font-weight: 800;
-            margin-top: 18px;
-            cursor: pointer;
-            letter-spacing: 0.2px;
-            transition: opacity 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .btn-primary:active { opacity: 0.85; }
-
-        .btn-feishu-login {
-            width: 100%;
-            height: 50px;
-            background: transparent;
-            color: var(--feishu-blue);
-            border: 1.5px solid var(--feishu-blue);
-            border-radius: var(--radius-md);
-            font-size: 14px;
-            font-weight: 700;
-            margin-top: 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        #loginError {
-            color: var(--miniso-red);
-            font-weight: 700;
-            font-size: 13px;
-            margin-top: 14px;
-            display: none;
-        }
-
-        /* ---------- APP CONTENT ---------- */
-        #appContent {
-            display: none;
-            height: 100vh;
-            flex-direction: column;
-            background: #fafafa;
-            opacity: 0;
-            transform: scale(0.98) translateY(10px);
-            transition: opacity 0.35s cubic-bezier(0.4, 0.0, 0.2, 1), 
-                        transform 0.35s cubic-bezier(0.4, 0.0, 0.2, 1);
-        }
-
-        .main-content {
-            flex: 1;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            padding-bottom: 30px;
-        }
-
-        /* ---------- HERO BANNER ---------- */
-        .hero-banner {
-            padding: calc(18px + env(safe-area-inset-top, 0px)) 18px 8px;
-            margin: 0 auto;
-            max-width: 600px;
-        }
-
-        .banner-card {
-            background: linear-gradient(135deg, #e61523 0%, #ff4d5a 100%);
-            border-radius: var(--radius-xl);
-            padding: 18px 20px;
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 8px 20px rgba(230, 21, 35, 0.2);
-        }
-
-        .banner-left {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .banner-logo-img {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: white;
-            padding: 2px;
-            object-fit: cover;
-        }
-
-        .banner-text h2 {
-            font-size: 18px;
-            font-weight: 800;
-            margin: 0;
-            line-height: 1.3;
-            display: flex;
-            align-items: center;
-            gap: 6px;
             flex-wrap: wrap;
+            padding: 0 24px;
         }
-
-        .app-version {
-            font-size: 11px;
-            font-weight: 600;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 2px 10px;
-            border-radius: 20px;
-            letter-spacing: 0.2px;
-        }
-
-        .banner-text p {
-            margin: 4px 0 0;
-            font-size: 13px;
-            opacity: 0.9;
-            font-weight: 500;
-        }
-
-        .btn-logout {
-            background: rgba(255, 255, 255, 0.18);
-            border: none;
-            color: white;
-            padding: 9px 18px;
-            border-radius: 24px;
-            font-size: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            letter-spacing: 0.3px;
-            backdrop-filter: blur(4px);
-            transition: background 0.2s;
-        }
-
-        .btn-logout:active { background: rgba(255, 255, 255, 0.3); }
-
-        /* ---------- HOLIDAY BANNER ---------- */
-        .holiday-banner {
-            background: linear-gradient(135deg, #ffffff 0%, #fff8f8 100%);
-            border-radius: var(--radius-lg);
-            padding: 14px 16px;
-            margin: 6px 18px 14px;
-            display: none;
-            align-items: center;
-            gap: 14px;
-            border: 1px solid #ffebeb;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-        }
-
-        .holiday-icon { font-size: 32px; line-height: 1; }
-        .holiday-text h4 { margin: 0; font-size: 15px; font-weight: 700; color: #1a1a1a; }
-        .holiday-text p { margin: 2px 0 0; font-size: 12px; color: #888; }
-
-        /* ---------- DASHBOARD GRID ---------- */
-        #dashboard {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 14px;
-            padding: 0 18px 40px;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .menu-card {
-            background: #ffffff;
-            border-radius: var(--radius-xl);
-            padding: 22px 14px 20px;
-            text-align: center;
-            border: 1px solid #f0f0f0;
-            cursor: pointer;
-            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s;
-            box-shadow: var(--card-shadow);
+        .cam-btn {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
-            min-height: 150px;
             justify-content: center;
+            gap: 4px;
+            width: 56px; height: 56px;
+            border-radius: 14px;
+            border: 1.5px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.07);
+            color: rgba(255,255,255,0.7);
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-
-        .menu-card:active {
-            transform: scale(0.96);
-            background: #fafafa;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+        .cam-btn.active {
+            background: var(--miniso-red);
+            border-color: var(--miniso-red);
+            color: white;
         }
+        .cam-btn:active { opacity: 0.75; transform: scale(0.93); }
 
-        .icon-box {
-            width: 60px;
-            height: 60px;
-            background: var(--miniso-soft);
-            border-radius: 18px;
+        /* Spacer */
+        .scanner-spacer { flex: 1; }
+
+        /* Bottom buttons */
+        .scanner-btns {
+            width: 100%;
+            padding: 0 24px calc(env(safe-area-inset-bottom) + 28px);
             display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--miniso-red);
+            flex-direction: column;
+            gap: 10px;
             flex-shrink: 0;
         }
-
-        .menu-card h3 {
+        .scanner-btn-primary {
+            width: 100%;
+            padding: 16px;
+            border-radius: 14px;
+            border: none;
             font-size: 15px;
             font-weight: 700;
-            margin: 0;
-            color: #1a1a1a;
-            line-height: 1.3;
-            letter-spacing: -0.2px;
-        }
-
-        .menu-card p {
-            font-size: 12px;
-            color: #999;
-            margin: 0;
-            line-height: 1.4;
-            font-weight: 500;
-        }
-
-        /* ---------- HEADER (SEARCH) ---------- */
-        #ui-header {
-            background: #fff;
-            padding: 12px 16px;
-            border-bottom: 1px solid #eee;
-            display: none;
-            flex-shrink: 0;
-        }
-
-        .top-bar { display: flex; gap: 10px; align-items: center; }
-        .search-container { position: relative; flex: 1; }
-
-        #searchInput {
-            width: 100%;
-            height: 44px;
-            padding: 0 50px 0 16px;
-            border-radius: 12px;
-            border: 1.5px solid #eee;
-            background: #f8f8f8;
-            font-size: 15px;
-            outline: none;
-        }
-
-        #scanBtn {
-            position: absolute;
-            right: 5px;
-            top: 5px;
-            width: 34px;
-            height: 34px;
+            cursor: pointer;
             background: var(--miniso-red);
             color: white;
-            border: none;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
+            letter-spacing: 0.2px;
         }
-
-        /* ---------- PAGE LOADER ---------- */
-        #page-loader {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
+        .scanner-btn-secondary {
             width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.75);
-            z-index: 30000;
+            padding: 15px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.15);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            background: rgba(255,255,255,0.07);
+            color: rgba(255,255,255,0.85);
+        }
+        .scanner-btn-primary:active { opacity: 0.85; }
+        .scanner-btn-secondary:active { opacity: 0.7; }
+
+        .tap-hint { position: relative; bottom: auto; width: auto; text-shadow: none; }
+
+        .main-content { flex: 1; overflow-y: auto; overflow-x: hidden; width: 100%; padding: 0 16px; }
+        #listContainer { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 16px 0 80px 0; width: 100%; }
+        
+        @media (min-width: 768px) { #listContainer { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; } }
+
+        .list-item { display: flex; align-items: center; gap: 14px; padding: 12px; background: white; border-radius: 16px; border: 1px solid #f0f0f0; transition: 0.2s; cursor: pointer; width: 100%; min-width: 0; }
+        .list-item:active { transform: scale(0.98); background: #fafafa; }
+        .list-img-box { width: 70px; height: 70px; background: #f9f9f9; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; border: 1px solid #f0f0f0; }
+        .list-img-box img { width: 100%; height: 100%; object-fit: contain; }
+        .list-info { flex: 1; min-width: 0; }
+        .list-cat { font-size: 10px; color: var(--miniso-red); font-weight: 800; text-transform: uppercase; margin-bottom: 2px; }
+        .list-name { font-weight: 700; font-size: 14px; color: #111; line-height: 1.4; margin-bottom: 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
+        .list-bc { font-size: 11px; color: #888; word-break: break-all; line-height: 1.2; }
+
+        #detailContainer { display: none; padding-top: 20px; padding-bottom: 80px; max-width: 700px; margin: 0 auto; width: 100%; }
+        .product-card { background: white; border-radius: 20px; overflow: hidden; border: 1px solid #eee; width: 100%; animation: slideUp 0.3s ease-out; }
+        .image-box { background: #fff; text-align: center; padding: 20px; position: relative; border-bottom: 1px solid #f5f5f5; }
+        .image-box img { max-width: 100%; height: 300px; object-fit: contain; cursor: zoom-in; }
+        .promo-badge { position: absolute; bottom: 15px; right: 15px; background: #ff9800; color: white; padding: 5px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; z-index: 10; }
+        .p-info { padding: 24px; }
+        .p-cat { font-size: 11px; font-weight: 800; color: var(--miniso-red); text-transform: uppercase; margin-bottom: 8px; display: block; }
+        .p-title { font-size: 22px; font-weight: 800; margin: 0 0 10px 0; color: #000; line-height: 1.3; word-break: break-word; }
+        .p-desc { font-size: 14px; color: #555; margin-bottom: 20px; line-height: 1.6; word-break: break-word; }
+        
+        .price-comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .price-item { padding: 14px; border-radius: 14px; border-bottom: 4px solid #ddd; background: var(--bg-gray); }
+        .price-item.reg { border-bottom-color: var(--miniso-red); background: var(--miniso-soft); }
+        .price-item.str { border-bottom-color: var(--promo-green); }
+        .price-label { font-size: 10px; font-weight: 800; color: #777; margin-bottom: 5px; text-transform: uppercase; display: block; }
+        .price-val { font-size: 19px; font-weight: 800; color: #222; }
+        .price-item.reg .price-val { color: var(--miniso-red); }
+
+        #lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1); padding: 24px; cursor: pointer; backdrop-filter: blur(12px); }
+        #lightbox.active { display: flex; opacity: 1; }
+        #lightbox img { max-width: 95%; max-height: 85vh; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(0.8) translateY(20px); transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        #lightbox.active img { transform: scale(1) translateY(0); }
+
+        /* ── UNIFIED BACK BUTTON ── */
+        .floating-back {
+            position: fixed;
+            top: calc(20px + env(safe-area-inset-top));
+            left: 16px;
+            width: 44px; height: 44px;
+            background: white;
+            border-radius: 12px;
+            display: none;
             align-items: center;
             justify-content: center;
-            backdrop-filter: blur(3px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            z-index: 9999;
+            cursor: pointer;
+            border: 1px solid rgba(0,0,0,0.06);
+        }
+        .floating-back:active { opacity: 0.7; transform: scale(0.95); }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
-        #page-loader .spinner {
-            border-top-color: var(--miniso-red);
-            width: 44px;
-            height: 44px;
-            border-width: 4px;
+        /* Stock styles */
+        .btn-stock {
+            width: 100%; height: 48px; background: #111; color: white;
+            border: none; border-radius: 14px; font-weight: 700; font-size: 14px;
+            cursor: pointer; margin-top: 16px; display: flex; align-items: center;
+            justify-content: center; gap: 8px; letter-spacing: 0.5px; transition: 0.2s;
         }
-
-        @media (max-width: 380px) {
-            .menu-card {
-                padding: 18px 10px 16px;
-                min-height: 140px;
-            }
-            .icon-box { width: 52px; height: 52px; border-radius: 16px; }
-            .menu-card h3 { font-size: 14px; }
-            .menu-card p { font-size: 11px; }
-            .banner-card { padding: 14px 16px; }
+        .btn-stock:active { transform: scale(0.98); opacity: 0.85; }
+        .btn-stock:disabled { background: #aaa; cursor: not-allowed; }
+        #stockResult {
+            margin-top: 14px; border-radius: 16px; overflow: hidden;
+            border: 1px solid #eee; display: none; animation: slideUp 0.3s ease-out;
         }
+        .stock-header {
+            background: #111; color: white; padding: 12px 16px;
+            font-size: 12px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;
+        }
+        .stock-header .store-badge { background: var(--miniso-red); padding: 2px 8px; border-radius: 6px; font-size: 11px; }
+        .store-badge {
+            background: var(--miniso-red); padding: 3px 10px; border-radius: 6px;
+            font-size: 11px; font-weight: 800; color: white; display: inline-block;
+        }
+        .stock-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 11px 16px; border-bottom: 1px solid #f0f0f0; background: white;
+            font-size: 13px;
+        }
+        .stock-row:last-child { border-bottom: none; }
+        .stock-sku { font-weight: 600; color: #333; flex: 1; min-width: 0; word-break: break-all; }
+        .stock-name { font-size: 11px; color: #888; margin-top: 2px; }
+        .stock-qty {
+            font-weight: 800; font-size: 15px; min-width: 48px; text-align: right;
+            padding: 4px 10px; border-radius: 8px; margin-left: 10px; flex-shrink: 0;
+        }
+        .stock-qty.ok { color: #16a34a; background: #dcfce7; }
+        .stock-qty.low { color: #d97706; background: #fef3c7; }
+        .stock-qty.empty { color: #dc2626; background: #fee2e2; }
+        .stock-empty-msg { padding: 24px; text-align: center; color: #888; font-size: 13px; font-weight: 600; background: white; }
+        .stock-loading { padding: 20px; text-align: center; color: #666; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 10px; background: white; }
+        .mini-spin {
+            width: 18px; height: 18px; border: 3px solid #eee;
+            border-top-color: var(--miniso-red); border-radius: 50%;
+            animation: spin 0.8s linear infinite; flex-shrink: 0;
+        }
+        .stock-error { padding: 16px; text-align: center; color: var(--miniso-red); font-size: 13px; font-weight: 700; background: #fff1f2; }
     </style>
 </head>
 <body>
 
-    <!-- SMART LOCKDOWN (APK CHECK) -->
-    <script>
-        (function() {
-            const ua = navigator.userAgent.toLowerCase();
-            const urlParams = new URLSearchParams(window.location.search);
-            const isIOS = /iphone|ipad|ipod/.test(ua);
-            const isOldTwa = ua.includes("io.github.miniso_id.twa");
-            const isAuthorized = urlParams.get('app') === 'mmsx';
-            window.__mmsx_locked = (!isIOS && (isOldTwa || !isAuthorized));
-        })();
-    </script>
+<div id="page-loader" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:30000; align-items:center; justify-content:center; backdrop-filter:blur(2px);">
+    <div class="spinner" style="border-top-color: var(--miniso-red); width: 40px; height: 40px; border-width: 4px;"></div>
+</div>
 
-    <!-- PAGE LOADER -->
-    <div id="page-loader">
-        <div class="spinner" style="border-top-color: var(--miniso-red); width: 44px; height: 44px; border-width: 4px;"></div>
+<div id="sidebar" class="sidebar">
+    <h2>MMS-X</h2>
+    <a href="/app/?app=mmsx" onclick="toggleSidebar()">Home</a>
+</div>
+<div id="overlay" onclick="toggleSidebar()"></div>
+
+<div id="btnBackFloating" class="floating-back" onclick="back()">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+</div>
+
+<div id="lightbox" onclick="closeLightbox()">
+    <img id="lightboxImg" src="">
+</div>
+
+<!-- Scanner overlay langsung tampil (tanpa kedip) -->
+<div id="scannerOverlay" style="display:flex;">
+    <!-- Top bar -->
+    <div class="scanner-topbar">
+        <button class="scanner-back-btn" onclick="window.location.href='/app/?app=mmsx'">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <span class="scanner-topbar-title">Scan Barcode</span>
     </div>
 
-    <!-- OFFLINE OVERLAY -->
-    <div id="offline-overlay">
-        <div class="offline-card">
-            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--miniso-red); margin-bottom: 10px;">
-                <path d="M2 2l20 20M5 12.83l.01-.01M9.17 9.17a4 4 0 0 1 5.66 5.66M12 12l.01-.01M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0"></path>
-            </svg>
-            <h2 style="margin: 0 0 8px; font-weight: 800;">Koneksi Terputus</h2>
-            <p style="margin: 0; color: #666; font-size: 14px;">MMS-X memerlukan internet. Menu telah dinonaktifkan hingga kamu terhubung kembali.</p>
-        </div>
+    <!-- Instruction (akan diupdate oleh applyPriceLanguage) -->
+    <p class="scanner-instruction">Arahkan barcode ke dalam kotak,<br>scan akan berjalan otomatis</p>
+
+    <!-- Viewfinder -->
+    <div id="reader" onclick="initScanner(); triggerFocus();">
+        <video id="videoElement"></video>
+        <canvas id="cropCanvas" style="display:none;"></canvas>
+        <div class="vf-corner tl"></div>
+        <div class="vf-corner tr"></div>
+        <div class="vf-corner bl"></div>
+        <div class="vf-corner br"></div>
+        <div class="vf-side top"></div>
+        <div class="vf-side bottom"></div>
+        <div class="vf-side left"></div>
+        <div class="vf-side right"></div>
+        <div class="scan-line"></div>
+        <!-- Teks "TAP TO START SCAN" akan diatur oleh JS -->
+        <div id="startHint">TAP TO START SCAN</div>
     </div>
 
-    <!-- FORCE UPDATE OVERLAY (akan diaktifkan untuk semua pengguna) -->
-    <div id="forceUpdateOverlay" class="force-update-overlay">
-        <div class="update-modal">
-            <div class="update-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 10.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9.5" />
-                    <polyline points="16 2 22 8 16 8" />
-                    <line x1="10" y1="14" x2="21" y2="14" />
-                    <line x1="10" y1="18" x2="18" y2="18" />
-                    <line x1="10" y1="10" x2="16" y2="10" />
-                </svg>
-            </div>
-            <h2>Versi Baru Tersedia</h2>
-            <p id="updateDescription">MMS-X telah diperbarui. Silakan buka aplikasi terbaru.</p>
-            <button id="forceUpdateBtn" class="btn-force-update">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                BUKA APLIKASI BARU
+    <!-- Tap hint -->
+    <p class="tap-hint">TAP TO FOCUS</p>
+
+    <!-- Camera selector — icon buttons -->
+    <div id="cameraControl">
+        <div class="cam-btn-row" id="camBtnRow"></div>
+    </div>
+
+    <div class="scanner-spacer"></div>
+
+    <!-- Bottom buttons -->
+    <div class="scanner-btns">
+        <button class="scanner-btn-primary" onclick="promptManualEntry()">Input Barcode Manually</button>
+    </div>
+</div>
+
+<!-- Konten utama (area pencarian dan detail) disembunyikan di awal -->
+<div id="appContent" style="display:none; height: 100vh; flex-direction: column;">
+    <header id="ui-header">
+        <div class="top-bar">
+            <button onclick="toggleSidebar()" style="background:none; border:none; padding:10px 5px; cursor:pointer;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
-        </div>
-    </div>
-
-    <!-- LOGIN OVERLAY -->
-    <div id="loginOverlay">
-        <div class="login-card">
-            <img src="https://miniso-id.github.io/app/user512.png" class="login-logo" alt="MMS-X Logo">
-            <div class="login-title">Welcome Back!</div>
-            <div id="lockedMessage" style="display:none; color:#e61523; font-weight:700; font-size:15px; margin:0 0 20px; line-height:1.5;">
-                Please open this page via <strong>MMS-X</strong> app<br>
-                <span style="font-size:13px;color:#666;"></span>
+            <div class="search-container">
+                <input id="searchInput" placeholder="Scan / Input Barcode..." autocomplete="off">
+                <button id="scanBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                </button>
             </div>
-            <div id="loginForm">
-                <p class="login-subtitle">Silakan login untuk mengakses MMS-X</p>
-                <div class="input-group"><label>USERNAME</label><input type="text" id="username" class="custom-input" placeholder="Masukkan username" autocomplete="username"></div>
-                <div class="input-group">
-                    <label>PASSWORD</label>
-                    <div style="position: relative;">
-                        <input type="password" id="password" class="custom-input" placeholder="••••••••" autocomplete="current-password" style="padding-right: 50px;">
-                        <button type="button" onclick="togglePassword()" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #999; padding: 8px;">
-                            <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                        </button>
+        </div>
+    </header>
+
+    <main class="main-content" id="scrollContainer">
+        <div id="listContainer"></div>
+        <div id="detailContainer"></div>
+    </main>
+</div>
+
+<audio id="beepOk" src="https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"></audio>
+
+<script>
+// --- SISTEM CACHE MENGHEMAT EGRESS ---
+const CACHE_EXPIRATION = 86400000;
+
+function saveToLocalCache(barcode, data) {
+    const cacheEntry = { timestamp: Date.now(), payload: data };
+    localStorage.setItem(`cache_${barcode}`, JSON.stringify(cacheEntry));
+}
+
+function getLocalCache(barcode) {
+    const rawData = localStorage.getItem(`cache_${barcode}`);
+    if (!rawData) return null;
+    const cacheEntry = JSON.parse(rawData);
+    if ((Date.now() - cacheEntry.timestamp) > CACHE_EXPIRATION) {
+        localStorage.removeItem(`cache_${barcode}`);
+        return null;
+    }
+    return cacheEntry.payload;
+}
+
+// Jalankan saat halaman dimuat
+document.addEventListener("DOMContentLoaded", () => {
+    document.body.classList.add("fade-in");
+});
+
+function navigateTo(url) {
+    const loader = document.getElementById('page-loader');
+    if (loader) loader.style.display = 'flex';
+    document.body.classList.add("fade-out");
+    setTimeout(() => {
+        window.location.href = url;
+    }, 200); 
+}
+
+const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
+const STOCK_PROXY_URL = `https://uesupubktkxfjsylcwwr.supabase.co/functions/v1/stock-proxy`;
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let scanning = false, lastScroll = 0, timer;
+let scannerInitialized = false; // Penanda apakah scanner sudah diinisialisasi
+let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
+
+// Inisialisasi ZXing
+const codeReader = new ZXing.BrowserMultiFormatReader();
+
+function openLightbox(src) {
+    if(!src || src.includes('placeholder')) return;
+    const lb = document.getElementById('lightbox');
+    document.getElementById('lightboxImg').src = src;
+    lb.classList.add('active');
+}
+
+function closeLightbox() { document.getElementById('lightbox').classList.remove('active'); }
+
+function toggleSidebar() { 
+    document.getElementById("sidebar").classList.toggle("active");
+    document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("active") ? "block" : "none";
+}
+
+function cleanPrice(val) {
+    if(!val) return 0;
+    return parseInt(String(val).replace(/[^0-9]/g, "")) || 0;
+}
+
+document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 400); };
+
+async function search() {
+    const q = document.getElementById("searchInput").value.trim();
+    const list = document.getElementById("listContainer");
+    
+    if (q === "") {
+        list.innerHTML = "";
+        return;
+    }
+
+    // --- AUTO-DIRECT 13 DIGIT ---
+    if (q.length === 13) {
+        const barcodeToSearch = q;
+        showDetail(barcodeToSearch);
+        document.getElementById("searchInput").value = ""; 
+        document.getElementById("searchInput").blur();
+        list.innerHTML = "";
+        return; 
+    }
+    
+    // --- PENCARIAN BIASA (Minimal 8 digit untuk hemat Egress) ---
+    if (q.length >= 8) {
+        let { data } = await _supabase
+            .from('export')
+            .select('Barcode') 
+            .ilike('Barcode', `%${q}%`)
+            .limit(1);
+
+        if(data && data.length > 0) {
+            list.innerHTML = data.map(p => `
+                <div class="list-item" onclick="showDetail('${p.Barcode}'); document.getElementById('searchInput').value=''">
+                    <div class="list-info">
+                        <div class="list-cat">PRODUK DITEMUKAN</div>
+                        <div class="list-name">${p.Name}</div>
+                        <div class="list-bc">${p.Barcode}</div>
                     </div>
                 </div>
-                <button class="btn-primary" onclick="attemptLogin()">MASUK SEKARANG</button>
-            </div>
-            <button class="btn-feishu-login" onclick="window.location.href='https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=f7dmac9c-8aa0-4f7a-9927-102d6c2b1461'">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                LOGIN HELP (FEISHU GROUP)
-            </button>
-            <p id="loginError"></p>
-        </div>
-    </div>
+            `).join('');
+        }
+    }
+}
 
-    <!-- APP CONTENT -->
-    <div id="appContent">
-        <header id="ui-header">
-            <div class="top-bar">
-                <button onclick="showDashboard()" style="background:none; border:none; padding: 4px; cursor: pointer;">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                </button>
-                <div class="search-container">
-                    <input id="searchInput" placeholder="Cari barang...">
-                    <button id="scanBtn">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M8 12h8"/></svg>
-                    </button>
-                </div>
+document.getElementById("scanBtn").onclick = () => { scanning ? stopScan() : startScan(lastSelectedDeviceId); };
+
+// Variable global untuk OCR
+
+let lastDetectedCode = "";
+let lastDetectedAt = 0;
+
+// BarcodeDetector dibuat SEKALI di luar loop agar tidak ada overhead tiap scan
+const nativeDetector = ('BarcodeDetector' in window)
+    ? new BarcodeDetector({ formats: ['code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e'] })
+    : null;
+
+// Canvas preprocessing — crop tengah + tingkatkan kontras + sharpen
+const _canvas = document.getElementById('cropCanvas');
+const _ctx = _canvas.getContext('2d', { willReadFrequently: true });
+const _canvasWarp = document.createElement('canvas'); // Canvas kedua untuk perspective warp
+const _ctxWarp = _canvasWarp.getContext('2d', { willReadFrequently: true });
+
+// Grayscale + boost kontras pada ImageData
+function applyContrastGrayscale(imageData, contrast = 60) {
+    const d = imageData.data;
+    const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+    for (let i = 0; i < d.length; i += 4) {
+        const gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+        const v = Math.min(255, Math.max(0, factor * (gray - 128) + 128));
+        d[i] = d[i+1] = d[i+2] = v;
+    }
+    return imageData;
+}
+
+// Sobel edge detection — kembalikan array grayscale edge strength
+function sobelEdges(imageData, w, h) {
+    const src = imageData.data;
+    const out = new Float32Array(w * h);
+    for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+            const idx = (y * w + x) * 4;
+            const tl = src[((y-1)*w+(x-1))*4];
+            const tm = src[((y-1)*w+x)*4];
+            const tr = src[((y-1)*w+(x+1))*4];
+            const ml = src[(y*w+(x-1))*4];
+            const mr = src[(y*w+(x+1))*4];
+            const bl = src[((y+1)*w+(x-1))*4];
+            const bm = src[((y+1)*w+x)*4];
+            const br = src[((y+1)*w+(x+1))*4];
+            const gx = -tl - 2*ml - bl + tr + 2*mr + br;
+            const gy = -tl - 2*tm - tr + bl + 2*bm + br;
+            out[y * w + x] = Math.sqrt(gx*gx + gy*gy);
+        }
+    }
+    return out;
+}
+
+// Cari bounding box area barcode berdasarkan konsentrasi edge vertikal
+function findBarcodeBounds(edges, w, h) {
+    const threshold = 80;
+    let minX = w, maxX = 0, minY = h, maxY = 0;
+    let found = false;
+
+    // Scan kolom — barcode punya banyak edge vertikal berulang
+    const colDensity = new Float32Array(w);
+    for (let x = 0; x < w; x++) {
+        let sum = 0;
+        for (let y = 0; y < h; y++) {
+            if (edges[y * w + x] > threshold) sum++;
+        }
+        colDensity[x] = sum;
+    }
+
+    // Temukan region dengan kolom-kolom yang dense (karakteristik barcode)
+    const avgDensity = colDensity.reduce((a, b) => a + b, 0) / w;
+    const densityThreshold = avgDensity * 1.5;
+
+    for (let x = 0; x < w; x++) {
+        if (colDensity[x] > densityThreshold) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            found = true;
+        }
+    }
+
+    if (!found || (maxX - minX) < 30) return null;
+
+    // Untuk Y, ambil area dengan edge di kolom yang terdeteksi
+    for (let y = 0; y < h; y++) {
+        for (let x = minX; x <= maxX; x++) {
+            if (edges[y * w + x] > threshold) {
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+            }
+        }
+    }
+
+    // Tambah padding
+    const pad = 15;
+    return {
+        x: Math.max(0, minX - pad),
+        y: Math.max(0, minY - pad),
+        w: Math.min(w, maxX - minX + pad * 2),
+        h: Math.min(h, maxY - minY + pad * 2)
+    };
+}
+
+// Perspective correction: crop + straighten area barcode
+function perspectiveCorrect(video, zoomFactor = 1.5) {
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    if (!vw || !vh) return null;
+
+    // Step 1: Crop tengah (zoom digital)
+    const cropW = Math.floor(vw / zoomFactor);
+    const cropH = Math.floor(vh / zoomFactor);
+    const cropX = Math.floor((vw - cropW) / 2);
+    const cropY = Math.floor((vh - cropH) / 2);
+
+    const outW = 640;
+    const outH = Math.floor(outW * (cropH / cropW));
+    _canvas.width = outW;
+    _canvas.height = outH;
+    _ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, outW, outH);
+
+    // Step 2: Grayscale + kontras untuk edge detection
+    let imageData = _ctx.getImageData(0, 0, outW, outH);
+    applyContrastGrayscale(imageData, 50);
+    _ctx.putImageData(imageData, 0, 0);
+
+    // Step 3: Deteksi tepi Sobel
+    imageData = _ctx.getImageData(0, 0, outW, outH);
+    const edges = sobelEdges(imageData, outW, outH);
+
+    // Step 4: Temukan bounding box barcode
+    const bounds = findBarcodeBounds(edges, outW, outH);
+
+    if (!bounds || bounds.w < 40 || bounds.h < 10) {
+        applyContrastGrayscale(imageData, 60);
+        _ctx.putImageData(imageData, 0, 0);
+        return _canvas;
+    }
+
+    const targetW = 500;
+    const targetH = Math.max(120, Math.floor(targetW * (bounds.h / bounds.w)));
+    _canvasWarp.width = targetW;
+    _canvasWarp.height = targetH;
+
+    _ctxWarp.drawImage(_canvas,
+        bounds.x, bounds.y, bounds.w, bounds.h,
+        0, 0, targetW, targetH
+    );
+
+    const warpData = _ctxWarp.getImageData(0, 0, targetW, targetH);
+    applyContrastGrayscale(warpData, 70);
+    _ctxWarp.putImageData(warpData, 0, 0);
+
+    return _canvasWarp;
+}
+
+function preprocessFrame(video, zoomFactor = 1.5) {
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    if (!vw || !vh) return null;
+    const cropW = Math.floor(vw / zoomFactor);
+    const cropH = Math.floor(vh / zoomFactor);
+    const cropX = Math.floor((vw - cropW) / 2);
+    const cropY = Math.floor((vh - cropH) / 2);
+    const outW = 640;
+    const outH = Math.floor(outW * (cropH / cropW));
+    _canvas.width = outW;
+    _canvas.height = outH;
+    _ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, outW, outH);
+    const imageData = _ctx.getImageData(0, 0, outW, outH);
+    applyContrastGrayscale(imageData, 60);
+    _ctx.putImageData(imageData, 0, 0);
+    return _canvas;
+}
+
+async function scanNative(video) {
+    if (!nativeDetector) return null;
+    try {
+        let barcodes = await nativeDetector.detect(video);
+        if (barcodes.length > 0) return barcodes[0].rawValue;
+
+        const processed = preprocessFrame(video, 1.5);
+        if (processed) {
+            barcodes = await nativeDetector.detect(processed);
+            if (barcodes.length > 0) return barcodes[0].rawValue;
+        }
+
+        const warped = perspectiveCorrect(video, 1.5);
+        if (warped) {
+            barcodes = await nativeDetector.detect(warped);
+            if (barcodes.length > 0) return barcodes[0].rawValue;
+        }
+
+        const digits = scanDigitArea(video);
+        if (digits) {
+            barcodes = await nativeDetector.detect(digits);
+            if (barcodes.length > 0) return barcodes[0].rawValue;
+        }
+
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function scanDigitArea(video) {
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    if (!vw || !vh) return null;
+
+    const cropW = Math.floor(vw / 1.5);
+    const cropH = Math.floor(vh / 4);
+    const cropX = Math.floor((vw - cropW) / 2);
+    const cropY = Math.floor(vh / 2);
+
+    const outW = 640;
+    const outH = Math.floor(outW * (cropH / cropW));
+    _canvas.width = outW;
+    _canvas.height = outH;
+    _ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, outW, outH);
+
+    const imageData = _ctx.getImageData(0, 0, outW, outH);
+    applyContrastGrayscale(imageData, 80);
+    _ctx.putImageData(imageData, 0, 0);
+
+    return _canvas;
+}
+
+// Hints & constraints
+const _hints = new Map();
+_hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+    ZXing.BarcodeFormat.EAN_13,
+    ZXing.BarcodeFormat.EAN_8,
+    ZXing.BarcodeFormat.CODE_128,
+    ZXing.BarcodeFormat.UPC_A,
+    ZXing.BarcodeFormat.UPC_E
+]);
+_hints.set(ZXing.DecodeHintType.TRY_HARDER, false);
+_hints.set(ZXing.DecodeHintType.CHARACTER_SET, 'utf-8');
+_hints.set(ZXing.DecodeHintType.PURE_BARCODE, false);
+_hints.set(ZXing.DecodeHintType.ASSUME_GS1, true);
+_hints.set(ZXing.DecodeHintType.ALSO_SUPPORT_CONVEX, true);
+codeReader.hints = _hints;
+
+const _hintsHard = new Map();
+_hintsHard.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+    ZXing.BarcodeFormat.EAN_13,
+    ZXing.BarcodeFormat.EAN_8,
+    ZXing.BarcodeFormat.CODE_128,
+    ZXing.BarcodeFormat.UPC_A,
+    ZXing.BarcodeFormat.UPC_E
+]);
+_hintsHard.set(ZXing.DecodeHintType.TRY_HARDER, true);
+_hintsHard.set(ZXing.DecodeHintType.CHARACTER_SET, 'utf-8');
+_hintsHard.set(ZXing.DecodeHintType.PURE_BARCODE, false);
+_hintsHard.set(ZXing.DecodeHintType.ASSUME_GS1, true);
+const codeReaderHard = new ZXing.BrowserMultiFormatReader();
+codeReaderHard.hints = _hintsHard;
+
+async function scanZxingHard(video) {
+    try {
+        const processed = preprocessFrame(video, 1.5);
+        if (processed) {
+            const lum1 = new ZXing.HTMLCanvasElementLuminanceSource(processed);
+            const result1 = codeReaderHard.decodeBitmap(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum1)));
+            if (result1) return result1.text;
+        }
+
+        const warped = perspectiveCorrect(video, 1.5);
+        if (warped) {
+            const lum2 = new ZXing.HTMLCanvasElementLuminanceSource(warped);
+            const result2 = codeReaderHard.decodeBitmap(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum2)));
+            if (result2) return result2.text;
+        }
+
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
+
+let _cachedDevices = null;
+
+async function startScan(deviceId = null) {
+    scanning = true; 
+    document.getElementById("scannerOverlay").style.display = "flex";
+    document.getElementById("appContent").style.display = "none";
+
+    // Sembunyikan "TAP TO START SCAN" karena kamera sudah dimulai
+    const hint = document.getElementById('startHint');
+    if (hint) hint.style.display = 'none';
+
+    const tapHint = document.querySelector('.tap-hint');
+    const HINT_DEFAULT = 'TAP TO FOCUS';
+    const HINTS_STRUGGLE = [
+        'Try a flatter side of the package',
+        'Avoid curved edges',
+        'Move closer or further',
+        'Better lighting helps',
+    ];
+    let hintIndex = 0;
+    let hintTimer = null;
+
+    function resetHint() {
+        if (tapHint) { tapHint.textContent = HINT_DEFAULT; tapHint.classList.remove('warn'); }
+        clearInterval(hintTimer);
+        hintTimer = null;
+    }
+
+    function startStruggleHints() {
+        if (hintTimer) return;
+        hintIndex = 0;
+        hintTimer = setInterval(() => {
+            if (!scanning) { clearInterval(hintTimer); return; }
+            if (tapHint) {
+                tapHint.textContent = HINTS_STRUGGLE[hintIndex % HINTS_STRUGGLE.length];
+                tapHint.classList.add('warn');
+            }
+            hintIndex++;
+        }, 2500);
+    }
+
+    let struggleTimeout = setTimeout(startStruggleHints, 4000);
+
+    window._resetScanHint = () => {
+        clearTimeout(struggleTimeout);
+        resetHint();
+    };
+
+    const constraints = {
+        video: {
+            deviceId: deviceId ? { exact: deviceId } : undefined,
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30 },
+            facingMode: "environment",
+            focusMode: { ideal: "continuous" },
+            whiteBalanceMode: { ideal: "continuous" }
+        }
+    };
+
+    try {
+        const useNative = !!nativeDetector;
+
+        if (useNative) {
+            let zxingThrottled = false;
+            await codeReader.decodeFromConstraints(constraints, 'videoElement', (result, err) => {
+                if (result && !isProcessingScan && !zxingThrottled) {
+                    zxingThrottled = true;
+                    setTimeout(() => { zxingThrottled = false; }, 1500);
+                    onDetected(result.text);
+                }
+            });
+        } else {
+            await codeReader.decodeFromConstraints(constraints, 'videoElement', (result, err) => {
+                if (result) onDetected(result.text);
+            });
+        }
+
+        const videoTrack = document.getElementById('videoElement').srcObject.getVideoTracks()[0];
+        const capabilities = videoTrack.getCapabilities();
+        const advanced = {};
+        if (capabilities.focusMode?.includes('continuous')) advanced.focusMode = 'continuous';
+        if (capabilities.exposureMode?.includes('continuous')) advanced.exposureMode = 'continuous';
+        if (Object.keys(advanced).length > 0) await videoTrack.applyConstraints({ advanced: [advanced] });
+
+        if (!_cachedDevices) {
+            const allDevices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = allDevices.filter(d => d.kind === 'videoinput');
+            const frontKeywords = ['front', 'facing front', 'user', 'selfie', 'facetime'];
+            const backCams = videoDevices.filter(d => {
+                const lbl = d.label.toLowerCase();
+                return !frontKeywords.some(k => lbl.includes(k));
+            });
+            _cachedDevices = backCams.length > 0 ? backCams : videoDevices;
+        }
+
+        const activeTrack = document.getElementById('videoElement').srcObject?.getVideoTracks()[0];
+        const activeLabel = activeTrack?.label || '';
+        const activeDevice = _cachedDevices.find(d => d.label === activeLabel);
+        const activeId = activeDevice?.deviceId || deviceId || lastSelectedDeviceId || _cachedDevices[0]?.deviceId;
+
+        updateCameraList(_cachedDevices, activeId);
+
+        if (useNative) {
+            const FAST_INTERVAL = 100;
+            const HARD_INTERVAL = 600;
+            const checkNativeFast = async () => {
+                if (!scanning) return;
+                const nativeCode = await nativeDetector.detect(videoElement).then(b => b.length > 0 ? b[0].rawValue : null).catch(() => null);
+                if (nativeCode && !isProcessingScan) {
+                    onDetected(nativeCode);
+                }
+                setTimeout(checkNativeFast, FAST_INTERVAL);
+            };
+
+            let lastDetectedTime = Date.now();
+            const checkHeavy = async () => {
+                if (!scanning) return;
+                const timeSinceLast = Date.now() - lastDetectedTime;
+                if (!isProcessingScan && timeSinceLast > 2000) {
+                    const processed = preprocessFrame(videoElement, 1.5);
+                    if (processed) {
+                        const r = await nativeDetector.detect(processed).catch(() => []);
+                        if (r.length > 0 && !isProcessingScan) { onDetected(r[0].rawValue); }
+                    }
+                    if (!isProcessingScan) {
+                        try {
+                            const lum = new ZXing.HTMLCanvasElementLuminanceSource(processed || _canvas);
+                            const result = codeReaderHard.decodeBitmap(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum)));
+                            if (result && !isProcessingScan) onDetected(result.text);
+                        } catch(e) {}
+                    }
+                }
+                setTimeout(checkHeavy, HARD_INTERVAL);
+            };
+
+            checkNativeFast();
+            setTimeout(checkHeavy, 2000);
+        } else {
+            const checkZxing = async () => {
+                if (!scanning) return;
+                if (!isProcessingScan) {
+                    try {
+                        const processed = preprocessFrame(videoElement, 1.5);
+                        if (processed) {
+                            const lum = new ZXing.HTMLCanvasElementLuminanceSource(processed);
+                            const result = codeReaderHard.decodeBitmap(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum)));
+                            if (result) onDetected(result.text);
+                        }
+                    } catch(e) {}
+                }
+                setTimeout(checkZxing, 400);
+            };
+            checkZxing();
+        }
+
+    } catch (err) {
+        console.error("Gagal start scan:", err);
+        if (deviceId) { codeReader.reset(); startScan(null); }
+    }
+}
+    
+function updateCameraList(devices, currentId) {
+    const control = document.getElementById("cameraControl");
+    const row = document.getElementById("camBtnRow");
+    control.style.display = "block";
+    row.innerHTML = devices.map((d, i) => `
+        <button class="cam-btn ${d.deviceId === currentId ? 'active' : ''}"
+                onclick="switchCamera('${d.deviceId}')"
+                title="${d.label || 'Kamera ' + (i + 1)}">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+            </svg>
+            ${i + 1}
+        </button>
+    `).join("");
+}
+
+function switchCamera(deviceId) {
+    if (deviceId === lastSelectedDeviceId) return;
+    lastSelectedDeviceId = deviceId;
+    localStorage.setItem('preferredCameraId', deviceId);
+    _cachedDevices = null;
+    codeReader.reset();
+    scanning = false;
+    if (window._resetScanHint) window._resetScanHint();
+    setTimeout(() => startScan(deviceId), 500);
+}
+
+function triggerFocus() {
+    const videoTrack = document.getElementById('videoElement').srcObject?.getVideoTracks()[0];
+    if (videoTrack) {
+        try { videoTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch(e) {}
+    }
+}
+
+function updateScanLineHeight() {
+    const reader = document.getElementById('reader');
+    if (reader) {
+        reader.style.setProperty('--vf-h', reader.offsetHeight + 'px');
+    }
+}
+window.addEventListener('resize', updateScanLineHeight);
+document.addEventListener('DOMContentLoaded', updateScanLineHeight);
+setTimeout(updateScanLineHeight, 300);
+
+function stopScan() { 
+    codeReader.reset(); 
+    scanning = false; 
+    document.getElementById("cameraControl").style.display = "none";
+    const tapHint = document.querySelector('.tap-hint');
+    if (tapHint) { tapHint.textContent = 'TAP TO FOCUS'; tapHint.classList.remove('warn'); }
+    if (window._resetScanHint) window._resetScanHint();
+}
+
+// ⚡ Fungsi untuk memulai scanner melalui gestur pengguna (tap pertama)
+function initScanner() {
+    if (scannerInitialized) return;
+    scannerInitialized = true;
+    const hint = document.getElementById('startHint');
+    if (hint) hint.style.display = 'none';
+    startScan(lastSelectedDeviceId);
+}
+
+function promptManualEntry() {
+    stopScan();
+    document.getElementById("scannerOverlay").style.display = "none";
+    document.getElementById("appContent").style.display = "flex";
+    document.getElementById("ui-header").style.display = "block";
+    document.getElementById("listContainer").style.display = "grid";
+    setTimeout(() => {
+        const inp = document.getElementById("searchInput");
+        inp.focus();
+        inp.placeholder = "Type barcode digits...";
+    }, 100);
+}
+
+let isProcessingScan = false;
+const failedBarcodes = new Map();
+const FAILED_COOLDOWN = 5000;
+const SUPABASE_TIMEOUT = 3000;
+
+async function queryWithTimeout(code) {
+    return Promise.race([
+        _supabase.from('export').select('*').eq('Barcode', code).maybeSingle(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), SUPABASE_TIMEOUT))
+    ]);
+}
+
+async function onDetected(code) {
+    const cachedData = getLocalCache(code);
+    if (cachedData) {
+        if (isProcessingScan) return;
+        isProcessingScan = true;
+        try {
+            stopScan();
+            renderDetailView(cachedData);
+            document.getElementById("beepOk").play();
+            document.getElementById("searchInput").blur();
+            document.getElementById("searchInput").value = code;
+        } finally {
+            isProcessingScan = false;
+        }
+        return;
+    }
+
+    const failedAt = failedBarcodes.get(code);
+    if (failedAt && (Date.now() - failedAt) < FAILED_COOLDOWN) return;
+
+    if (isProcessingScan) return;
+    isProcessingScan = true;
+
+    try {
+        const { data } = await queryWithTimeout(code);
+        if (data) {
+            saveToLocalCache(code, data);
+            stopScan();
+            renderDetailView(data);
+            document.getElementById("beepOk").play();
+            document.getElementById("searchInput").blur();
+            document.getElementById("searchInput").value = code;
+        } else {
+            failedBarcodes.set(code, Date.now());
+        }
+    } catch (e) {
+        failedBarcodes.set(code, Date.now());
+    } finally {
+        isProcessingScan = false;
+    }
+}
+
+// Fungsi untuk fetch stock data
+async function fetchStockData(barcode) {
+    try {
+        const resp = await fetch(STOCK_PROXY_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+            },
+            body: JSON.stringify({
+                barCodeOrGoodsName: barcode,
+                pageSize: 20,
+                pageNum: 1,
+                storeCode: getStoreCode(),
+                brandCode: 30,
+            }),
+        });
+        const text = await resp.text();
+        if (!text || text.trim() === '') return null;
+        const json = JSON.parse(text);
+        return json?.data?.list?.[0] || null;
+    } catch (err) {
+        console.error('Stock fetch error:', err);
+        return null;
+    }
+}
+
+function getStoreCode() {
+    return localStorage.getItem('mmsx_store_code') || 'ID00';
+}
+
+async function renderDetailView(p) {
+    document.getElementById("appContent").style.display = "flex";
+    document.getElementById("scannerOverlay").style.display = "none";
+    
+    document.getElementById("listContainer").style.display = "none";
+    document.getElementById("ui-header").style.display = "none";
+    
+    const firstBarcode = p.Barcode ? p.Barcode.split('/')[0].trim() : "";
+    const stockData = await fetchStockData(firstBarcode);
+    
+    const productName = stockData?.name || p.Name;
+    const productImage = stockData?.picList?.[0]?.materialPictureUrl || p.Image || '';
+    const productCategory = stockData?.Category || p.Category || 'GENERAL';
+    const productDetailCategory = stockData?.["Detail Category"] || p["Detail Category"] || '';
+    const productBarcode = stockData?.barCode || p.Barcode;
+    
+    const regPrice = cleanPrice(p["Regular Store Price"]);
+    const strPrice = cleanPrice(p["Street Store Price"]);
+    
+    const totalStock = stockData ? parseInt(stockData.totalInvent ?? 0) : null;
+    const availableStock = stockData ? parseInt(stockData.availableInvent ?? 0) : null;
+    const onOrderStock = stockData ? parseInt(stockData.inTransitInvent ?? 0) : null;
+    
+    const promoText = (p["Extra Promo"] || "").trim();
+    const discountLabel = (promoText !== "" && promoText !== "NORMAL PRICE" && p["Regular Store Promo"] !== "NORMAL") 
+        ? `<div class="promo-badge">${promoText}</div>` 
+        : "";
+
+    const lang = localStorage.getItem('mms_lang') || 'id';
+    const t = priceTranslations[lang];
+        
+    const det = document.getElementById("detailContainer");
+    det.innerHTML = `
+        <div class="product-card">
+            <div class="image-box">
+                ${discountLabel}
+                <img src="${productImage}" onerror="this.src='https://placehold.co/150x150?text=NO IMAGE'" onclick="openLightbox('${productImage}')">
             </div>
-        </header>
-        <main class="main-content" id="scrollContainer">
-            <div id="heroSection" class="hero-banner">
-                <div class="banner-card">
-                    <div class="banner-left">
-                        <img src="https://miniso-id.github.io/app/user512.png" class="banner-logo-img" alt="logo">
-                        <div class="banner-text">
-                            <h2>MMS-X<span class="app-version"></span></h2>
-                            <p>User: <span id="displayUsername">Guest</span></p>
+            <div class="p-info">
+                <span class="p-cat">${productCategory}</span>
+                ${productDetailCategory ? `<span style="display: block; font-size: 10px; color: #888; margin-top: 1px; margin-bottom: 1px;">${productDetailCategory}</span>` : ''}
+                <h3 class="p-title">${productName}</h3>
+                <p class="p-desc">${p.Description || ''}</p>
+                
+                <div class="price-comparison-grid">
+                    <div class="price-item reg">
+                        <span class="price-label">${t.regStoreLabel}</span>
+                        <span class="price-val">Rp${regPrice.toLocaleString('id-ID')}</span>
+                    </div>
+                    <div class="price-item str">
+                        <span class="price-label">${t.strStoreLabel}</span>
+                        <span class="price-val">Rp${strPrice.toLocaleString('id-ID')}</span>
+                    </div>
+                </div>
+                
+                ${stockData ? `
+                    <div style="background: var(--miniso-soft); border-radius: 14px; padding: 16px; margin-bottom: 20px; border: 2px solid var(--miniso-red);">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--miniso-red)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                            <span style="font-weight: 800; font-size: 12px; color: var(--miniso-red); text-transform: uppercase;">${t.stockStoreLabel || 'STOCK TOKO'}</span>
+                            <span class="store-badge" style="background: var(--miniso-red); padding: 2px 8px; border-radius: 6px; font-size: 10px; color: white; margin-left: auto;">${getStoreCode()}</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                            <div style="background: white; padding: 12px; border-radius: 10px; text-align: center;">
+                                <div style="font-size: 10px; color: #888; font-weight: 600; margin-bottom: 4px; text-transform: uppercase;">${t.stockTotalLabel || 'TOTAL'}</div>
+                                <div style="font-size: 20px; font-weight: 800; color: #111;">${totalStock}</div>
+                            </div>
+                            <div style="background: white; padding: 12px; border-radius: 10px; text-align: center;">
+                                <div style="font-size: 10px; color: #888; font-weight: 600; margin-bottom: 4px; text-transform: uppercase;">${t.stockAvailableLabel || 'TERSEDIA'}</div>
+                                <div style="font-size: 20px; font-weight: 800; color: ${availableStock > 5 ? '#16a34a' : availableStock > 0 ? '#d97706' : '#dc2626'};">${availableStock}</div>
+                            </div>
+                            <div style="background: white; padding: 12px; border-radius: 10px; text-align: center;">
+                                <div style="font-size: 10px; color: #888; font-weight: 600; margin-bottom: 4px; text-transform: uppercase;">${t.stockOnOrderLabel || 'ON ORDER'}</div>
+                                <div style="font-size: 20px; font-weight: 800; color: #007bff;">${onOrderStock}</div>
+                            </div>
                         </div>
                     </div>
-                    <button onclick="doLogout()" class="btn-logout">KELUAR</button>
+                ` : ''}
+                
+                <div style="border-top: 1px solid #eee; padding-top: 20px;">
+                    <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:15px; width:100%;">
+                        <span style="font-weight:700; font-size:11px; color: #888; margin-bottom: 4px; text-transform: uppercase;">${t.barcodeLabel}</span>
+                        <span style="font-weight:700; font-size:12px; word-break:break-all; margin-bottom:8px; text-align:center;">${productBarcode}</span>
+                        <svg id="barcodeCanvas" style="max-height:60px; width:auto; max-width:100%; background:white; padding:5px; border-radius:4px; border:1px solid #eee;"></svg>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px;">
+                        <span style="color:#888; font-weight:600;">${t.regPromoLabel}</span><span style="font-weight:700; color:var(--promo-blue)">${p["Regular Store Promo"] || '-'}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom: 10px;">
+                        <span style="color:#888; font-weight:600;">${t.strPromoLabel}</span><span style="font-weight:700; color:var(--promo-green)">${p["Street Store Promo"] || '-'}</span>
+                    </div>
                 </div>
             </div>
-            <div id="holidayBanner" class="holiday-banner">
-                <div class="holiday-icon" id="holidayIcon">🇮🇩</div>
-                <div class="holiday-text">
-                    <h4 id="holidayTitle">Hari Libur Nasional</h4>
-                    <p id="holidaySubtitle">Selamat merayakan hari besar bagi yang merayakan!</p>
-                </div>
-            </div>
-            <div id="dashboard">
-                <div class="menu-card" onclick="navigateTo('https://miniso-id.github.io/app/price.html')">
-                    <div class="icon-box"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg></div>
-                    <h3>Price Checker</h3><p>Cek Harga & Promo</p>
-                </div>
-                <div class="menu-card" id="menuSO" onclick="navigateTo('https://miniso-id.github.io/app/so.html')">
-                    <div class="icon-box"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></div>
-                    <h3>Stock Opname</h3><p>Input Data Stok</p>
-                </div>
-                <div class="menu-card" id="menuGallery" onclick="navigateTo('https://miniso-id.github.io/app/product.html')">
-                    <div class="icon-box"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></div>
-                    <h3>Gallery</h3><p>Katalog Produk</p>
-                </div>
-                <div class="menu-card" onclick="window.location.href='https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=f7dmac9c-8aa0-4f7a-9927-102d6c2b1461'">
-                    <div class="icon-box" style="background:#e8f3ff; color:var(--feishu-blue);"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>
-                    <h3>Feishu Group</h3><p>Komunikasi Tim</p>
-                </div>
-                <div class="menu-card" onclick="forceHardReload()">
-                    <div class="icon-box" style="background:#f4f4f4; color:#333;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></div>
-                    <h3>Update</h3><p>Muat Ulang</p>
-                </div>
-            </div>
-        </main>
-    </div>
+        </div>
+    `;
+    
+    if (firstBarcode) {
+        try {
+            JsBarcode("#barcodeCanvas", firstBarcode, {
+                format: "CODE128", lineColor: "#000", width: 2, height: 40, displayValue: false
+            });
+        } catch(e) { console.warn("Gagal generate barcode", e); }
+    }
+    
+    det.style.display = "block";
+    det.classList.add('active');
+    document.getElementById("btnBackFloating").style.display = "flex";
+    document.getElementById("scrollContainer").scrollTo(0, 0);
+}
 
-    <script>
-        // ========== VERSI & GLOBAL ==========
-        const APP_VERSION = "3.1.0.23";
-        
-        // ========== SUPABASE SETUP ==========
-        const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        
-        // ========== PERMISSIONS ==========
-        function checkPermissions() {
-            const role = localStorage.getItem('mms_role');
-            const menuSO = document.getElementById('menuSO');
-            const menuGallery = document.getElementById('menuGallery');
-            if (role === 'Administrator') {
-                if (menuSO) menuSO.style.display = 'flex';
-            } else {
-                if (menuSO) menuSO.style.display = 'none';
-            }
-            if (role === 'Staff') {
-                if (menuGallery) menuGallery.style.display = 'none';
-            } else {
-                if (menuGallery) menuGallery.style.display = 'flex';
-            }
-        }
-
-        function setVersionTexts() {
-            const v = APP_VERSION;
-            const bannerSpan = document.querySelector('.app-version');
-            const updateDiv = document.querySelector('.update-version');
-            if (bannerSpan) bannerSpan.textContent = `v${v} • AI Vision`;
-            if (updateDiv) updateDiv.textContent = `🚀 MMS-X v${v}`;
-        }
-
-        // ========== LOGIN ==========
-        async function attemptLogin() {
-            if (window.__mmsx_locked) {
-                const errorMsg = document.getElementById('loginError');
-                errorMsg.innerText = 'Akses hanya melalui aplikasi MMS-X resmi.';
-                errorMsg.style.display = 'block';
-                return;
-            }
-            const user = document.getElementById('username').value.trim();
-            const pass = document.getElementById('password').value.trim();
-            const errorMsg = document.getElementById('loginError');
-            const loginBtn = document.querySelector('.btn-primary');
-            const currentLang = localStorage.getItem('mms_lang') || 'id';
-            const t = translations[currentLang];
-
-            if (!user || !pass) {
-                errorMsg.innerText = 'Harap isi username dan password.';
-                errorMsg.style.display = 'block';
-                return;
-            }
-
-            loginBtn.disabled = true;
-            loginBtn.innerHTML = `<span class="spinner"></span> ${t.loading}`;
-            errorMsg.style.display = 'none';
-
-            try {
-                const { data, error } = await _supabase.from('users').select('*').eq('username', user).eq('password', pass).maybeSingle();
-                if (data) {
-                    // NEW: Check if user is active
-                    if (data.active === false) {
-                        errorMsg.innerText = 'Akun sudah tidak aktif. Hubungi admin.';
-                        errorMsg.style.display = 'block';
-                        loginBtn.disabled = false;
-                        loginBtn.innerHTML = t.btnLog;
-                        return;
-                    }
-
-                    const role = data['login as'];
-                    localStorage.setItem('mms_auth', 'true');
-                    localStorage.setItem('mms_role', role);
-                    localStorage.setItem('mms_user', user);
-                    localStorage.setItem('mmsx_auth', 'true');
-                    localStorage.setItem('mmsx_role', role);
-                    localStorage.setItem('mmsx_store_code', user);
-                    showApp();
-                } else {
-                    errorMsg.innerText = t.loginFail;
-                    errorMsg.style.display = 'block';
-                }
-            } catch (err) {
-                errorMsg.innerText = t.connError;
-                errorMsg.style.display = 'block';
-            } finally {
-                loginBtn.disabled = false;
-                loginBtn.innerHTML = t.btnLog;
-            }
-        }
-
-        function togglePassword() {
-            const passwordInput = document.getElementById('password');
-            const eyeIcon = document.getElementById('eyeIcon');
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                eyeIcon.innerHTML = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>`;
-            } else {
-                passwordInput.type = 'password';
-                eyeIcon.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>`;
-            }
-        }
-
-        // ========== NEW: CHECK ACTIVE STATUS ==========
-        async function checkActiveStatus() {
-            const user = localStorage.getItem('mms_user');
-            if (!user) return; // belum login, tidak perlu dicek
-
-            try {
-                const { data, error } = await _supabase
-                    .from('users')
-                    .select('active')
-                    .eq('username', user)
-                    .maybeSingle();
-
-                if (error || !data || data.active === false) {
-                    console.warn('User dinonaktifkan, paksa logout');
-                    await doLogout();
-                }
-            } catch (e) {
-                // Jika gagal cek (offline), biarkan saja
-                console.warn('Gagal cek status aktif:', e);
-            }
-        }
-
-        function showApp(instant = false) {
-            const loginOverlay = document.getElementById('loginOverlay');
-            const appContent = document.getElementById('appContent');
-            document.getElementById('displayUsername').innerText = localStorage.getItem('mms_user') || 'User';
-            setVersionTexts();
-            checkPermissions();
-
-            if (instant) {
-                loginOverlay.style.display = 'none';
-                appContent.style.display = 'flex';
-                appContent.style.opacity = '1';
-                appContent.style.transform = 'scale(1) translateY(0)';
-                fetchIndonesianHoliday();
-                checkActiveStatus(); // NEW: cek status saat pertama kali
-                return;
-            }
-
-            loginOverlay.style.opacity = '0';
-            loginOverlay.style.transform = 'scale(1.03)';
-            setTimeout(() => {
-                loginOverlay.style.display = 'none';
-                appContent.style.display = 'flex';
-                requestAnimationFrame(() => {
-                    appContent.style.opacity = '1';
-                    appContent.style.transform = 'scale(1) translateY(0)';
-                });
-                fetchIndonesianHoliday();
-                checkActiveStatus(); // NEW: cek setelah animasi
-            }, 350);
-        }
-
-        // ========== NAVIGATE (dengan pengecekan aktif) ==========
-        async function navigateTo(url) {
-            // Cek status aktif sebelum berpindah halaman
-            await checkActiveStatus();
-            // Jika setelah cek masih login (tidak logout), lanjutkan navigasi
-            if (localStorage.getItem('mms_auth') !== 'true') {
-                // Pengguna sudah di-logout oleh checkActiveStatus, hentikan navigasi
-                return;
-            }
-
-            const loader = document.getElementById('page-loader');
-            if (loader) loader.style.display = 'flex';
-            document.body.classList.add("fade-out");
-            setTimeout(() => { window.location.href = url; }, 200);
-        }
-
-        function doLogout() {
-            localStorage.removeItem('mms_auth');
-            localStorage.removeItem('mms_role');
-            localStorage.removeItem('mms_user');
-            localStorage.removeItem('mmsx_auth');
-            localStorage.removeItem('mmsx_role');
-            location.reload();
-        }
-
-        function showDashboard() {
-            document.getElementById("dashboard").style.display = "grid";
-            document.getElementById("heroSection").style.display = "block";
-            document.getElementById("ui-header").style.display = "none";
-            checkPermissions();
-        }
-
-        async function forceHardReload() {
-            try {
-                const cacheNames = await caches.keys();
-                await Promise.all(cacheNames.map(name => caches.delete(name)));
-            } catch (e) {}
-            if ('serviceWorker' in navigator) {
-                const registrations = await navigator.serviceWorker.getRegistrations();
-                for (let reg of registrations) {
-                    await reg.unregister();
-                }
-            }
-            const url = new URL(window.location.href);
-            url.searchParams.set('_t', Date.now().toString());
-            window.location.href = url.toString();
-        }
-
-        // ========== ONLINE / OFFLINE ==========
-        function updateOnlineStatus() {
-            const dashboard = document.getElementById('dashboard');
-            const offlineOverlay = document.getElementById('offline-overlay');
-            const loginBtn = document.querySelector('.btn-primary');
-            const currentLang = localStorage.getItem('mms_lang') || 'id';
-            const t = translations[currentLang];
-            if (navigator.onLine) {
-                if (dashboard) dashboard.style.filter = "none";
-                if (offlineOverlay) offlineOverlay.style.display = 'none';
-                if (loginBtn) { loginBtn.disabled = false; loginBtn.innerText = t.btnLog; }
-            } else {
-                const offCard = document.querySelector('.offline-card');
-                if (offCard) {
-                    offCard.querySelector('h2').innerText = t.offTitle;
-                    offCard.querySelector('p').innerText = t.offDesc;
-                }
-                if (dashboard) dashboard.style.filter = "grayscale(1)";
-                if (offlineOverlay) offlineOverlay.style.display = 'flex';
-                if (loginBtn) loginBtn.disabled = true;
-            }
-        }
-        window.addEventListener('online', updateOnlineStatus);
-        window.addEventListener('offline', updateOnlineStatus);
-        document.addEventListener('DOMContentLoaded', updateOnlineStatus);
-
-        // ========== TRANSLATIONS ==========
-        const translations = {
-            id: {
-                loginTitle: "Selamat Datang Kembali!", loginSubtitle: "Silakan masuk untuk mengakses sistem MMS-X",
-                labelUser: "NAMA PENGGUNA", labelPass: "KATA SANDI", placeholderUser: "Ketik nama pengguna",
-                btnLog: "MASUK SEKARANG", loading: "MEMPROSES...",
-                priceTitle: "Cek Harga", priceDesc: "Periksa Harga & Promo",
-                soTitle: "Stok Opname", soDesc: "Input Data Stok",
-                galTitle: "Katalog", galDesc: "Galeri Produk",
-                feishuTitle: "Grup Feishu", feishuDesc: "Komunikasi Tim",
-                updateTitle: "Pembaruan", updateDesc: "Muat Ulang Sistem",
-                logoutBtn: "KELUAR", loginFail: "Username atau Password salah!",
-                verDesc: "Klik tombol di bawah untuk memperbarui aplikasi",
-                connError: "Gangguan koneksi ke server.", verTitle: "Versi Baru Tersedia!",
-                offTitle: "Koneksi Terputus", offDesc: "MMS-X memerlukan internet. Menu telah dinonaktifkan hingga kamu terhubung kembali.",
-                helpBtn: "BANTUAN LOGIN (GRUP FEISHU)", verBtn: "PERBARUI"
-            },
-            en: {
-                loginTitle: "Welcome Back!", loginSubtitle: "Please login to access MMS-X system",
-                labelUser: "USERNAME", labelPass: "PASSWORD", placeholderUser: "Enter username",
-                btnLog: "LOGIN NOW", loading: "PROCESSING...",
-                priceTitle: "Price Checker", priceDesc: "Check Price & Promo",
-                soTitle: "Stock Count", soDesc: "Input Stock Data",
-                galTitle: "Gallery", galDesc: "Product Catalog",
-                feishuTitle: "Feishu Group", feishuDesc: "Team Communication",
-                updateTitle: "Update", updateDesc: "Reload System",
-                logoutBtn: "LOGOUT", loginFail: "Invalid Username or Password!",
-                connError: "Connection error to server.", verTitle: "New Version Available!",
-                offTitle: "Connection Lost", offDesc: "MMS-X requires internet. Menu has been disabled until you are reconnected.",
-                verDesc: "Click the button below to update the application",
-                helpBtn: "LOGIN HELP (FEISHU GROUP)", verBtn: "UPDATE NOW"
-            },
-            cn: {
-                loginTitle: "欢迎回来！", loginSubtitle: "请登录以访问 MMS-X 系统",
-                labelUser: "用户名", labelPass: "密码", placeholderUser: "输入用户名",
-                btnLog: "立即登录", loading: "处理中...",
-                priceTitle: "价格查询", priceDesc: "查询价格和促销",
-                soTitle: "库存盘点", soDesc: "输入库存数据",
-                galTitle: "产品目录", galDesc: "产品画廊",
-                feishuTitle: "飞书群组", feishuDesc: "团队沟通",
-                updateTitle: "更新", updateDesc: "重新加载系统",
-                logoutBtn: "登出", loginFail: "用户名或密码错误！",
-                connError: "连接服务器失败。", verTitle: "新版本可用！",
-                offTitle: "连接已断开", offDesc: "MMS-X 需要互联网连接。菜单已禁用，直到您重新连接。",
-                verDesc: "点击下方按钮更新应用",
-                helpBtn: "登录帮助 (飞书群)", verBtn: "立即更新"
-            }
-        };
-
-        function applyLanguage(lang) {
-            const t = translations[lang];
-            localStorage.setItem('mms_lang', lang);
-            document.querySelector('.login-title').innerText = t.loginTitle;
-            document.querySelector('.login-subtitle').innerText = t.loginSubtitle;
-            const labels = document.querySelectorAll('.input-group label');
-            if (labels.length >= 2) {
-                labels[0].innerText = t.labelUser;
-                labels[1].innerText = t.labelPass;
-            }
-            document.getElementById('username').placeholder = t.placeholderUser;
-            const overlayDesc = document.getElementById('updateDescription');
-            if (overlayDesc) overlayDesc.innerText = t.verDesc;
-            const loginBtn = document.querySelector('.btn-primary');
-            if (loginBtn && !loginBtn.disabled) loginBtn.innerText = t.btnLog;
-            const offCard = document.querySelector('.offline-card');
-            if (offCard) {
-                offCard.querySelector('h2').innerText = t.offTitle;
-                offCard.querySelector('p').innerText = t.offDesc;
-            }
-            const menus = document.querySelectorAll('.menu-card');
-            if (menus.length >= 5) {
-                menus[0].querySelector('h3').innerText = t.priceTitle;
-                menus[0].querySelector('p').innerText = t.priceDesc;
-                menus[1].querySelector('h3').innerText = t.soTitle;
-                menus[1].querySelector('p').innerText = t.soDesc;
-                menus[2].querySelector('h3').innerText = t.galTitle;
-                menus[2].querySelector('p').innerText = t.galDesc;
-                menus[3].querySelector('h3').innerText = t.feishuTitle;
-                menus[3].querySelector('p').innerText = t.feishuDesc;
-                menus[4].querySelector('h3').innerText = t.updateTitle;
-                menus[4].querySelector('p').innerText = t.updateDesc;
-            }
-            const helpBtn = document.querySelector('.btn-feishu-login');
-            if (helpBtn) helpBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span>${t.helpBtn}</span>`;
-            document.querySelector('.btn-logout').innerText = t.logoutBtn;
-            const overlayTitle = document.querySelector('#forceUpdateOverlay h2');
-            const overlayBtn = document.querySelector('#forceUpdateBtn');
-            if (overlayTitle) overlayTitle.innerText = t.verTitle;
-            if (overlayBtn && overlayBtn.innerHTML.includes('UPDATE SEKARANG')) overlayBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> ${t.verBtn}`;
-        }
-
-        function injectLangSwitcher() {
-            const switcher = document.createElement('div');
-            switcher.style = "margin-bottom: 20px; display: flex; justify-content: center;";
-            switcher.innerHTML = `<select id="langSelect" style="padding: 8px 16px; border-radius: 12px; border: 2px solid var(--miniso-red); background: white; color: var(--miniso-red); font-weight:800; font-size: 13px;"><option value="id">🇮🇩 INDONESIA</option><option value="en">🇺🇸 ENGLISH</option><option value="cn">🇨🇳 中文</option></select>`;
-            const logo = document.querySelector('.login-logo');
-            logo.parentNode.insertBefore(switcher, logo.nextSibling);
-            const select = document.getElementById('langSelect');
-            const savedLang = localStorage.getItem('mms_lang') || 'id';
-            select.value = savedLang;
-            applyLanguage(savedLang);
-            select.addEventListener('change', (e) => applyLanguage(e.target.value));
-        }
-
-        // ========== HOLIDAY FETCH ==========
-        async function fetchIndonesianHoliday() {
-            const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            const todayStr = `${yyyy}-${mm}-${dd}`;
-            try {
-                const response = await fetch(`https://api-harilibur.vercel.app/api?year=${yyyy}`);
-                const holidays = await response.json();
-                const todayHoliday = holidays.find(h => h.holiday_date === todayStr);
-                if (todayHoliday) {
-                    const banner = document.getElementById('holidayBanner');
-                    const title = document.getElementById('holidayTitle');
-                    const icon = document.getElementById('holidayIcon');
-                    title.innerText = todayHoliday.holiday_name;
-                    banner.style.display = 'flex';
-                    const name = todayHoliday.holiday_name.toLowerCase();
-                    if (name.includes('idul')) icon.innerText = "🌙";
-                    else if (name.includes('tahun baru')) icon.innerText = "🎆";
-                    else icon.innerText = "🇮🇩";
-                    confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 }, colors: ['#e61523', '#ffd966'] });
-                }
-            } catch (e) { console.warn('Holiday fetch failed:', e); }
-        }
-
-        // ========== INIT ==========
-        window.onload = () => {
-            document.body.classList.add('fade-in');
-            setVersionTexts();
-            if (localStorage.getItem('mms_auth') === 'true') {
-                showApp(true);
-            }
-            injectLangSwitcher();
-            updateOnlineStatus();
-        };
-
-        function handleLockdown() {
-            const locked = window.__mmsx_locked;
-            const loginForm = document.getElementById('loginForm');
-            const lockedMsg = document.getElementById('lockedMessage');
-            const loginBtn = document.querySelector('.btn-primary');
-            if (locked) {
-                if (loginForm) loginForm.style.display = 'none';
-                if (lockedMsg) lockedMsg.style.display = 'block';
-                if (loginBtn) loginBtn.style.display = 'none';
-            } else {
-                if (loginForm) loginForm.style.display = 'block';
-                if (lockedMsg) lockedMsg.style.display = 'none';
-                if (loginBtn) loginBtn.style.display = 'flex';
-            }
-        }
-        window.addEventListener('load', handleLockdown);
-
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && document.getElementById('loginOverlay').style.display !== 'none') {
-                attemptLogin();
-            }
+async function showDetail(fullBarcode) {
+    lastScroll = document.getElementById("scrollContainer").scrollTop;
+    let p = getLocalCache(fullBarcode);
+    
+    if (!p) {
+        const { data, error } = await _supabase.rpc('get_product_by_barcode', { 
+            target_barcode: fullBarcode 
         });
+        if (error || !data || data.length === 0) return;
+        p = data[0];
+        saveToLocalCache(fullBarcode, p);
+    }
+    
+    renderDetailView(p);
+}
+
+function back() {
+    // Kembali ke mode scanner
+    document.getElementById("appContent").style.display = "none";
+    document.getElementById("scannerOverlay").style.display = "flex";
+    
+    document.getElementById("detailContainer").style.display = "none";
+    document.getElementById("ui-header").style.display = "block";
+    document.getElementById("listContainer").style.display = "grid";
+    document.getElementById("btnBackFloating").style.display = "none";
+    document.getElementById("searchInput").value = "";
+    document.getElementById("scrollContainer").scrollTop = lastScroll;
+
+    // Karena back() dipicu oleh klik, iOS sudah menganggap ini user gesture,
+    // jadi kita bisa langsung startScan.
+    if (!scannerInitialized) {
+        initScanner(); // akan menyalakan scanner dan menyembunyikan hint
+    } else {
+        // Scanner sudah pernah diinisialisasi, langsung nyalakan lagi
+        startScan(lastSelectedDeviceId);
+    }
+}
+
+// ❗️ Scanner TIDAK langsung menyala – harus menunggu gestur tap di #reader
+// startScan(lastSelectedDeviceId);  <-- DIHAPUS
+</script>
+
+<script>
+const priceTranslations = {
+    id: {
+        searchPlaceholder: "Scan / Input Barcode...",
+        tapHint: "ARAHKAN BARCODE • TAP UNTUK FOKUS",
+        scannerInstruction: "Arahkan barcode ke dalam kotak,<br>scan akan berjalan otomatis",
+        sidebarHome: "Beranda",
+        regStoreLabel: "Toko Reguler",
+        strStoreLabel: "Toko Ruko",
+        barcodeLabel: "BARCODE",
+        regPromoLabel: "PROMO REGULER",
+        strPromoLabel: "PROMO RUKO",
+        generalCat: "UMUM",
+        startScanHint: "TAP UNTUK MEMULAI SCAN",
+        stockStoreLabel: "STOCK TOKO",
+        stockTotalLabel: "Total",
+        stockAvailableLabel: "Tersedia",
+        stockOnOrderLabel: "On Order"
+    },
+    en: {
+        searchPlaceholder: "Scan / Enter Barcode...",
+        tapHint: "POINT AT BARCODE • TAP TO FOCUS",
+        scannerInstruction: "Point the barcode inside the box,<br>scan will run automatically",
+        sidebarHome: "Home",
+        regStoreLabel: "Regular Store",
+        strStoreLabel: "Street Store",
+        barcodeLabel: "BARCODE",
+        regPromoLabel: "REGULAR STORE PROMO",
+        strPromoLabel: "STREET STORE PROMO",
+        generalCat: "GENERAL",
+        startScanHint: "TAP TO START SCAN",
+        stockStoreLabel: "STOCK STORE",
+        stockTotalLabel: "Total",
+        stockAvailableLabel: "Available",
+        stockOnOrderLabel: "On Order"
+    },
+    cn: {
+        searchPlaceholder: "扫描 / 输入条形码...",
+        tapHint: "对准条形码 • 轻触对焦",
+        scannerInstruction: "将条形码对准框内，<br>扫描将自动进行",
+        sidebarHome: "首页",
+        regStoreLabel: "常规店价格",
+        strStoreLabel: "街边店价格",
+        barcodeLabel: "条码",
+        regPromoLabel: "常规促销",
+        strPromoLabel: "街边店促销",
+        generalCat: "普通",
+        startScanHint: "轻触屏幕开始扫描",
+        stockStoreLabel: "门店库存",
+        stockTotalLabel: "总库存",
+        stockAvailableLabel: "可用",
+        stockOnOrderLabel: "在途"
+    }
+};
+
+function applyPriceLanguage() {
+    const lang = localStorage.getItem('mms_lang') || 'id';
+    const t = priceTranslations[lang];
+
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.placeholder = t.searchPlaceholder;
+    
+    const tapHint = document.querySelector('.tap-hint');
+    if (tapHint) tapHint.innerText = t.tapHint;
+
+    const scannerInstruction = document.querySelector('.scanner-instruction');
+    if (scannerInstruction) scannerInstruction.innerHTML = t.scannerInstruction;
+
+    const sidebarHome = document.querySelector('#sidebar a');
+    if (sidebarHome) sidebarHome.innerText = t.sidebarHome;
+
+    // Teks "TAP TO START SCAN"
+    const startHint = document.getElementById('startHint');
+    if (startHint) startHint.innerText = t.startScanHint;
+
+    const originalShowDetail = window.showDetail;
+    window.showDetail = async function(fullBarcode) {
+        await originalShowDetail(fullBarcode); 
         
-        // Hapus fungsi showForceUpdateBlocker karena tidak digunakan (auto update)
-        window.showForceUpdateBlocker = null;
+        const labels = document.querySelectorAll('.price-label');
+        if (labels.length >= 2) {
+            labels[0].innerText = t.regStoreLabel;
+            labels[1].innerText = t.strStoreLabel;
+        }
 
-        // ========== FORCE UPDATE UNTUK SEMUA PENGGUNA (ANDROID & IOS) ==========
-        (function() {
-            const overlay = document.getElementById('forceUpdateOverlay');
-            const updateBtn = document.getElementById('forceUpdateBtn');
-            const updateDesc = document.getElementById('updateDescription');
+        const infoLabels = document.querySelectorAll('#detailContainer span[style*="color:#888"]');
+        if (infoLabels.length >= 3) {
+            infoLabels[0].innerText = t.barcodeLabel;
+            infoLabels[1].innerText = t.regPromoLabel;
+            infoLabels[2].innerText = t.strPromoLabel;
+        }
+    };
+}
 
-            if (overlay && updateBtn) {
-                // Pastikan teks deskripsi sesuai
-                if (updateDesc) {
-                    updateDesc.innerText = 'MMS-X telah diperbarui. Silakan buka aplikasi terbaru melalui tautan di bawah ini.';
-                }
+document.addEventListener('DOMContentLoaded', applyPriceLanguage);
+</script>
 
-                // Ubah aksi tombol
-                updateBtn.onclick = function() {
-                    window.location.replace('https://mmsx.pages.dev/');
-                };
+<!-- PENGECEKAN STATUS AKTIF PENGGUNA -->
+<script>
+(function() {
+    async function checkActiveAndLogout() {
+        const user = localStorage.getItem('mms_user');
+        if (!user) {
+            window.location.replace('index.html');
+            return;
+        }
 
-                // Tampilkan overlay (z-index 50000, di atas semua elemen)
-                overlay.classList.add('active');
+        try {
+            const { data, error } = await _supabase
+                .from('users')
+                .select('active')
+                .eq('username', user)
+                .maybeSingle();
+
+            if (error || !data || data.active === false) {
+                localStorage.removeItem('mms_auth');
+                localStorage.removeItem('mms_role');
+                localStorage.removeItem('mms_user');
+                localStorage.removeItem('mmsx_auth');
+                localStorage.removeItem('mmsx_role');
+                alert('Sesi Anda telah berakhir. Silakan login kembali.');
+                window.location.replace('index.html');
             }
-        })();
-    </script>
+        } catch (e) {
+            console.warn('Gagal validasi status aktif:', e);
+        }
+    }
+
+    window.addEventListener('load', checkActiveAndLogout);
+})();
+</script>
+
 </body>
 </html>

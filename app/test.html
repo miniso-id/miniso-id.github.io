@@ -1244,7 +1244,7 @@ function back() {
     document.getElementById("scrollContainer").scrollTop = lastScroll;
 }
 
-// --- AI VISION ---
+// --- AI VISION (UPDATED: menggunakan find-barcode-by-image) ---
 document.getElementById('aiSearchBtn').onclick = async () => {
     document.getElementById('aiOverlay').style.display = 'flex';
     try {
@@ -1268,25 +1268,29 @@ async function captureAi() {
     
     const video = document.getElementById('aiVideo');
     const canvas = document.getElementById('aiCanvas');
-    // Resize agar lebih kecil
-    canvas.width = video.videoWidth * 0.5;
-    canvas.height = video.videoHeight * 0.5;
+    
+    // Resize setengah untuk mempercepat
+    const scale = 0.5; 
+    canvas.width = video.videoWidth * scale;
+    canvas.height = video.videoHeight * scale;
+    
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const base64 = canvas.toDataURL('image/jpeg', 0.7); // include header data:image/jpeg;base64,
-
+    
+    // Kirim base64 lengkap dengan prefix (edge function menerima kedua format)
+    const base64Full = canvas.toDataURL('image/jpeg', 0.7);
+    
     try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
+        const timeout = setTimeout(() => controller.abort(), 15000);
         
-        // Panggil edge function find-barcode-by-image
         const response = await fetch(`${SUPABASE_URL}/functions/v1/find-barcode-by-image`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${SUPABASE_KEY}`
             },
-            body: JSON.stringify({ imageBase64: base64 }),
+            body: JSON.stringify({ imageBase64: base64Full }),
             signal: controller.signal
         });
         clearTimeout(timeout);
@@ -1311,6 +1315,21 @@ async function captureAi() {
         hideAiLoading();
         closeAi();
     }
+}
+
+function showAiLoading(msg) {
+    document.getElementById('aiStatus').innerText = msg;
+    document.getElementById('aiLoading').style.display = 'flex';
+}
+
+function hideAiLoading() {
+    document.getElementById('aiLoading').style.display = 'none';
+}
+
+function closeAi() {
+    const video = document.getElementById('aiVideo');
+    if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+    document.getElementById('aiOverlay').style.display = 'none';
 }
 </script>
 

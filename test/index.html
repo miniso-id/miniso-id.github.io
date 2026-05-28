@@ -23,7 +23,6 @@
             --sidebar-width: 280px;
         }
 
-        /* Animasi Masuk Halaman */
         body {
             opacity: 0;
             transition: opacity 0.2s ease-in;
@@ -36,7 +35,6 @@
             transition: opacity 0.2s ease-out;
         }
 
-        /* Kotak Fokus yang Lebih Responsif */
         .focus-guide {
             position: absolute;
             inset: 15%;
@@ -55,7 +53,6 @@
         .focus-guide::before { top: -2px; left: -2px; border-right: 0; border-bottom: 0; border-top-left-radius: 12px; }
         .focus-guide::after { bottom: -2px; right: -2px; border-left: 0; border-top: 0; border-bottom-right-radius: 12px; }
 
-        /* --- LOGIN OVERLAY --- */
         #loginOverlay {
             position: fixed; inset: 0; background: var(--bg-gray);
             z-index: 20000; display: flex; align-items: center; justify-content: center;
@@ -78,7 +75,6 @@
         }
         .btn-login:active { transform: scale(0.98); }
 
-        /* --- STYLE ASLI --- */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
             margin: 0; padding: 0;
@@ -204,7 +200,6 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Stock styles */
         .btn-stock {
             width: 100%; height: 48px; background: #111; color: white;
             border: none; border-radius: 14px; font-weight: 700; font-size: 14px;
@@ -375,7 +370,6 @@ function getLocalCache(barcode) {
     return cacheEntry.payload;
 }
 
-// Jalankan saat halaman dimuat
 document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.add("fade-in");
 });
@@ -423,7 +417,6 @@ async function checkLogin() {
             localStorage.setItem('mmsx_store_code', data.username);
 
             if (role === 'Staff') {
-                // Staff diblokir, langsung keluar
                 window.location.href = '/app/?app=mmsx';
             } else {
                 document.getElementById('loginOverlay').style.display = 'none';
@@ -438,24 +431,20 @@ async function checkLogin() {
     }
 }
 
-// Auto-login check saat halaman dimuat
 (function autoLoginCheck() {
     const isAuth = localStorage.getItem('mms_auth');
     const userRole = localStorage.getItem('mms_role');
 
     if (isAuth === 'true') {
         if (userRole === 'Staff') {
-            // Staff langsung diblokir, arahkan ke home
             window.location.href = '/app/?app=mmsx';
         } else {
-            // Non‑Staff: sembunyikan overlay login
             document.addEventListener('DOMContentLoaded', () => {
                 const overlay = document.getElementById('loginOverlay');
                 if (overlay) overlay.style.display = 'none';
             });
         }
     }
-    // Jika belum login, overlay tetap muncul (default)
 })();
 
 function logout() {
@@ -463,7 +452,7 @@ function logout() {
     window.location.href = "index.html"; 
 }
 
-/* --- INISIALISASI ZXING --- */
+/* --- INISIALISASI ZXING (tidak berubah) --- */
 const codeReader = new ZXing.BrowserMultiFormatReader();
 let scanning = false, lastScroll = 0, timer;
 let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
@@ -525,7 +514,6 @@ async function search() {
         list.innerHTML = "";
         return;
     }
-    // AUTO-DIRECT untuk 13 digit barcode
     if (q.length === 13 && /^\d+$/.test(q)) {
         showDetail(q);
         list.innerHTML = "";
@@ -552,9 +540,7 @@ async function search() {
     }
 }
 
-// ============================================================
-// ADVANCED SCANNER
-// ============================================================
+// ========== SCANNER (dipertahankan seperti aslinya) ==========
 const _canvas = document.getElementById('cropCanvas');
 const _ctx = _canvas.getContext('2d', { willReadFrequently: true });
 const _canvasWarp = document.createElement('canvas');
@@ -930,7 +916,7 @@ async function onDetected(code) {
     } finally { isProcessingScan = false; }
 }
 
-// Fungsi untuk fetch stock data
+// Fungsi untuk fetch stock data (tidak berubah)
 async function fetchStockData(barcode) {
     try {
         const resp = await fetch(STOCK_PROXY_URL, {
@@ -1244,7 +1230,7 @@ function back() {
     document.getElementById("scrollContainer").scrollTop = lastScroll;
 }
 
-// --- AI VISION ---
+// --- AI VISION MENGGUNAKAN EDGE FUNCTION find-barcode-by-image ---
 document.getElementById('aiSearchBtn').onclick = async () => {
     document.getElementById('aiOverlay').style.display = 'flex';
     try {
@@ -1268,18 +1254,19 @@ async function captureAi() {
     
     const video = document.getElementById('aiVideo');
     const canvas = document.getElementById('aiCanvas');
-    // Resize agar lebih kecil
-    canvas.width = video.videoWidth * 0.5;
-    canvas.height = video.videoHeight * 0.5;
+    // Resize gambar agar lebih kecil (mempercepat proses)
+    const scale = 0.5;
+    canvas.width = video.videoWidth * scale;
+    canvas.height = video.videoHeight * scale;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const base64 = canvas.toDataURL('image/jpeg', 0.7); // include header data:image/jpeg;base64,
-
+    // Ambil base64 lengkap dengan prefix
+    const base64 = canvas.toDataURL('image/jpeg', 0.7); // hasil: "data:image/jpeg;base64,..."
+    
     try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
+        const timeout = setTimeout(() => controller.abort(), 15000);
         
-        // Panggil edge function find-barcode-by-image
         const response = await fetch(`${SUPABASE_URL}/functions/v1/find-barcode-by-image`, {
             method: 'POST',
             headers: {
@@ -1311,6 +1298,21 @@ async function captureAi() {
         hideAiLoading();
         closeAi();
     }
+}
+
+function showAiLoading(msg) {
+    document.getElementById('aiStatus').innerText = msg;
+    document.getElementById('aiLoading').style.display = 'flex';
+}
+
+function hideAiLoading() {
+    document.getElementById('aiLoading').style.display = 'none';
+}
+
+function closeAi() {
+    const video = document.getElementById('aiVideo');
+    if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+    document.getElementById('aiOverlay').style.display = 'none';
 }
 </script>
 

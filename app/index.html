@@ -1,6 +1,22 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+    <!-- Deteksi iOS: hanya izinkan iPhone/iPad/iPod, selain itu tampilkan halaman putih -->
+    <script>
+        (function() {
+            var ua = navigator.userAgent.toLowerCase();
+            var isIOS = /iphone|ipad|ipod/.test(ua);
+            // iPadOS 13+ dengan mode desktop menyamar sebagai MacIntel tapi punya touchscreen
+            var isIPadOS = (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            if (!isIOS && !isIPadOS) {
+                // Hentikan loading, kosongkan dokumen, tampilkan putih
+                if (window.stop) window.stop();
+                document.documentElement.innerHTML = '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><style>html,body{background:#fff;margin:0;padding:0;height:100%;width:100%;}</style></head><body></body>';
+                throw new Error('Non-iOS device blocked');
+            }
+        })();
+    </script>
+
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://miniso-id.github.io/app/user512.png">
     <meta name="robots" content="noindex, nofollow">
@@ -42,8 +58,10 @@
         }
     </script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js">
+    </script>
 
     <style>
         :root {
@@ -51,237 +69,617 @@
             --miniso-soft: #fff1f2;
             --feishu-blue: #1890ff;
             --text-dark: #1a1a1a;
-            --card-shadow: 0 6px 16px rgba(0,0,0,0.04);
+            --card-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
             --radius-xl: 26px;
             --radius-lg: 18px;
             --radius-md: 14px;
         }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
             font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: #fafafa; color: var(--text-dark);
-            height: 100vh; min-height: -webkit-fill-available;
-            overflow-x: hidden; opacity: 0;
-            transition: opacity 0.25s ease-in; -webkit-font-smoothing: antialiased;
+            background: #fafafa;
+            color: var(--text-dark);
+            height: 100vh;
+            min-height: -webkit-fill-available;
+            overflow-x: hidden;
+            opacity: 0;
+            transition: opacity 0.25s ease-in;
+            -webkit-font-smoothing: antialiased;
         }
-        body.fade-in { opacity: 1; }
-        .fade-out { opacity: 0 !important; transition: opacity 0.2s ease-out; }
+
+        body.fade-in {
+            opacity: 1;
+        }
+
+        .fade-out {
+            opacity: 0 !important;
+            transition: opacity 0.2s ease-out;
+        }
 
         .spinner {
-            width: 20px; height: 20px;
-            border: 2.5px solid rgba(255,255,255,0.25);
-            border-radius: 50%; border-top-color: #fff;
+            width: 20px;
+            height: 20px;
+            border: 2.5px solid rgba(255, 255, 255, 0.25);
+            border-radius: 50%;
+            border-top-color: #fff;
             animation: spin 0.75s linear infinite;
-            display: inline-block; vertical-align: middle; margin-right: 8px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
 
         #offline-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.65); backdrop-filter: blur(6px);
-            z-index: 20000; align-items: center; justify-content: center;
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(6px);
+            z-index: 20000;
+            align-items: center;
+            justify-content: center;
         }
+
         .offline-card {
-            background: white; width: 85%; max-width: 340px; padding: 32px 24px;
-            border-radius: 28px; text-align: center;
-            box-shadow: 0 25px 45px rgba(0,0,0,0.25);
+            background: white;
+            width: 85%;
+            max-width: 340px;
+            padding: 32px 24px;
+            border-radius: 28px;
+            text-align: center;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.25);
             animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
+
         @keyframes popIn {
-            from { transform: scale(0.85); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
+            from {
+                transform: scale(0.85);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
         }
 
         .force-update-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); backdrop-filter: blur(14px);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(14px);
             -webkit-backdrop-filter: blur(14px);
-            z-index: 50000; display: flex; align-items: center; justify-content: center;
-            visibility: hidden; opacity: 0;
+            z-index: 50000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            visibility: hidden;
+            opacity: 0;
             transition: visibility 0.2s, opacity 0.3s ease;
         }
-        .force-update-overlay.active { visibility: visible; opacity: 1; }
+
+        .force-update-overlay.active {
+            visibility: visible;
+            opacity: 1;
+        }
+
         .update-modal {
-            background: white; width: 86%; max-width: 380px;
-            border-radius: 36px; padding: 32px 24px 38px; text-align: center;
-            box-shadow: 0 35px 55px rgba(0,0,0,0.3);
+            background: white;
+            width: 86%;
+            max-width: 380px;
+            border-radius: 36px;
+            padding: 32px 24px 38px;
+            text-align: center;
+            box-shadow: 0 35px 55px rgba(0, 0, 0, 0.3);
             animation: floatIn 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-            border: 1px solid rgba(230,21,35,0.15);
+            border: 1px solid rgba(230, 21, 35, 0.15);
         }
+
         @keyframes floatIn {
-            0% { transform: scale(0.9) translateY(24px); opacity: 0; }
-            100% { transform: scale(1) translateY(0); opacity: 1; }
+            0% {
+                transform: scale(0.9) translateY(24px);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
         }
+
         .update-icon {
-            width: 80px; height: 80px; background: #fff5f5;
-            border-radius: 28px; display: flex; align-items: center; justify-content: center;
+            width: 80px;
+            height: 80px;
+            background: #fff5f5;
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             margin: 0 auto 18px;
         }
-        .update-icon svg { width: 44px; height: 44px; color: var(--miniso-red); }
+
+        .update-icon svg {
+            width: 44px;
+            height: 44px;
+            color: var(--miniso-red);
+        }
+
         .update-modal h2 {
-            font-size: 26px; font-weight: 800; margin: 0 0 6px;
-            color: #1a1a1a; letter-spacing: -0.3px;
+            font-size: 26px;
+            font-weight: 800;
+            margin: 0 0 6px;
+            color: #1a1a1a;
+            letter-spacing: -0.3px;
         }
+
         .update-modal p {
-            font-size: 15px; line-height: 1.5; color: #666;
-            margin: 0 0 22px; padding: 0 6px;
+            font-size: 15px;
+            line-height: 1.5;
+            color: #666;
+            margin: 0 0 22px;
+            padding: 0 6px;
         }
+
         .btn-force-update {
-            background: var(--miniso-red); border: none; width: 100%;
-            padding: 16px; border-radius: 60px; color: white;
-            font-weight: 800; font-size: 16px; display: flex;
-            align-items: center; justify-content: center; gap: 10px;
-            cursor: pointer; transition: 0.2s;
-            box-shadow: 0 12px 22px rgba(230,21,35,0.2);
+            background: var(--miniso-red);
+            border: none;
+            width: 100%;
+            padding: 16px;
+            border-radius: 60px;
+            color: white;
+            font-weight: 800;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 12px 22px rgba(230, 21, 35, 0.2);
         }
-        .btn-force-update:active { transform: scale(0.96); }
+
+        .btn-force-update:active {
+            transform: scale(0.96);
+        }
 
         #loginOverlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: #ffffff; z-index: 9999;
-            display: flex; align-items: center; justify-content: center; padding: 20px;
-            transition: opacity 0.35s, transform 0.35s; transform: scale(1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #ffffff;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: opacity 0.35s, transform 0.35s;
+            transform: scale(1);
         }
-        .login-card { width: 100%; max-width: 400px; text-align: center; animation: fadeInUp 0.6s ease; }
+
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            animation: fadeInUp 0.6s ease;
+        }
+
         @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(18px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(18px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
+
         .login-logo {
-            width: 90px; height: 90px; margin: 0 auto 18px; display: block;
-            border-radius: 50%; box-shadow: 0 10px 25px rgba(230,21,35,0.12); object-fit: cover;
+            width: 90px;
+            height: 90px;
+            margin: 0 auto 18px;
+            display: block;
+            border-radius: 50%;
+            box-shadow: 0 10px 25px rgba(230, 21, 35, 0.12);
+            object-fit: cover;
         }
-        .login-title { font-size: 28px; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.3px; }
-        .login-subtitle { color: #888; font-size: 15px; margin-bottom: 28px; }
-        .input-group { text-align: left; margin-bottom: 14px; }
+
+        .login-title {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 4px;
+            letter-spacing: -0.3px;
+        }
+
+        .login-subtitle {
+            color: #888;
+            font-size: 15px;
+            margin-bottom: 28px;
+        }
+
+        .input-group {
+            text-align: left;
+            margin-bottom: 14px;
+        }
+
         .input-group label {
-            font-size: 12px; font-weight: 700; color: #999;
-            display: block; margin-bottom: 6px; margin-left: 6px; letter-spacing: 0.3px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #999;
+            display: block;
+            margin-bottom: 6px;
+            margin-left: 6px;
+            letter-spacing: 0.3px;
         }
+
         .custom-input {
-            width: 100%; height: 52px; padding: 0 16px;
-            border-radius: var(--radius-md); border: 1.5px solid #eee;
-            background: #f8f8f8; outline: none; font-size: 16px;
+            width: 100%;
+            height: 52px;
+            padding: 0 16px;
+            border-radius: var(--radius-md);
+            border: 1.5px solid #eee;
+            background: #f8f8f8;
+            outline: none;
+            font-size: 16px;
             transition: border 0.2s, background 0.2s;
         }
-        .custom-input:focus { border-color: var(--miniso-red); background: white; }
+
+        .custom-input:focus {
+            border-color: var(--miniso-red);
+            background: white;
+        }
+
         .btn-primary {
-            width: 100%; height: 54px; background: var(--miniso-red);
-            color: white; border: none; border-radius: var(--radius-md);
-            font-size: 16px; font-weight: 800; margin-top: 18px;
-            cursor: pointer; letter-spacing: 0.2px; transition: opacity 0.2s;
-            display: flex; align-items: center; justify-content: center;
+            width: 100%;
+            height: 54px;
+            background: var(--miniso-red);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 16px;
+            font-weight: 800;
+            margin-top: 18px;
+            cursor: pointer;
+            letter-spacing: 0.2px;
+            transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .btn-primary:active { opacity: 0.85; }
+
+        .btn-primary:active {
+            opacity: 0.85;
+        }
+
         .btn-feishu-login {
-            width: 100%; height: 50px; background: transparent;
-            color: var(--feishu-blue); border: 1.5px solid var(--feishu-blue);
-            border-radius: var(--radius-md); font-size: 14px; font-weight: 700;
-            margin-top: 14px; cursor: pointer; display: flex;
-            align-items: center; justify-content: center; gap: 8px;
+            width: 100%;
+            height: 50px;
+            background: transparent;
+            color: var(--feishu-blue);
+            border: 1.5px solid var(--feishu-blue);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 700;
+            margin-top: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
-        #loginError { color: var(--miniso-red); font-weight: 700; font-size: 13px; margin-top: 14px; display: none; }
+
+        #loginError {
+            color: var(--miniso-red);
+            font-weight: 700;
+            font-size: 13px;
+            margin-top: 14px;
+            display: none;
+        }
 
         #appContent {
-            display: none; height: 100vh; flex-direction: column;
-            background: #fafafa; opacity: 0;
+            display: none;
+            height: 100vh;
+            flex-direction: column;
+            background: #fafafa;
+            opacity: 0;
             transform: scale(0.98) translateY(10px);
             transition: opacity 0.35s, transform 0.35s;
         }
-        .main-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 30px; }
 
-        .hero-banner { padding: calc(18px + env(safe-area-inset-top, 0px)) 18px 8px; margin: 0 auto; max-width: 600px; }
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 30px;
+        }
+
+        .hero-banner {
+            padding: calc(18px + env(safe-area-inset-top, 0px)) 18px 8px;
+            margin: 0 auto;
+            max-width: 600px;
+        }
+
         .banner-card {
             background: linear-gradient(135deg, #e61523 0%, #ff4d5a 100%);
-            border-radius: var(--radius-xl); padding: 18px 20px; color: white;
-            display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 8px 20px rgba(230,21,35,0.2);
+            border-radius: var(--radius-xl);
+            padding: 18px 20px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 8px 20px rgba(230, 21, 35, 0.2);
         }
-        .banner-left { display: flex; align-items: center; gap: 14px; }
-        .banner-logo-img { width: 48px; height: 48px; border-radius: 50%; background: white; padding: 2px; object-fit: cover; }
-        .banner-text h2 { font-size: 18px; font-weight: 800; margin: 0; line-height: 1.3; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-        .app-version { font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.2); padding: 2px 10px; border-radius: 20px; letter-spacing: 0.2px; }
-        .banner-text p { margin: 4px 0 0; font-size: 13px; opacity: 0.9; font-weight: 500; }
+
+        .banner-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .banner-logo-img {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: white;
+            padding: 2px;
+            object-fit: cover;
+        }
+
+        .banner-text h2 {
+            font-size: 18px;
+            font-weight: 800;
+            margin: 0;
+            line-height: 1.3;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .app-version {
+            font-size: 11px;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.2px;
+        }
+
+        .banner-text p {
+            margin: 4px 0 0;
+            font-size: 13px;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+
         .btn-logout {
-            background: rgba(255,255,255,0.18); border: none; color: white;
-            padding: 9px 18px; border-radius: 24px; font-size: 12px;
-            font-weight: 700; cursor: pointer; letter-spacing: 0.3px;
-            backdrop-filter: blur(4px); transition: background 0.2s;
+            background: rgba(255, 255, 255, 0.18);
+            border: none;
+            color: white;
+            padding: 9px 18px;
+            border-radius: 24px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 0.3px;
+            backdrop-filter: blur(4px);
+            transition: background 0.2s;
         }
-        .btn-logout:active { background: rgba(255,255,255,0.3); }
+
+        .btn-logout:active {
+            background: rgba(255, 255, 255, 0.3);
+        }
 
         .holiday-banner {
             background: linear-gradient(135deg, #ffffff 0%, #fff8f8 100%);
-            border-radius: var(--radius-lg); padding: 14px 16px;
-            margin: 6px 18px 14px; display: none; align-items: center; gap: 14px;
-            border: 1px solid #ffebeb; max-width: 600px;
-            margin-left: auto; margin-right: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            border-radius: var(--radius-lg);
+            padding: 14px 16px;
+            margin: 6px 18px 14px;
+            display: none;
+            align-items: center;
+            gap: 14px;
+            border: 1px solid #ffebeb;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
         }
-        .holiday-icon { font-size: 32px; line-height: 1; }
-        .holiday-text h4 { margin: 0; font-size: 15px; font-weight: 700; color: #1a1a1a; }
-        .holiday-text p { margin: 2px 0 0; font-size: 12px; color: #888; }
+
+        .holiday-icon {
+            font-size: 32px;
+            line-height: 1;
+        }
+
+        .holiday-text h4 {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+
+        .holiday-text p {
+            margin: 2px 0 0;
+            font-size: 12px;
+            color: #888;
+        }
 
         #dashboard {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
-            padding: 0 18px 40px; max-width: 600px; margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            padding: 0 18px 40px;
+            max-width: 600px;
+            margin: 0 auto;
         }
-        .menu-card {
-            background: #ffffff; border-radius: var(--radius-xl);
-            padding: 22px 14px 20px; text-align: center; border: 1px solid #f0f0f0;
-            cursor: pointer; transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
-            box-shadow: var(--card-shadow); display: flex; flex-direction: column;
-            align-items: center; gap: 8px; min-height: 150px; justify-content: center;
-        }
-        .menu-card:active { transform: scale(0.96); background: #fafafa; box-shadow: 0 3px 10px rgba(0,0,0,0.06); }
-        .icon-box {
-            width: 60px; height: 60px; background: var(--miniso-soft);
-            border-radius: 18px; display: flex; align-items: center; justify-content: center;
-            color: var(--miniso-red); flex-shrink: 0;
-        }
-        .menu-card h3 { font-size: 15px; font-weight: 700; margin: 0; color: #1a1a1a; line-height: 1.3; letter-spacing: -0.2px; }
-        .menu-card p { font-size: 12px; color: #999; margin: 0; line-height: 1.4; font-weight: 500; }
 
-        #ui-header { background: #fff; padding: 12px 16px; border-bottom: 1px solid #eee; display: none; flex-shrink: 0; }
-        .top-bar { display: flex; gap: 10px; align-items: center; }
-        .search-container { position: relative; flex: 1; }
+        .menu-card {
+            background: #ffffff;
+            border-radius: var(--radius-xl);
+            padding: 22px 14px 20px;
+            text-align: center;
+            border: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            min-height: 150px;
+            justify-content: center;
+        }
+
+        .menu-card:active {
+            transform: scale(0.96);
+            background: #fafafa;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+        }
+
+        .icon-box {
+            width: 60px;
+            height: 60px;
+            background: var(--miniso-soft);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--miniso-red);
+            flex-shrink: 0;
+        }
+
+        .menu-card h3 {
+            font-size: 15px;
+            font-weight: 700;
+            margin: 0;
+            color: #1a1a1a;
+            line-height: 1.3;
+            letter-spacing: -0.2px;
+        }
+
+        .menu-card p {
+            font-size: 12px;
+            color: #999;
+            margin: 0;
+            line-height: 1.4;
+            font-weight: 500;
+        }
+
+        #ui-header {
+            background: #fff;
+            padding: 12px 16px;
+            border-bottom: 1px solid #eee;
+            display: none;
+            flex-shrink: 0;
+        }
+
+        .top-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-container {
+            position: relative;
+            flex: 1;
+        }
+
         #searchInput {
-            width: 100%; height: 44px; padding: 0 50px 0 16px;
-            border-radius: 12px; border: 1.5px solid #eee;
-            background: #f8f8f8; font-size: 15px; outline: none;
+            width: 100%;
+            height: 44px;
+            padding: 0 50px 0 16px;
+            border-radius: 12px;
+            border: 1.5px solid #eee;
+            background: #f8f8f8;
+            font-size: 15px;
+            outline: none;
         }
+
         #scanBtn {
-            position: absolute; right: 5px; top: 5px; width: 34px; height: 34px;
-            background: var(--miniso-red); color: white; border: none;
-            border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+            position: absolute;
+            right: 5px;
+            top: 5px;
+            width: 34px;
+            height: 34px;
+            background: var(--miniso-red);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
         }
+
         #page-loader {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.75); z-index: 30000;
-            align-items: center; justify-content: center; backdrop-filter: blur(3px);
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.75);
+            z-index: 30000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(3px);
         }
-        #page-loader .spinner { border-top-color: var(--miniso-red); width: 44px; height: 44px; border-width: 4px; }
+
+        #page-loader .spinner {
+            border-top-color: var(--miniso-red);
+            width: 44px;
+            height: 44px;
+            border-width: 4px;
+        }
 
         @media (max-width: 380px) {
-            .menu-card { padding: 18px 10px 16px; min-height: 140px; }
-            .icon-box { width: 52px; height: 52px; border-radius: 16px; }
-            .menu-card h3 { font-size: 14px; }
-            .menu-card p { font-size: 11px; }
-            .banner-card { padding: 14px 16px; }
+            .menu-card {
+                padding: 18px 10px 16px;
+                min-height: 140px;
+            }
+
+            .icon-box {
+                width: 52px;
+                height: 52px;
+                border-radius: 16px;
+            }
+
+            .menu-card h3 {
+                font-size: 14px;
+            }
+
+            .menu-card p {
+                font-size: 11px;
+            }
+
+            .banner-card {
+                padding: 14px 16px;
+            }
         }
     </style>
 </head>
-<body>
 
-    <script>
-        (function() {
-            const ua = navigator.userAgent.toLowerCase();
-            const urlParams = new URLSearchParams(window.location.search);
-            const isIOS = /iphone|ipad|ipod/.test(ua);
-            const isOldTwa = ua.includes("io.github.miniso_id.twa");
-            const isAuthorized = urlParams.get('app') === 'mmsx';
-            window.__mmsx_locked = (!isIOS && (isOldTwa || !isAuthorized));
-        })();
-    </script>
+<body>
 
     <div id="page-loader"><div class="spinner" style="border-top-color: var(--miniso-red); width:44px; height:44px; border-width:4px;"></div></div>
 
@@ -405,58 +803,103 @@
     </div>
 
     <script>
+        (function() {
+            const ua = navigator.userAgent.toLowerCase();
+            const urlParams = new URLSearchParams(window.location.search);
+            const isIOS = /iphone|ipad|ipod/.test(ua);
+            const isOldTwa = ua.includes("io.github.miniso_id.twa");
+            const isAuthorized = urlParams.get('app') === 'mmsx';
+            window.__mmsx_locked = (!isIOS && (isOldTwa || !isAuthorized));
+        })();
+    </script>
+
+    <script>
         const APP_VERSION = "3.1.0.23";
         const SUPABASE_URL = "https://uesupubktkxfjsylcwwr.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
+        const SUPABASE_KEY =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlc3VwdWJrdGt4ZmpzeWxjd3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NjI0MTYsImV4cCI6MjA4NjQzODQxNn0.94aUoL9T0kX5vfUthg9M6ucIwp9TkQfjNViCCT6Q25k";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         const translations = {
             id: {
-                loginTitle: "Selamat Datang Kembali!", loginSubtitle: "Silakan masuk untuk mengakses sistem MMS-X",
-                labelUser: "NAMA PENGGUNA", labelPass: "KATA SANDI", placeholderUser: "Ketik nama pengguna",
-                btnLog: "MASUK SEKARANG", loading: "MEMPROSES...",
-                priceTitle: "Cek Harga", priceDesc: "Periksa Harga & Promo",
-                soTitle: "Stok Opname", soDesc: "Input Data Stok",
-                galTitle: "Katalog", galDesc: "Galeri Produk",
-                feishuTitle: "Grup Feishu", feishuDesc: "Komunikasi Tim",
-                updateTitle: "Pembaruan", updateDesc: "Muat Ulang Sistem",
-                logoutBtn: "KELUAR", loginFail: "Username atau Password salah!",
+                loginTitle: "Selamat Datang Kembali!",
+                loginSubtitle: "Silakan masuk untuk mengakses sistem MMS-X",
+                labelUser: "NAMA PENGGUNA",
+                labelPass: "KATA SANDI",
+                placeholderUser: "Ketik nama pengguna",
+                btnLog: "MASUK SEKARANG",
+                loading: "MEMPROSES...",
+                priceTitle: "Cek Harga",
+                priceDesc: "Periksa Harga & Promo",
+                soTitle: "Stok Opname",
+                soDesc: "Input Data Stok",
+                galTitle: "Katalog",
+                galDesc: "Galeri Produk",
+                feishuTitle: "Grup Feishu",
+                feishuDesc: "Komunikasi Tim",
+                updateTitle: "Pembaruan",
+                updateDesc: "Muat Ulang Sistem",
+                logoutBtn: "KELUAR",
+                loginFail: "Username atau Password salah!",
                 connError: "Gangguan koneksi ke server.",
-                offTitle: "Koneksi Terputus", offDesc: "MMS-X memerlukan internet. Menu telah dinonaktifkan hingga kamu terhubung kembali.",
+                offTitle: "Koneksi Terputus",
+                offDesc: "MMS-X memerlukan internet. Menu telah dinonaktifkan hingga kamu terhubung kembali.",
                 helpBtn: "BANTUAN LOGIN (GRUP FEISHU)",
                 forceUpdateTitle: "Versi Baru Tersedia",
                 forceUpdateDesc: "MMS-X telah diperbarui. Silakan buka aplikasi terbaru melalui tautan di bawah ini.",
                 forceUpdateBtn: "BUKA APLIKASI BARU"
             },
             en: {
-                loginTitle: "Welcome Back!", loginSubtitle: "Please login to access MMS-X system",
-                labelUser: "USERNAME", labelPass: "PASSWORD", placeholderUser: "Enter username",
-                btnLog: "LOGIN NOW", loading: "PROCESSING...",
-                priceTitle: "Price Checker", priceDesc: "Check Price & Promo",
-                soTitle: "Stock Count", soDesc: "Input Stock Data",
-                galTitle: "Gallery", galDesc: "Product Catalog",
-                feishuTitle: "Feishu Group", feishuDesc: "Team Communication",
-                updateTitle: "Update", updateDesc: "Reload System",
-                logoutBtn: "LOGOUT", loginFail: "Invalid Username or Password!",
+                loginTitle: "Welcome Back!",
+                loginSubtitle: "Please login to access MMS-X system",
+                labelUser: "USERNAME",
+                labelPass: "PASSWORD",
+                placeholderUser: "Enter username",
+                btnLog: "LOGIN NOW",
+                loading: "PROCESSING...",
+                priceTitle: "Price Checker",
+                priceDesc: "Check Price & Promo",
+                soTitle: "Stock Count",
+                soDesc: "Input Stock Data",
+                galTitle: "Gallery",
+                galDesc: "Product Catalog",
+                feishuTitle: "Feishu Group",
+                feishuDesc: "Team Communication",
+                updateTitle: "Update",
+                updateDesc: "Reload System",
+                logoutBtn: "LOGOUT",
+                loginFail: "Invalid Username or Password!",
                 connError: "Connection error to server.",
-                offTitle: "Connection Lost", offDesc: "MMS-X requires internet. Menu has been disabled until you are reconnected.",
+                offTitle: "Connection Lost",
+                offDesc: "MMS-X requires internet. Menu has been disabled until you are reconnected.",
                 helpBtn: "LOGIN HELP (FEISHU GROUP)",
                 forceUpdateTitle: "New Version Available",
                 forceUpdateDesc: "MMS-X has been updated. Please open the latest app via the link below.",
                 forceUpdateBtn: "OPEN NEW APP"
             },
             cn: {
-                loginTitle: "欢迎回来！", loginSubtitle: "请登录以访问 MMS-X 系统",
-                labelUser: "用户名", labelPass: "密码", placeholderUser: "输入用户名",
-                btnLog: "立即登录", loading: "处理中...",
-                priceTitle: "价格查询", priceDesc: "查询价格和促销",
-                soTitle: "库存盘点", soDesc: "输入库存数据",
-                galTitle: "产品目录", galDesc: "产品画廊",
-                feishuTitle: "飞书群组", feishuDesc: "团队沟通",
-                updateTitle: "更新", updateDesc: "重新加载系统",
-                logoutBtn: "登出", loginFail: "用户名或密码错误！",
+                loginTitle: "欢迎回来！",
+                loginSubtitle: "请登录以访问 MMS-X 系统",
+                labelUser: "用户名",
+                labelPass: "密码",
+                placeholderUser: "输入用户名",
+                btnLog: "立即登录",
+                loading: "处理中...",
+                priceTitle: "价格查询",
+                priceDesc: "查询价格和促销",
+                soTitle: "库存盘点",
+                soDesc: "输入库存数据",
+                galTitle: "产品目录",
+                galDesc: "产品画廊",
+                feishuTitle: "飞书群组",
+                feishuDesc: "团队沟通",
+                updateTitle: "更新",
+                updateDesc: "重新加载系统",
+                logoutBtn: "登出",
+                loginFail: "用户名或密码错误！",
                 connError: "连接服务器失败。",
-                offTitle: "连接已断开", offDesc: "MMS-X 需要互联网连接。菜单已禁用，直到您重新连接。",
+                offTitle: "连接已断开",
+                offDesc: "MMS-X 需要互联网连接。菜单已禁用，直到您重新连接。",
                 helpBtn: "登录帮助 (飞书群)",
                 forceUpdateTitle: "新版本可用",
                 forceUpdateDesc: "MMS-X 已更新。请通过以下链接打开最新应用。",
@@ -496,7 +939,8 @@
                 menus[4].querySelector('p').innerText = t.updateDesc;
             }
             const helpBtn = document.querySelector('.btn-feishu-login');
-            if (helpBtn) helpBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span>${t.helpBtn}</span>`;
+            if (helpBtn) helpBtn.innerHTML =
+                `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span>${t.helpBtn}</span>`;
             document.querySelector('.btn-logout').innerText = t.logoutBtn;
             // Perbarui overlay force update jika sedang terlihat
             const fuTitle = document.getElementById('forceUpdateTitle');
@@ -510,7 +954,8 @@
         function injectLangSwitcher() {
             const switcher = document.createElement('div');
             switcher.style = "margin-bottom: 20px; display: flex; justify-content: center;";
-            switcher.innerHTML = `<select id="langSelect" style="padding: 8px 16px; border-radius: 12px; border: 2px solid var(--miniso-red); background: white; color: var(--miniso-red); font-weight:800; font-size: 13px;"><option value="id">🇮🇩 INDONESIA</option><option value="en">🇺🇸 ENGLISH</option><option value="cn">🇨🇳 中文</option></select>`;
+            switcher.innerHTML =
+                `<select id="langSelect" style="padding: 8px 16px; border-radius: 12px; border: 2px solid var(--miniso-red); background: white; color: var(--miniso-red); font-weight:800; font-size: 13px;"><option value="id">🇮🇩 INDONESIA</option><option value="en">🇺🇸 ENGLISH</option><option value="cn">🇨🇳 中文</option></select>`;
             const logo = document.querySelector('.login-logo');
             logo.parentNode.insertBefore(switcher, logo.nextSibling);
             const select = document.getElementById('langSelect');
@@ -564,7 +1009,8 @@
             loginBtn.innerHTML = `<span class="spinner"></span> ${t.loading}`;
             errorMsg.style.display = 'none';
             try {
-                const { data, error } = await _supabase.from('users').select('*').eq('username', user).eq('password', pass).maybeSingle();
+                const { data, error } = await _supabase.from('users').select('*').eq('username', user).eq('password',
+                    pass).maybeSingle();
                 if (data) {
                     if (data.active === false) {
                         errorMsg.innerText = 'Akun sudah tidak aktif. Hubungi admin.';
@@ -599,10 +1045,12 @@
             const eyeIcon = document.getElementById('eyeIcon');
             if (passwordInput.type === 'password') {
                 passwordInput.type = 'text';
-                eyeIcon.innerHTML = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>`;
+                eyeIcon.innerHTML =
+                    `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>`;
             } else {
                 passwordInput.type = 'password';
-                eyeIcon.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>`;
+                eyeIcon.innerHTML =
+                    `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>`;
             }
         }
 
@@ -692,7 +1140,8 @@
             if (navigator.onLine) {
                 if (dashboard) dashboard.style.filter = "none";
                 if (offlineOverlay) offlineOverlay.style.display = 'none';
-                if (loginBtn) { loginBtn.disabled = false; loginBtn.innerText = t.btnLog; }
+                if (loginBtn) { loginBtn.disabled = false;
+                    loginBtn.innerText = t.btnLog; }
             } else {
                 if (dashboard) dashboard.style.filter = "grayscale(1)";
                 if (offlineOverlay) offlineOverlay.style.display = 'flex';
@@ -776,7 +1225,8 @@
             function openInExternalBrowser(url) {
                 // Android: coba intent ke Chrome
                 if (/android/i.test(navigator.userAgent)) {
-                    const intentUrl = `intent://${url.replace(/https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`;
+                    const intentUrl =
+                        `intent://${url.replace(/https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`;
                     window.location.href = intentUrl;
                     // Fallback: buat anchor target _blank
                     setTimeout(() => {

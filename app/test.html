@@ -6,7 +6,7 @@
     <meta name="googlebot" content="noindex, nofollow">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MMS-X</title>
+    <title>MMS-X Promo</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
@@ -287,6 +287,7 @@
 <div id="sidebar" class="sidebar">
     <h2>MMS-X</h2>
     <a href="/app/?app=mmsx" onclick="toggleSidebar()">Home</a>
+    <a href="product.html" onclick="toggleSidebar()">Produk</a>
     <a href="#" onclick="logout()" style="background:rgba(0,0,0,0.2); margin-top:20px;">Logout</a>
 </div>
 <div id="overlay" onclick="toggleSidebar()"></div>
@@ -305,6 +306,7 @@
             <button onclick="toggleSidebar()" style="background:none; border:none; padding:10px 5px; cursor:pointer;">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
+            <div style="font-size:13px; font-weight:900; color:var(--miniso-red); background:var(--miniso-soft); padding:4px 12px; border-radius:10px; flex-shrink:0; white-space:nowrap; border:1.5px solid var(--miniso-red);">🏷️ PROMO</div>
             <div class="search-container">
                 <input id="searchInput" placeholder="Cari nama / barcode..." autocomplete="off">
                 <button id="scanBtn">
@@ -332,6 +334,12 @@
 
     <main class="main-content" id="scrollContainer">
         <div id="listContainer"></div>
+        <div id="loadMoreIndicator" style="display:none; text-align:center; padding:20px; color:#888; font-size:13px; font-weight:600;">
+            <div style="display:inline-flex; align-items:center; gap:8px;">
+                <div class="mini-spin" style="border-top-color:var(--miniso-red);"></div>
+                Memuat lebih banyak produk...
+            </div>
+        </div>
         <div id="detailContainer"></div>
     </main>
 </div>
@@ -342,6 +350,12 @@
     <div style="position:absolute; top:40px; width:100%; text-align:center; color:white; font-weight:bold; z-index:10;">MMS-X AI VISION</div>
     <video id="aiVideo" style="width:100%; height:100%; object-fit:cover;" autoplay playsinline></video>
     <canvas id="aiCanvas" style="display:none;"></canvas>
+    <div style="position:absolute; bottom:130px; width:100%; text-align:center; z-index:10; pointer-events:none;">
+        <span id="aiDisclaimerText" style="display:inline-flex; align-items:center; gap:5px; background:rgba(0,0,0,0.45); backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.75); font-size:10px; font-weight:600; letter-spacing:0.3px; padding:5px 12px; border-radius:20px;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.85"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Hasil AI mungkin tidak selalu akurat — harap verifikasi
+        </span>
+    </div>
     <div style="position:absolute; bottom:50px; width:100%; display:flex; justify-content:center; gap:30px; align-items:center;">
         <button onclick="closeAi()" style="background:rgba(255,255,255,0.2); border:none; color:white; width:60px; height:60px; border-radius:50%;">✕</button>
         <div onclick="captureAi()" style="width:80px; height:80px; border-radius:50%; border:5px solid white; display:flex; align-items:center; justify-content:center; cursor: pointer;">
@@ -376,8 +390,23 @@ function getLocalCache(barcode) {
 }
 
 // Jalankan saat halaman dimuat
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     document.body.classList.add("fade-in");
+
+    // 1. Ambil filter dulu, baru load data (hindari race condition)
+    await fetchPromoFilters();
+
+    // 2. Load promo awal
+    resetAndLoadPromos();
+
+    // 3. Infinite scroll listener
+    const scrollContainer = document.getElementById('scrollContainer');
+    scrollContainer.addEventListener('scroll', () => {
+        const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+        if (scrollHeight - scrollTop - clientHeight < 200) {
+            loadMorePromos();
+        }
+    });
 });
 
 function navigateTo(url) {
@@ -467,34 +496,195 @@ function logout() {
 const codeReader = new ZXing.BrowserMultiFormatReader();
 let scanning = false, lastScroll = 0, timer;
 let lastSelectedDeviceId = localStorage.getItem('preferredCameraId');
-let currentCategory = 'All';
 
-async function fetchCategories() {
-    const { data, error } = await _supabase.rpc('get_unique_categories');
-    if (error) {
-        console.error("Gagal mengambil kategori:", error);
-        return;
-    }
-    if (data) {
-        const container = document.getElementById('catFilterContainer');
-        container.innerHTML = '<div class="cat-chip active" onclick="filterCat(\'All\', this)">All</div>';
-        data.forEach(item => {
-            const catName = item.category; 
-            const chip = document.createElement('div');
-            chip.className = 'cat-chip';
-            chip.innerText = catName;
-            chip.onclick = () => filterCat(catName, chip);
-            container.appendChild(chip);
-        });
-    }
+// ============================================================
+// PROMO PAGE — state management
+// ============================================================
+const PAGE_SIZE = 100;
+let promoOffset = 0;
+let promoIsLoading = false;
+let promoHasMore = true;
+let searchMode = false;   // true saat ada query teks di searchInput
+
+async function fetchPromoFilters() {
+    // Ambil nilai unik dari KEDUA kolom promo (Regular & Street Store)
+    const [resReg, resStr] = await Promise.all([
+        _supabase
+            .from('export')
+            .select('"Regular Store Promo"')
+            .not('"Regular Store Promo"', 'is', null)
+            .neq('"Regular Store Promo"', '')
+            .neq('"Regular Store Promo"', 'NORMAL PRICE')
+            .neq('"Regular Store Promo"', 'NORMAL'),
+        _supabase
+            .from('export')
+            .select('"Street Store Promo"')
+            .not('"Street Store Promo"', 'is', null)
+            .neq('"Street Store Promo"', '')
+            .neq('"Street Store Promo"', 'NORMAL PRICE')
+            .neq('"Street Store Promo"', 'NORMAL')
+    ]);
+
+    if (resReg.error) console.error("Gagal ambil Regular Promo filters:", resReg.error);
+    if (resStr.error) console.error("Gagal ambil Street Store Promo filters:", resStr.error);
+
+    const uniqueReg = [...new Set((resReg.data || []).map(r => r["Regular Store Promo"]).filter(Boolean))].sort();
+    const uniqueStr = [...new Set((resStr.data || []).map(r => r["Street Store Promo"]).filter(Boolean))].sort();
+
+    const container = document.getElementById('catFilterContainer');
+    container.innerHTML = '<div class="cat-chip active" onclick="filterPromo(\'All\', \'All\', this)">ALL PROMO</div>';
+
+    // Tambahkan chip Regular Store Promo
+    uniqueReg.forEach(promo => {
+        const chip = document.createElement('div');
+        chip.className = 'cat-chip';
+        chip.innerText = promo;
+        chip.title = 'Regular Store';
+        chip.onclick = () => filterPromo(promo, 'regular', chip);
+        container.appendChild(chip);
+    });
+
+    // Tambahkan chip Street Store Promo
+    uniqueStr.forEach(promo => {
+        const chip = document.createElement('div');
+        chip.className = 'cat-chip';
+        chip.style.borderColor = '#28a745';
+        chip.innerText = promo + ' 🏪';
+        chip.title = 'Street Store';
+        chip.onclick = () => filterPromo(promo, 'street', chip);
+        container.appendChild(chip);
+    });
 }
-fetchCategories();
 
-function filterCat(cat, el) {
+// State filter promo
+let currentPromo = 'All';
+let currentPromoType = 'All'; // 'All' | 'regular' | 'street'
+
+function filterPromo(promo, type, el) {
     document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
     el.classList.add('active');
-    currentCategory = cat;
-    search();
+    currentPromo = promo;
+    currentPromoType = type;
+    resetAndLoadPromos();
+}
+
+// Alias agar kompatibel dengan chip lama
+function filterCat(cat, el) { filterPromo(cat, 'All', el); }
+
+// ============================================================
+// RESET + LOAD (digunakan saat filter atau pencarian berubah)
+// ============================================================
+function resetAndLoadPromos() {
+    promoOffset = 0;
+    promoHasMore = true;
+    promoIsLoading = false;
+    const list = document.getElementById('listContainer');
+    list.innerHTML = '';
+    loadMorePromos();
+}
+
+async function loadMorePromos() {
+    if (promoIsLoading || !promoHasMore) return;
+    promoIsLoading = true;
+
+    const indicator = document.getElementById('loadMoreIndicator');
+    if (indicator) indicator.style.display = 'block';
+
+    const q = document.getElementById('searchInput').value.trim();
+
+    let query = _supabase
+        .from('export')
+        .select('Barcode, Name, Category, "Detail Category", Image, "Regular Store Promo", "Street Store Promo"');
+
+    if (currentPromo === 'All') {
+        // Tampilkan semua produk yang punya promo apapun (Regular ATAU Street)
+        query = query.or(
+            '"Regular Store Promo".not.is.null,"Street Store Promo".not.is.null'
+        );
+    } else if (currentPromoType === 'street') {
+        // Filter khusus Street Store Promo
+        query = query
+            .not('"Street Store Promo"', 'is', null)
+            .neq('"Street Store Promo"', '')
+            .neq('"Street Store Promo"', 'NORMAL PRICE')
+            .neq('"Street Store Promo"', 'NORMAL')
+            .eq('"Street Store Promo"', currentPromo);
+    } else {
+        // Filter Regular Store Promo (default)
+        query = query
+            .not('"Regular Store Promo"', 'is', null)
+            .neq('"Regular Store Promo"', '')
+            .neq('"Regular Store Promo"', 'NORMAL PRICE')
+            .neq('"Regular Store Promo"', 'NORMAL')
+            .eq('"Regular Store Promo"', currentPromo);
+    }
+
+    // Filter teks pencarian
+    if (q) {
+        query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%,"Detail Category".ilike.%${q}%`);
+    }
+
+    query = query.range(promoOffset, promoOffset + PAGE_SIZE - 1);
+
+    const { data, error } = await query;
+
+    if (!error && data) {
+        // Untuk mode "All", filter manual agar exclude NORMAL PRICE di kedua kolom
+        const filtered = currentPromo === 'All'
+            ? data.filter(p => {
+                const reg = p["Regular Store Promo"];
+                const str = p["Street Store Promo"];
+                const isRegPromo = reg && reg !== '' && reg !== 'NORMAL PRICE' && reg !== 'NORMAL';
+                const isStrPromo = str && str !== '' && str !== 'NORMAL PRICE' && str !== 'NORMAL';
+                return isRegPromo || isStrPromo;
+              })
+            : data;
+
+        if (data.length < PAGE_SIZE) promoHasMore = false;
+
+        const list = document.getElementById('listContainer');
+        const fragment = document.createDocumentFragment();
+
+        filtered.forEach(p => {
+            const regPromo = p["Regular Store Promo"];
+            const strPromo = p["Street Store Promo"];
+            const isRegPromo = regPromo && regPromo !== 'NORMAL PRICE' && regPromo !== 'NORMAL';
+            const isStrPromo = strPromo && strPromo !== 'NORMAL PRICE' && strPromo !== 'NORMAL';
+
+            // Badge promo: tampilkan sesuai yang relevan
+            let badgesHtml = '';
+            if (isRegPromo) {
+                badgesHtml += `<span style="display:inline-block; background:#fff3cd; color:#856404; font-size:10px; font-weight:800; padding:2px 8px; border-radius:6px; text-transform:uppercase; margin-right:4px;">${regPromo}</span>`;
+            }
+            if (isStrPromo) {
+                badgesHtml += `<span style="display:inline-block; background:#d4edda; color:#155724; font-size:10px; font-weight:800; padding:2px 8px; border-radius:6px; text-transform:uppercase;">🏪 ${strPromo}</span>`;
+            }
+
+            const div = document.createElement('div');
+            div.innerHTML = `
+                <div class="list-item" onclick="showDetail('${p.Barcode}')">
+                    <div class="list-img-box" onclick="event.stopPropagation(); openLightbox('${p.Image}')">
+                        <img src="${p.Image || ''}" onerror="this.src='https://placehold.co/150x150?text=MINISO'" loading="lazy">
+                    </div>
+                    <div class="list-info">
+                        <div class="list-cat">${p.Category || 'GENERAL'}</div>
+                        <div style="font-size: 10px; color: #888; margin-top: 1px; margin-bottom: 1px;">${p["Detail Category"] || ''}</div>
+                        <div class="list-name">${p.Name}</div>
+                        <div class="list-bc">${p.Barcode}</div>
+                        <div style="margin-top:4px;">${badgesHtml}</div>
+                    </div>
+                </div>
+            `;
+            fragment.appendChild(div.firstElementChild);
+        });
+
+        list.appendChild(fragment);
+        promoOffset += data.length;
+    }
+
+    promoIsLoading = false;
+    const indicator2 = document.getElementById('loadMoreIndicator');
+    if (indicator2) indicator2.style.display = 'none';
 }
 
 function openLightbox(src) {
@@ -516,40 +706,11 @@ function cleanPrice(val) {
     return parseInt(String(val).replace(/[^0-9]/g, "")) || 0;
 }
 
-document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 400); };
+document.getElementById("searchInput").oninput = () => { clearTimeout(timer); timer = setTimeout(() => { resetAndLoadPromos(); }, 400); };
 
+// search() masih diperlukan oleh AI Vision & scanner
 async function search() {
-    const q = document.getElementById("searchInput").value.trim();
-    const list = document.getElementById("listContainer");
-    if (q === "") {
-        list.innerHTML = "";
-        return;
-    }
-    // AUTO-DIRECT untuk 13 digit barcode
-    if (q.length === 13 && /^\d+$/.test(q)) {
-        showDetail(q);
-        list.innerHTML = "";
-        return;
-    }
-    let query = _supabase.from('export').select('Barcode, Name, Category, "Detail Category", Image');
-    if (currentCategory !== 'All') query = query.eq('Category', currentCategory);
-    query = query.or(`Name.ilike.%${q}%,Barcode.ilike.%${q}%,"Detail Category".ilike.%${q}%`);
-    let { data } = await query.limit(200);
-    if(data) {
-        list.innerHTML = data.map(p => `
-            <div class="list-item" onclick="showDetail('${p.Barcode}')">
-                <div class="list-img-box" onclick="event.stopPropagation(); openLightbox('${p.Image}')">
-                    <img src="${p.Image || ''}" onerror="this.src='https://placehold.co/150x150?text=MINISO'" loading="lazy">
-                </div>
-                <div class="list-info">
-                    <div class="list-cat">${p.Category || 'GENERAL'}</div>
-                    <div style="font-size: 10px; color: #888; margin-top: 1px; margin-bottom: 1px;">${p["Detail Category"] || ''}</div>
-                    <div class="list-name">${p.Name}</div>
-                    <div class="list-bc">${p.Barcode}</div>
-                </div>
-            </div>
-        `).join('');
-    }
+    resetAndLoadPromos();
 }
 
 // ============================================================
@@ -1242,9 +1403,30 @@ function back() {
     document.getElementById("btnBackFloating").style.display = "none";
     document.getElementById("searchInput").value = "";
     document.getElementById("scrollContainer").scrollTop = lastScroll;
+    // Jika list kosong (misal baru pertama kali masuk detail), reload promo
+    if (document.getElementById("listContainer").children.length === 0) {
+        resetAndLoadPromos();
+    }
 }
 
-// --- AI VISION (UPDATED: menggunakan find-barcode-by-image) ---
+// --- AI VISION ---
+// ── AI Vision: session cache & debounce guard ──────────────────
+const _aiCache = new Map();   // hash → {description, ts}
+const AI_CACHE_TTL = 5 * 60 * 1000;  // 5 menit
+let _aiCapturing = false;
+
+// Hash ringan untuk deteksi duplikat gambar
+function _quickHash(str) {
+    // Sample 200 titik merata dari string base64
+    const step = Math.max(1, Math.floor(str.length / 200));
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i += step) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0).toString(16);
+}
+
 document.getElementById('aiSearchBtn').onclick = async () => {
     document.getElementById('aiOverlay').style.display = 'flex';
     try {
@@ -1252,8 +1434,9 @@ document.getElementById('aiSearchBtn').onclick = async () => {
             video: { 
                 facingMode: "environment",
                 focusMode: { ideal: "continuous" },
-                width: { ideal: 1920 },
-                height: { ideal: 1080 }
+                // Resolusi lebih kecil — cukup untuk AI, hemat bandwidth
+                width: { ideal: 640 },
+                height: { ideal: 640 }
             } 
         });
         document.getElementById('aiVideo').srcObject = stream;
@@ -1264,57 +1447,85 @@ document.getElementById('aiSearchBtn').onclick = async () => {
 };
 
 async function captureAi() {
-    showAiLoading("Mencocokkan gambar dengan database...");
+    // Debounce: cegah double-tap / spam
+    if (_aiCapturing) return;
+    _aiCapturing = true;
+
+    showAiLoading("AI Sedang Memeriksa Barang...");
     
     const video = document.getElementById('aiVideo');
     const canvas = document.getElementById('aiCanvas');
-    
-    // Resize setengah untuk mempercepat
-    const scale = 0.5; 
-    canvas.width = video.videoWidth * scale;
-    canvas.height = video.videoHeight * scale;
-    
+
+    // Crop hanya area dalam viewfinder box (inset 20% dari setiap sisi)
+    // Ini yang benar-benar dilihat pengguna = lebih fokus, payload lebih kecil
+    const inset = 0.20;
+    const srcX = Math.floor(video.videoWidth  * inset);
+    const srcY = Math.floor(video.videoHeight * inset);
+    const srcW = Math.floor(video.videoWidth  * (1 - inset * 2));
+    const srcH = Math.floor(video.videoHeight * (1 - inset * 2));
+
+    // Target max 320px — cukup untuk AI baca teks & kenali karakter,
+    // token input ke model ~2.5x lebih sedikit vs 480px
+    const MAX_PX = 320;
+    const ratio  = Math.min(MAX_PX / srcW, MAX_PX / srcH, 1);
+    canvas.width  = Math.round(srcW * ratio);
+    canvas.height = Math.round(srcH * ratio);
+
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    // Kirim base64 lengkap dengan prefix (edge function menerima kedua format)
-    const base64Full = canvas.toDataURL('image/jpeg', 0.7);
-    
+    // imageSmoothingQuality 'high' agar teks tetap terbaca meski kecil
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(video, srcX, srcY, srcW, srcH, 0, 0, canvas.width, canvas.height);
+
+    // JPEG 0.65 — teks masih jelas, file ~30% lebih kecil dari 0.75
+    const base64 = canvas.toDataURL('image/jpeg', 0.65).split(',')[1];
+
+    // Cek cache client-side dulu (hemat 1 API call jika foto sama)
+    const hash = _quickHash(base64);
+    const cached = _aiCache.get(hash);
+    if (cached && (Date.now() - cached.ts) < AI_CACHE_TTL) {
+        console.log("AI Cache hit, skip server call");
+        document.getElementById("searchInput").value = cached.description;
+        closeAi();
+        search();
+        hideAiLoading();
+        _aiCapturing = false;
+        return;
+    }
+
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15000);
-        
-        const response = await fetch(`${SUPABASE_URL}/functions/v1/find-barcode-by-image`, {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-vision`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${SUPABASE_KEY}`
             },
-            body: JSON.stringify({ imageBase64: base64Full }),
-            signal: controller.signal
+            body: JSON.stringify({ image: base64 })
         });
-        clearTimeout(timeout);
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP ${response.status}`);
-        }
-        
+
+        if (!response.ok) throw new Error(`Server Error: ${response.status}`);
+
         const data = await response.json();
-        if (data.error) throw new Error(data.error);
-        
-        // Tutup overlay AI
+        const textDescription = data.description; 
+        console.log("AI Mendeteksi:", textDescription);
+
+        // Simpan ke cache client
+        _aiCache.set(hash, { description: textDescription, ts: Date.now() });
+        // Batasi ukuran cache
+        if (_aiCache.size > 20) {
+            _aiCache.delete(_aiCache.keys().next().value);
+        }
+
+        document.getElementById("searchInput").value = textDescription;
         closeAi();
+        search();
         
-        // Tampilkan detail produk berdasarkan barcode yang ditemukan
-        await showDetail(data.barcode);
-        
-    } catch (err) {
-        console.error("AI match error:", err);
-        alert("Produk tidak dikenali. Pastikan gambar jelas dan produk terdaftar di database.");
-        hideAiLoading();
-        closeAi();
+    } catch (e) {
+        console.error("Detail Error:", e);
+        alert("Gagal menganalisis gambar. Pastikan koneksi internet stabil.");
     }
+    hideAiLoading();
+    _aiCapturing = false;
 }
 
 function showAiLoading(msg) {
@@ -1344,7 +1555,7 @@ const prodTranslations = {
         labelPass: "KATA SANDI",
         btnMasuk: "MASUK",
         loginFail: "Login Gagal! Periksa data Anda.",
-        searchPlace: "Cari nama / barcode...",
+        searchPlace: "Cari...",
         tapHint: "ARAHKAN BARCODE • TAP UNTUK FOKUS",
         allCat: "SEMUA",
         regStoreLabel: "Toko Reguler",
@@ -1362,7 +1573,8 @@ const prodTranslations = {
         stockAvailableLabel: "Tersedia",
         stockOnOrderLabel: "On Order",
         stockRefreshBtn: "REFRESH STOCK",
-        stockStoreLabel: "STOCK TOKO"
+        stockStoreLabel: "STOCK TOKO",
+        aiDisclaimer: "Hasil AI mungkin tidak selalu akurat — harap verifikasi"
     },
     en: {
         loginTitle: "MMS-X",
@@ -1372,7 +1584,7 @@ const prodTranslations = {
         labelPass: "PASSWORD",
         btnMasuk: "LOGIN",
         loginFail: "Login Failed! Check your credentials.",
-        searchPlace: "Search name / barcode...",
+        searchPlace: "Search...",
         tapHint: "POINT AT BARCODE • TAP TO FOCUS",
         allCat: "ALL",
         regStoreLabel: "Regular Store",
@@ -1390,7 +1602,8 @@ const prodTranslations = {
         stockAvailableLabel: "Available",
         stockOnOrderLabel: "On Order",
         stockRefreshBtn: "REFRESH STOCK",
-        stockStoreLabel: "STOCK STORE"
+        stockStoreLabel: "STOCK STORE",
+        aiDisclaimer: "AI results may not always be accurate — please verify"
     },
     cn: {
         loginTitle: "MMS-X",
@@ -1400,7 +1613,7 @@ const prodTranslations = {
         labelPass: "密码",
         btnMasuk: "登录",
         loginFail: "登录失败！请检查您的信息。",
-        searchPlace: "搜索名称 / 条码...",
+        searchPlace: "Search...",
         tapHint: "对准条形码 • 轻触对焦",
         allCat: "全部",
         regStoreLabel: "常规店价格",
@@ -1418,7 +1631,8 @@ const prodTranslations = {
         stockAvailableLabel: "可用",
         stockOnOrderLabel: "在途",
         stockRefreshBtn: "刷新库存",
-        stockStoreLabel: "门店库存"
+        stockStoreLabel: "门店库存",
+        aiDisclaimer: "AI结果可能不准确，请务必核对"
     }
 };
 
@@ -1448,6 +1662,15 @@ function applyProductLanguage() {
     const allChip = document.querySelector('.cat-chip');
     if (allChip && allChip.innerText.toLowerCase() === 'all') {
         allChip.innerText = t.allCat;
+    }
+
+    const aiDisclaimer = document.getElementById('aiDisclaimerText');
+    if (aiDisclaimer && t.aiDisclaimer) {
+        // Keep the SVG icon, only update text node
+        const svgIcon = aiDisclaimer.querySelector('svg');
+        aiDisclaimer.innerHTML = '';
+        if (svgIcon) aiDisclaimer.appendChild(svgIcon);
+        aiDisclaimer.appendChild(document.createTextNode(' ' + t.aiDisclaimer));
     }
 }
 
